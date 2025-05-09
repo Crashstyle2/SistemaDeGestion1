@@ -1,5 +1,6 @@
 <?php
 require_once '../../config/Database.php';
+require_once '../../models/RegistroActividad.php';
 
 // Configurar el registro de errores en un archivo local
 ini_set('error_log', __DIR__ . '/error_log.txt');
@@ -36,18 +37,33 @@ try {
     $stmt->bindParam(':anio', $anio, PDO::PARAM_INT);
     $stmt->bindParam(':valor', $valor, PDO::PARAM_INT);
     
-    $stmt->execute();
+    if($stmt->execute()) {
+        // Solo intentar registrar la actividad si la operación principal fue exitosa
+        try {
+            $registro = new RegistroActividad($conn);
+            $registro->registrar(
+                isset($_SESSION['usuario_id']) ? $_SESSION['usuario_id'] : 0,
+                'reclamos_zonas',
+                'actualizar_reclamo',
+                "Actualización de reclamos - Zona: $zona, Mes: $mes/$anio, Valor: $valor"
+            );
+        } catch (Exception $logError) {
+            // Si falla el registro de actividad, solo lo registramos en el log
+            // pero no afectamos la operación principal
+            error_log("Error al registrar actividad: " . $logError->getMessage());
+        }
 
-    echo json_encode([
-        'success' => true,
-        'message' => 'Datos guardados correctamente',
-        'data' => [
-            'zona' => $zona,
-            'mes' => $mes,
-            'anio' => $anio,
-            'valor' => $valor
-        ]
-    ]);
+        echo json_encode([
+            'success' => true,
+            'message' => 'Datos guardados correctamente',
+            'data' => [
+                'zona' => $zona,
+                'mes' => $mes,
+                'anio' => $anio,
+                'valor' => $valor
+            ]
+        ]);
+    }
 
 } catch (Exception $e) {
     error_log('Error en guardar_valor.php: ' . $e->getMessage());

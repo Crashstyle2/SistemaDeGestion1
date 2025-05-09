@@ -150,3 +150,10 @@
     <script src="js/main.js"></script>
 </body>
 </html>
+
+<style>
+    #btnExportar, /* if using ID */
+    .btn-exportar /* if using class */ {
+        display: none;
+    }
+</style>

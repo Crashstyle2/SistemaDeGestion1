@@ -652,3 +652,120 @@ Stack trace:
 )
 
 [08-May-2025 18:54:50 UTC] Datos procesados - Zona: ZONA 1, Mes: 5, Año: 2025, Valor: 41
+[09-May-2025 13:43:17 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 2
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 41
+)
+
+[09-May-2025 13:43:17 UTC] Datos procesados - Zona: ZONA 2, Mes: 5, Año: 2025, Valor: 41
+[09-May-2025 13:52:13 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 3
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 59
+)
+
+[09-May-2025 13:52:13 UTC] Datos procesados - Zona: ZONA 3, Mes: 5, Año: 2025, Valor: 59
+[09-May-2025 13:52:13 UTC] PHP Warning:  Undefined array key "usuario_id" in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 49
+[09-May-2025 13:52:31 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 3
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 62
+)
+
+[09-May-2025 13:52:31 UTC] Datos procesados - Zona: ZONA 3, Mes: 5, Año: 2025, Valor: 62
+[09-May-2025 13:53:43 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 3
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 63
+)
+
+[09-May-2025 13:53:43 UTC] Datos procesados - Zona: ZONA 3, Mes: 5, Año: 2025, Valor: 63
+[09-May-2025 13:53:44 UTC] PHP Warning:  Undefined array key "usuario_id" in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[09-May-2025 13:53:51 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 4
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 81
+)
+
+[09-May-2025 13:53:51 UTC] Datos procesados - Zona: ZONA 4, Mes: 5, Año: 2025, Valor: 81
+[09-May-2025 13:53:51 UTC] PHP Warning:  Undefined array key "usuario_id" in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[09-May-2025 13:54:07 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 3
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 63
+)
+
+[09-May-2025 13:54:07 UTC] Datos procesados - Zona: ZONA 3, Mes: 5, Año: 2025, Valor: 63
+[09-May-2025 13:54:27 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 2
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 52
+)
+
+[09-May-2025 13:54:27 UTC] Datos procesados - Zona: ZONA 2, Mes: 5, Año: 2025, Valor: 52
+[09-May-2025 13:54:27 UTC] PHP Warning:  Undefined array key "usuario_id" in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[09-May-2025 13:54:39 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 4
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 82
+)
+
+[09-May-2025 13:54:39 UTC] Datos procesados - Zona: ZONA 4, Mes: 5, Año: 2025, Valor: 82
+[09-May-2025 13:54:39 UTC] PHP Warning:  Undefined array key "usuario_id" in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[09-May-2025 13:56:41 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 3
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 66
+)
+
+[09-May-2025 13:56:41 UTC] Datos procesados - Zona: ZONA 3, Mes: 5, Año: 2025, Valor: 66
+[09-May-2025 13:56:41 UTC] Error en registro de actividad: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`mantenimiento_ups`.`registro_actividades`, CONSTRAINT `registro_actividades_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`))
+[09-May-2025 13:57:03 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 4
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 88
+)
+
+[09-May-2025 13:57:03 UTC] Datos procesados - Zona: ZONA 4, Mes: 5, Año: 2025, Valor: 88
+[09-May-2025 13:57:03 UTC] Error en registro de actividad: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`mantenimiento_ups`.`registro_actividades`, CONSTRAINT `registro_actividades_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`))
+[09-May-2025 14:12:50 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 2
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 51
+)
+
+[09-May-2025 14:12:50 UTC] Datos procesados - Zona: ZONA 2, Mes: 5, Año: 2025, Valor: 51
+[09-May-2025 14:12:50 UTC] Error en registro de actividad: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`mantenimiento_ups`.`registro_actividades`, CONSTRAINT `registro_actividades_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`))
+[09-May-2025 14:50:16 UTC] Datos recibidos: Array
+(
+    [zona] => ALTO PARANA
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 56
+)
+
+[09-May-2025 14:50:16 UTC] Datos procesados - Zona: ALTO PARANA, Mes: 5, Año: 2025, Valor: 56
+[09-May-2025 14:50:16 UTC] Error en registro de actividad: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`mantenimiento_ups`.`registro_actividades`, CONSTRAINT `registro_actividades_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`))

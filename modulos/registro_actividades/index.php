@@ -70,7 +70,7 @@ $actividades = $registro->obtenerRegistros();
                             <?php foreach ($actividades as $actividad): ?>
                             <tr>
                                 <td><?php echo date('d/m/Y H:i:s', strtotime($actividad['fecha_hora'])); ?></td>
-                                <td><?php echo htmlspecialchars($actividad['nombre_usuario']); ?></td>
+                                <td><?php echo htmlspecialchars($actividad['nombre_usuario'] ?? 'Usuario Desconocido'); ?></td>
                                 <td><?php echo htmlspecialchars($actividad['modulo']); ?></td>
                                 <td><?php echo htmlspecialchars($actividad['accion']); ?></td>
                                 <td><?php echo htmlspecialchars($actividad['descripcion']); ?></td>

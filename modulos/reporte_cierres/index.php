@@ -417,11 +417,12 @@ $stmt = $reporte->obtenerReporteAnual($anio_actual, $meses_seleccionados);
                         </div>
                     </div>
                     
-                    <div class="col-md-3">
+                    <!-- Remove or comment out the button div -->
+                    <!--<div class="col-md-3">
                         <button class="btn btn-primary btn-block" onclick="generarReporteDetallado()">
                             <i class="fas fa-file-pdf mr-2"></i>Generar Reporte Detallado
                         </button>
-                    </div>
+                    </div>-->
                 </div>
             </div>
         </div>

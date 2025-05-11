@@ -39,6 +39,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $reporte->comentario_medida = $_POST['comentario_medida'];
 
     if($reporte->actualizar()) {
+        // Add activity logging
+        require_once '../../config/ActivityLogger.php';
+        ActivityLogger::logAccion(
+            $_SESSION['user_id'],
+            'reporte_cierres',
+            'editar',
+            "Reporte actualizado - ID: {$id}, Técnico ID: {$_POST['tecnico_id']}, Mes: {$_POST['mes']}, Año: {$_POST['anio']}"
+        );
+
         header("Location: index.php?mensaje=Registro actualizado exitosamente");
         exit;
     } else {

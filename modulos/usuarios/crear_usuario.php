@@ -22,6 +22,15 @@ if($_POST) {
     if($usuario->usernameExiste()) {
         $message = "Error: El nombre de usuario ya existe";
     } else if($usuario->crearUsuario()) {
+        // Agregar registro de actividad
+        require_once '../../config/ActivityLogger.php';
+        ActivityLogger::logAccion(
+            $_SESSION['user_id'],
+            'usuarios',
+            'crear',
+            "Usuario creado - Username: {$_POST['username']}, Nombre: {$_POST['nombre']}, Rol: {$_POST['rol']}"
+        );
+        
         $_SESSION['mensaje'] = "Usuario creado exitosamente";
         header("Location: index.php");
         exit;

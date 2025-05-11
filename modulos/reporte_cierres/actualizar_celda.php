@@ -32,8 +32,19 @@ try {
         $data['comentario']
     );
 
-    header('Content-Type: application/json');
-    echo json_encode(['success' => $result]);
+    if ($result) {
+        // Add activity logging
+        require_once '../../config/ActivityLogger.php';
+        ActivityLogger::logAccion(
+            $_SESSION['user_id'],
+            'reporte_cierres',
+            'actualizar_celda',
+            "Celda actualizada - Técnico: {$data['tecnico_id']}, Mes: {$data['mes']}, Año: {$data['anio']}, Cantidad: {$data['cantidad']}"
+        );
+
+        header('Content-Type: application/json');
+        echo json_encode(['success' => $result]);
+    }
 
 } catch (Exception $e) {
     header('Content-Type: application/json');

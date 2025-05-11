@@ -22,6 +22,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
         $result = $informe->eliminar($id);
         
         if($result) {
+            // Agregar registro de actividad
+            require_once '../../config/ActivityLogger.php';
+            ActivityLogger::logAccion(
+                $_SESSION['user_id'],
+                'informe_tecnico',
+                'eliminar',
+                "Informe técnico eliminado - ID: {$id}"
+            );
+            
             echo json_encode(['success' => true]);
         } else {
             echo json_encode(['success' => false, 'message' => 'No se encontró el informe o no se pudo eliminar']);

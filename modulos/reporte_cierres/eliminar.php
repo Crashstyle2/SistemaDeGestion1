@@ -17,6 +17,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'])) {
     $id = $_POST['id'];
     
     if ($reporte->eliminar($id)) {
+        // Add activity logging
+        require_once '../../config/ActivityLogger.php';
+        ActivityLogger::logAccion(
+            $_SESSION['user_id'],
+            'reporte_cierres',
+            'eliminar',
+            "Reporte eliminado - ID: {$id}"
+        );
+
         echo json_encode(['success' => true]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Error al eliminar el registro']);

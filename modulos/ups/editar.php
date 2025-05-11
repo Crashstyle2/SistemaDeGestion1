@@ -32,6 +32,15 @@ if($_POST) {
     $mantenimiento->estado_mantenimiento = $_POST['estado_mantenimiento'];
 
     if($mantenimiento->actualizar()) {
+        // Agregar registro de actividad
+        require_once '../../config/ActivityLogger.php';
+        ActivityLogger::logAccion(
+            $_SESSION['user_id'],
+            'ups',
+            'editar',
+            "UPS actualizado - Patrimonio: {$mantenimiento->patrimonio}, Sucursal: {$_POST['sucursal']}"
+        );
+
         header("Location: index.php");
         exit;
     }

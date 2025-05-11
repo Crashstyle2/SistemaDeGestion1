@@ -34,6 +34,15 @@ if($_POST) {
         $mantenimiento->observaciones = $_POST['observaciones'];
 
         if($mantenimiento->crear()) {
+            // Agregar registro de actividad
+            require_once '../../config/ActivityLogger.php';
+            ActivityLogger::logAccion(
+                $_SESSION['user_id'],
+                'ups',
+                'crear',
+                "Nuevo UPS registrado - Patrimonio: {$_POST['patrimonio']}, Sucursal: {$_POST['sucursal']}"
+            );
+            
             header("Location: index.php?mensaje=UPS registrado correctamente&tipo=success");
             exit;
         } else {

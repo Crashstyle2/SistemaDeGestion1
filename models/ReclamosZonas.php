@@ -33,7 +33,7 @@ class ReclamosZonas {
         return $stmt;
     }
 
-    public function actualizarReclamos($zona, $mes, $anio, $cantidad) {
+    public function actualizarReclamos($zona, $mes, $anio, $cantidad, $usuario_id = null) {
         try {
             $query = "INSERT INTO " . $this->table_name . " 
                      (zona, mes, anio, cantidad_reclamos) 
@@ -48,6 +48,17 @@ class ReclamosZonas {
             $stmt->bindParam(":cantidad", $cantidad);
 
             if($stmt->execute()) {
+                // Add activity logging only if user_id is provided
+                if ($usuario_id) {
+                    require_once __DIR__ . '/../config/ActivityLogger.php';
+                    ActivityLogger::logAccion(
+                        $usuario_id,
+                        'reclamos_zonas',
+                        'actualizar',
+                        "Actualización masiva - Zona: $zona, Mes: $mes/$anio, Cantidad: $cantidad"
+                    );
+                }
+
                 return ['success' => true, 'mensaje' => 'Datos actualizados correctamente'];
             }
             return ['success' => false, 'mensaje' => 'Error al actualizar los datos'];

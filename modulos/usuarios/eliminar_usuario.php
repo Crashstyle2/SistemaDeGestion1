@@ -14,6 +14,15 @@ if(isset($_GET['id'])) {
     $usuario = new Usuario($db);
     
     if($usuario->eliminar($_GET['id'])) {
+        // Agregar registro de actividad
+        require_once '../../config/ActivityLogger.php';
+        ActivityLogger::logAccion(
+            $_SESSION['user_id'],
+            'usuarios',
+            'eliminar',
+            "Usuario eliminado - ID: {$_GET['id']}"
+        );
+
         header("Location: index.php?mensaje=Usuario eliminado correctamente");
     } else {
         header("Location: index.php?error=Error al eliminar el usuario");

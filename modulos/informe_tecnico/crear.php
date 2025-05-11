@@ -27,12 +27,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $informe->tecnico_id = $_SESSION['user_id'];  // Asignamos el ID del técnico actual
 
     if($informe->crear()) {
-        // Registrar la actividad
-        $registro->registrar(
+        // Registrar la actividad con el nuevo formato
+        require_once '../../config/ActivityLogger.php';
+        ActivityLogger::logAccion(
             $_SESSION['user_id'],
-            'Informe Técnico',
-            'Creación',
-            'Se creó un nuevo informe técnico'
+            'informe_tecnico',
+            'crear',
+            "Nuevo informe técnico creado - Local: {$_POST['local']}, Patrimonio: {$_POST['patrimonio']}"
         );
         
         header("Location: index.php?mensaje=Informe creado exitosamente");

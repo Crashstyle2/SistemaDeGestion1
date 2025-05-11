@@ -23,6 +23,15 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     $usuario->rol = $_POST['rol'];
     
     if($usuario->actualizarUsuario()) {
+        // Agregar registro de actividad
+        require_once '../../config/ActivityLogger.php';
+        ActivityLogger::logAccion(
+            $_SESSION['user_id'],
+            'usuarios',
+            'editar',
+            "Usuario actualizado - Username: {$_POST['username']}, Nombre: {$_POST['nombre']}, Rol: {$_POST['rol']}"
+        );
+
         $_SESSION['mensaje'] = "Usuario actualizado correctamente";
         header("Location: index.php");
         exit;

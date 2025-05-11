@@ -789,3 +789,171 @@ Stack trace:
 
 [11-May-2025 00:03:12 UTC] Datos procesados - Zona: ZONA 3, Mes: 5, Año: 2025, Valor: 67
 [11-May-2025 00:03:12 UTC] Error en registro de actividad: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`mantenimiento_ups`.`registro_actividades`, CONSTRAINT `registro_actividades_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`))
+[11-May-2025 12:13:17 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 4
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 87
+)
+
+[11-May-2025 12:13:17 UTC] Datos procesados - Zona: ZONA 4, Mes: 5, Año: 2025, Valor: 87
+[11-May-2025 12:13:17 UTC] Error: usuario_id está vacío
+[11-May-2025 12:44:37 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 3
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 80
+)
+
+[11-May-2025 12:44:37 UTC] Datos procesados - Zona: ZONA 3, Mes: 5, Año: 2025, Valor: 80
+[11-May-2025 12:44:37 UTC] PHP Warning:  Undefined global variable $_SESSION in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[11-May-2025 12:44:37 UTC] PHP Warning:  Trying to access array offset on value of type null in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[11-May-2025 12:44:37 UTC] ActivityLogger::logAccion llamado con: {"usuario_id":null,"modulo":"reclamos_zonas","accion":"actualizar","detalles":"Actualizaci\u00f3n de reclamos - Zona: ZONA 3, Mes: 5\/2025, Cantidad: 80"}
+[11-May-2025 12:44:37 UTC] Nueva instancia de ActivityLogger creada
+[11-May-2025 12:44:37 UTC] Error: ID de usuario inválido - NULL
+[11-May-2025 12:44:37 UTC] Error crítico en ActivityLogger: ID de usuario inválido
+[11-May-2025 12:44:37 UTC] Stack trace: #0 C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php(47): ActivityLogger::logAccion(NULL, 'reclamos_zonas', 'actualizar', 'Actualizaci\xC3\xB3n ...')
+#1 {main}
+[11-May-2025 12:44:43 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 4
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 87
+)
+
+[11-May-2025 12:44:43 UTC] Datos procesados - Zona: ZONA 4, Mes: 5, Año: 2025, Valor: 87
+[11-May-2025 12:44:43 UTC] PHP Warning:  Undefined global variable $_SESSION in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[11-May-2025 12:44:43 UTC] PHP Warning:  Trying to access array offset on value of type null in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[11-May-2025 12:44:43 UTC] ActivityLogger::logAccion llamado con: {"usuario_id":null,"modulo":"reclamos_zonas","accion":"actualizar","detalles":"Actualizaci\u00f3n de reclamos - Zona: ZONA 4, Mes: 5\/2025, Cantidad: 87"}
+[11-May-2025 12:44:43 UTC] Nueva instancia de ActivityLogger creada
+[11-May-2025 12:44:43 UTC] Error: ID de usuario inválido - NULL
+[11-May-2025 12:44:43 UTC] Error crítico en ActivityLogger: ID de usuario inválido
+[11-May-2025 12:44:43 UTC] Stack trace: #0 C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php(47): ActivityLogger::logAccion(NULL, 'reclamos_zonas', 'actualizar', 'Actualizaci\xC3\xB3n ...')
+#1 {main}
+[11-May-2025 12:45:08 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 3
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 80
+)
+
+[11-May-2025 12:45:08 UTC] Datos procesados - Zona: ZONA 3, Mes: 5, Año: 2025, Valor: 80
+[11-May-2025 12:45:08 UTC] PHP Warning:  Undefined global variable $_SESSION in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[11-May-2025 12:45:08 UTC] PHP Warning:  Trying to access array offset on value of type null in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[11-May-2025 12:45:08 UTC] ActivityLogger::logAccion llamado con: {"usuario_id":null,"modulo":"reclamos_zonas","accion":"actualizar","detalles":"Actualizaci\u00f3n de reclamos - Zona: ZONA 3, Mes: 5\/2025, Cantidad: 80"}
+[11-May-2025 12:45:08 UTC] Nueva instancia de ActivityLogger creada
+[11-May-2025 12:45:08 UTC] Error: ID de usuario inválido - NULL
+[11-May-2025 12:45:08 UTC] Error crítico en ActivityLogger: ID de usuario inválido
+[11-May-2025 12:45:08 UTC] Stack trace: #0 C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php(47): ActivityLogger::logAccion(NULL, 'reclamos_zonas', 'actualizar', 'Actualizaci\xC3\xB3n ...')
+#1 {main}
+[11-May-2025 12:45:21 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 3
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 67
+)
+
+[11-May-2025 12:45:21 UTC] Datos procesados - Zona: ZONA 3, Mes: 5, Año: 2025, Valor: 67
+[11-May-2025 12:45:21 UTC] PHP Warning:  Undefined global variable $_SESSION in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[11-May-2025 12:45:21 UTC] PHP Warning:  Trying to access array offset on value of type null in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[11-May-2025 12:45:21 UTC] ActivityLogger::logAccion llamado con: {"usuario_id":null,"modulo":"reclamos_zonas","accion":"actualizar","detalles":"Actualizaci\u00f3n de reclamos - Zona: ZONA 3, Mes: 5\/2025, Cantidad: 67"}
+[11-May-2025 12:45:21 UTC] Nueva instancia de ActivityLogger creada
+[11-May-2025 12:45:21 UTC] Error: ID de usuario inválido - NULL
+[11-May-2025 12:45:21 UTC] Error crítico en ActivityLogger: ID de usuario inválido
+[11-May-2025 12:45:21 UTC] Stack trace: #0 C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php(47): ActivityLogger::logAccion(NULL, 'reclamos_zonas', 'actualizar', 'Actualizaci\xC3\xB3n ...')
+#1 {main}
+[11-May-2025 12:45:32 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 4
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 88
+)
+
+[11-May-2025 12:45:32 UTC] Datos procesados - Zona: ZONA 4, Mes: 5, Año: 2025, Valor: 88
+[11-May-2025 12:45:32 UTC] PHP Warning:  Undefined global variable $_SESSION in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[11-May-2025 12:45:32 UTC] PHP Warning:  Trying to access array offset on value of type null in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[11-May-2025 12:45:32 UTC] ActivityLogger::logAccion llamado con: {"usuario_id":null,"modulo":"reclamos_zonas","accion":"actualizar","detalles":"Actualizaci\u00f3n de reclamos - Zona: ZONA 4, Mes: 5\/2025, Cantidad: 88"}
+[11-May-2025 12:45:32 UTC] Nueva instancia de ActivityLogger creada
+[11-May-2025 12:45:32 UTC] Error: ID de usuario inválido - NULL
+[11-May-2025 12:45:32 UTC] Error crítico en ActivityLogger: ID de usuario inválido
+[11-May-2025 12:45:32 UTC] Stack trace: #0 C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php(47): ActivityLogger::logAccion(NULL, 'reclamos_zonas', 'actualizar', 'Actualizaci\xC3\xB3n ...')
+#1 {main}
+[11-May-2025 12:45:51 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 4
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 88
+)
+
+[11-May-2025 12:45:51 UTC] Datos procesados - Zona: ZONA 4, Mes: 5, Año: 2025, Valor: 88
+[11-May-2025 12:45:51 UTC] PHP Warning:  Undefined global variable $_SESSION in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[11-May-2025 12:45:51 UTC] PHP Warning:  Trying to access array offset on value of type null in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[11-May-2025 12:45:51 UTC] ActivityLogger::logAccion llamado con: {"usuario_id":null,"modulo":"reclamos_zonas","accion":"actualizar","detalles":"Actualizaci\u00f3n de reclamos - Zona: ZONA 4, Mes: 5\/2025, Cantidad: 88"}
+[11-May-2025 12:45:51 UTC] Nueva instancia de ActivityLogger creada
+[11-May-2025 12:45:51 UTC] Error: ID de usuario inválido - NULL
+[11-May-2025 12:45:51 UTC] Error crítico en ActivityLogger: ID de usuario inválido
+[11-May-2025 12:45:51 UTC] Stack trace: #0 C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php(47): ActivityLogger::logAccion(NULL, 'reclamos_zonas', 'actualizar', 'Actualizaci\xC3\xB3n ...')
+#1 {main}
+[11-May-2025 12:45:56 UTC] Datos recibidos: Array
+(
+    [zona] => ITAPUA
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 100
+)
+
+[11-May-2025 12:45:56 UTC] Datos procesados - Zona: ITAPUA, Mes: 5, Año: 2025, Valor: 100
+[11-May-2025 12:45:56 UTC] PHP Warning:  Undefined global variable $_SESSION in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[11-May-2025 12:45:56 UTC] PHP Warning:  Trying to access array offset on value of type null in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[11-May-2025 12:45:56 UTC] ActivityLogger::logAccion llamado con: {"usuario_id":null,"modulo":"reclamos_zonas","accion":"actualizar","detalles":"Actualizaci\u00f3n de reclamos - Zona: ITAPUA, Mes: 5\/2025, Cantidad: 100"}
+[11-May-2025 12:45:56 UTC] Nueva instancia de ActivityLogger creada
+[11-May-2025 12:45:56 UTC] Error: ID de usuario inválido - NULL
+[11-May-2025 12:45:56 UTC] Error crítico en ActivityLogger: ID de usuario inválido
+[11-May-2025 12:45:56 UTC] Stack trace: #0 C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php(47): ActivityLogger::logAccion(NULL, 'reclamos_zonas', 'actualizar', 'Actualizaci\xC3\xB3n ...')
+#1 {main}
+[11-May-2025 12:47:21 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 3
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 88
+)
+
+[11-May-2025 12:47:21 UTC] Datos procesados - Zona: ZONA 3, Mes: 5, Año: 2025, Valor: 88
+[11-May-2025 12:47:21 UTC] PHP Warning:  Undefined global variable $_SESSION in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[11-May-2025 12:47:21 UTC] PHP Warning:  Trying to access array offset on value of type null in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 44
+[11-May-2025 12:47:21 UTC] ActivityLogger::logAccion llamado con: {"usuario_id":null,"modulo":"reclamos_zonas","accion":"actualizar","detalles":"Actualizaci\u00f3n de reclamos - Zona: ZONA 3, Mes: 5\/2025, Cantidad: 88"}
+[11-May-2025 12:47:21 UTC] Nueva instancia de ActivityLogger creada
+[11-May-2025 12:47:21 UTC] Error: ID de usuario inválido - NULL
+[11-May-2025 12:47:21 UTC] Error crítico en ActivityLogger: ID de usuario inválido
+[11-May-2025 12:47:21 UTC] Stack trace: #0 C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php(47): ActivityLogger::logAccion(NULL, 'reclamos_zonas', 'actualizar', 'Actualizaci\xC3\xB3n ...')
+#1 {main}
+[11-May-2025 12:47:21 UTC] PHP Warning:  Undefined variable $reclamos in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 73
+[11-May-2025 12:47:21 UTC] PHP Fatal error:  Uncaught Error: Call to a member function actualizarReclamos() on null in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php:73
+Stack trace:
+#0 {main}
+  thrown in C:\laragon\www\MantenimientodeUPS\modulos\reclamos_zonas\guardar_valor.php on line 73
+[11-May-2025 12:48:37 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 3
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 89
+)
+
+[11-May-2025 12:48:37 UTC] ActivityLogger::logAccion llamado con: {"usuario_id":1,"modulo":"reclamos_zonas","accion":"actualizar","detalles":"Actualizaci\u00f3n masiva - Zona: ZONA 3, Mes: 5\/2025, Cantidad: 89"}
+[11-May-2025 12:48:37 UTC] Nueva instancia de ActivityLogger creada
+[11-May-2025 12:48:37 UTC] IP detectada: ::1
+[11-May-2025 12:48:37 UTC] Iniciando registro de actividad...
+[11-May-2025 12:48:37 UTC] Base de datos actual: mantenimiento_ups
+[11-May-2025 12:48:37 UTC] Columnas en la tabla: ["id","usuario_id","accion","descripcion","modulo","fecha_hora","ip_address"]
+[11-May-2025 12:48:37 UTC] Preparando para ejecutar con valores: {"tabla":"registro_actividades","usuario_id":1,"modulo":"reclamos_zonas","accion":"actualizar","descripcion":"Actualizaci\u00f3n masiva - Zona: ZONA 3, Mes: 5\/2025, Cantidad: 89","ip":"::1"}
+[11-May-2025 12:48:37 UTC] Registro insertado correctamente. ID: 181
+[11-May-2025 12:48:37 UTC] Resultado del registro: Exitoso

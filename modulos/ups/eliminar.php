@@ -16,6 +16,15 @@ if(isset($_GET['id'])) {
     $mantenimiento->patrimonio = $_GET['id'];
     
     if($mantenimiento->eliminar()) {
+        // Agregar registro de actividad
+        require_once '../../config/ActivityLogger.php';
+        ActivityLogger::logAccion(
+            $_SESSION['user_id'],
+            'ups',
+            'eliminar',
+            "UPS eliminado - Patrimonio: {$_GET['id']}"
+        );
+
         header("Location: index.php");
         exit;
     } else {

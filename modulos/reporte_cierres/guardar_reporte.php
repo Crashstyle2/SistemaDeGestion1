@@ -24,7 +24,18 @@ try {
         $_POST['cod_tec'] ?? ''
     );
 
-    echo json_encode($result);
+    if ($result['success']) {
+        // Add activity logging
+        require_once '../../config/ActivityLogger.php';
+        ActivityLogger::logAccion(
+            $_SESSION['user_id'],
+            'reporte_cierres',
+            'crear',
+            "Nuevo reporte creado - Técnico ID: {$_POST['tecnico_id']}, Mes: {$_POST['mes']}, Año: {$_POST['anio']}, Cantidad: {$_POST['cantidad']}"
+        );
+        
+        echo json_encode($result);
+    }
 
 } catch (Exception $e) {
     error_log("Error en guardar_reporte.php: " . $e->getMessage());

@@ -67,6 +67,15 @@ try {
     $resultado = $stmt->execute([$zona, $mes, $anio, $cantidad]);
 
     if ($resultado) {
+        // Add activity logging
+        require_once '../../config/ActivityLogger.php';
+        ActivityLogger::logAccion(
+            $_SESSION['user_id'],
+            'reclamos_zonas',
+            'crear',
+            "Nuevo reclamo registrado - Zona: $zona, Mes: $mes/$anio, Cantidad: $cantidad"
+        );
+
         echo json_encode(['success' => true, 'mensaje' => 'Registro guardado correctamente']);
     } else {
         throw new Exception('Error al guardar en la base de datos');

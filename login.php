@@ -16,7 +16,17 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     if($usuario->validarCredenciales()) {
         $_SESSION['user_id'] = $usuario->id;
         $_SESSION['user_rol'] = $usuario->rol;
-        $_SESSION['nombre'] = $usuario->nombre;  // Esta es la línea importante
+        $_SESSION['nombre'] = $usuario->nombre;
+
+        // Agregar registro de actividad
+        require_once 'config/ActivityLogger.php';
+        ActivityLogger::logAccion(
+            $usuario->id,
+            'autenticacion',
+            'login',
+            'Inicio de sesión exitoso - Usuario: ' . $usuario->username
+        );
+
         header("Location: dashboard.php");
         exit;
     } else {

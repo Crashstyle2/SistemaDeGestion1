@@ -7,6 +7,7 @@ $database = new Database();
 $db = $database->getConnection();
 $registro = new RegistroActividad($db);
 
+// Obtener registros de la base de datos
 $actividades = $registro->obtenerRegistros();
 ?>
 
@@ -70,10 +71,16 @@ $actividades = $registro->obtenerRegistros();
                             <?php foreach ($actividades as $actividad): ?>
                             <tr>
                                 <td><?php echo date('d/m/Y H:i:s', strtotime($actividad['fecha_hora'])); ?></td>
-                                <td><?php echo htmlspecialchars($actividad['nombre_usuario'] ?? 'Usuario Desconocido'); ?></td>
-                                <td><?php echo htmlspecialchars($actividad['modulo']); ?></td>
-                                <td><?php echo htmlspecialchars($actividad['accion']); ?></td>
-                                <td><?php echo htmlspecialchars($actividad['descripcion']); ?></td>
+                                <td><?php 
+                                    $query = "SELECT nombre FROM usuarios WHERE id = ?";
+                                    $stmt = $db->prepare($query);
+                                    $stmt->execute([$actividad['usuario_id']]);
+                                    $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+                                    echo htmlspecialchars($usuario['nombre'] ?? 'Usuario Desconocido');
+                                ?></td>
+                                <td><?php echo htmlspecialchars(ucfirst($actividad['modulo'])); ?></td>
+                                <td><?php echo htmlspecialchars(ucfirst($actividad['accion'])); ?></td>
+                                <td class="text-wrap"><?php echo htmlspecialchars($actividad['descripcion']); ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>

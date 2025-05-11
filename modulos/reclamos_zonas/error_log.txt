@@ -769,3 +769,23 @@ Stack trace:
 
 [09-May-2025 14:50:16 UTC] Datos procesados - Zona: ALTO PARANA, Mes: 5, Año: 2025, Valor: 56
 [09-May-2025 14:50:16 UTC] Error en registro de actividad: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`mantenimiento_ups`.`registro_actividades`, CONSTRAINT `registro_actividades_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`))
+[10-May-2025 23:37:31 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 1
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 42
+)
+
+[10-May-2025 23:37:31 UTC] Datos procesados - Zona: ZONA 1, Mes: 5, Año: 2025, Valor: 42
+[10-May-2025 23:37:31 UTC] Error al registrar actividad: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`mantenimiento_ups`.`registro_actividades`, CONSTRAINT `registro_actividades_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`))
+[11-May-2025 00:03:12 UTC] Datos recibidos: Array
+(
+    [zona] => ZONA 3
+    [mes] => 5
+    [anio] => 2025
+    [valor] => 67
+)
+
+[11-May-2025 00:03:12 UTC] Datos procesados - Zona: ZONA 3, Mes: 5, Año: 2025, Valor: 67
+[11-May-2025 00:03:12 UTC] Error en registro de actividad: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`mantenimiento_ups`.`registro_actividades`, CONSTRAINT `registro_actividades_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`))

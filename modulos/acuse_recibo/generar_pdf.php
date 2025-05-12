@@ -29,14 +29,11 @@ if(!$row) {
 
 class MYPDF extends TCPDF {
     public function Header() {
-        $this->SetFont('helvetica', 'B', 15);
-        $this->Cell(0, 15, 'Acuse de Recibo', 0, false, 'C', 0, '', 0, false, 'M', 'M');
-    }
-
-    public function Footer() {
-        $this->SetY(-15);
-        $this->SetFont('helvetica', 'I', 8);
-        $this->Cell(0, 10, 'Página '.$this->getAliasNumPage().'/'.$this->getAliasNbPages(), 0, false, 'C', 0, '', 0, false, 'T', 'M');
+        // Título con mejor diseño
+        $this->SetFont('helvetica', 'B', 24);
+        $this->SetTextColor(41, 128, 185);
+        $this->Cell(0, 20, 'Acuse de Recibo', 0, false, 'C');
+        $this->Ln(25);
     }
 }
 
@@ -52,60 +49,89 @@ $pdf->SetFooterMargin(PDF_MARGIN_FOOTER);
 
 $pdf->AddPage();
 
-$pdf->SetFont('helvetica', '', 12);
-
-// Información General
-$html = '<h3>Información General</h3>
-<table cellspacing="0" cellpadding="5" border="1">
+// Estilo para la tabla de información
+$html = '
+<style>
+    table {
+        border-collapse: collapse;
+        margin-top: 20px;
+        width: 100%;
+    }
+    th, td {
+        border: 1px solid #BDC3C7;
+        padding: 12px;
+    }
+    th {
+        background-color: #3498DB;
+        color: white;
+        font-weight: bold;
+    }
+    td {
+        background-color: #FFFFFF;
+    }
+    h3 {
+        color: #2980B9;
+        border-bottom: 2px solid #3498DB;
+        padding-bottom: 5px;
+        margin-bottom: 20px;
+    }
+</style>
+<h3>Información General</h3>
+<table>
     <tr>
-        <td width="30%"><strong>Local:</strong></td>
+        <th width="30%" style="background-color: #3498DB; color: white;">Local</th>
         <td width="70%">'.htmlspecialchars($row['local']).'</td>
     </tr>
     <tr>
-        <td><strong>Sector:</strong></td>
+        <th style="background-color: #3498DB; color: white;">Sector</th>
         <td>'.htmlspecialchars($row['sector']).'</td>
     </tr>
     <tr>
-        <td><strong>Documento:</strong></td>
+        <th style="background-color: #3498DB; color: white;">Documento</th>
         <td>'.htmlspecialchars($row['documento']).'</td>
     </tr>
     <tr>
-        <td><strong>Jefe/Encargado:</strong></td>
+        <th style="background-color: #3498DB; color: white;">Jefe/Encargado</th>
         <td>'.htmlspecialchars($row['jefe_encargado']).'</td>
     </tr>
     <tr>
-        <td><strong>Fecha:</strong></td>
+        <th style="background-color: #3498DB; color: white;">Fecha</th>
         <td>'.date('d/m/Y H:i', strtotime($row['fecha_creacion'])).'</td>
     </tr>
     <tr>
-        <td><strong>Técnico:</strong></td>
+        <th style="background-color: #3498DB; color: white;">Técnico</th>
         <td>'.htmlspecialchars($row['nombre_tecnico']).'</td>
     </tr>
 </table>';
 
 $pdf->writeHTML($html, true, false, true, false, '');
 
-// Observaciones
+// Observaciones con mejor formato
 $pdf->AddPage();
-$pdf->SetFont('helvetica', 'B', 12);
-$pdf->Cell(0, 10, 'Observaciones:', 0, 1);
-$pdf->SetFont('helvetica', '', 12);
-$pdf->writeHTML(nl2br(htmlspecialchars($row['observaciones'])), true, false, true, false, '');
+$html = '
+<h3 style="color: #2980B9; border-bottom: 2px solid #3498DB; padding-bottom: 5px;">Observaciones</h3>
+<div style="background-color: #F8F9F9; border: 1px solid #BDC3C7; border-radius: 5px; padding: 15px; margin-top: 10px;">
+    '.nl2br(htmlspecialchars($row['observaciones'])).'
+</div>';
+$pdf->writeHTML($html, true, false, true, false, '');
 
-// Foto
+// Foto con marco y título
 if($row['foto']) {
     $pdf->AddPage();
-    $pdf->SetFont('helvetica', 'B', 12);
-    $pdf->Cell(0, 10, 'Foto del Documento:', 0, 1);
-    $pdf->Image('@'.base64_decode($row['foto']), '', '', 150, 150, '', '', 'T', false, 300, '', false, false, 1, false, false, false);
+    $html = '<h3 style="color: #2980B9; border-bottom: 2px solid #3498DB; padding-bottom: 5px;">Foto del Documento</h3>';
+    $pdf->writeHTML($html, true, false, true, false, '');
+    $pdf->Image('@'.base64_decode($row['foto']), 30, '', 150, 150, '', '', 'T', false, 300, '', false, false, 1, true, false, false);
 }
 
-// Firma
+// Firma con diseño mejorado
 if($row['firma_digital']) {
     $pdf->AddPage();
-    $pdf->SetFont('helvetica', 'B', 12);
-    $pdf->Cell(0, 10, 'Firma Digital:', 0, 1);
-    $pdf->Image($row['firma_digital'], '', '', 150, 50, '', '', 'T', false, 300, '', false, false, 1, false, false, false);
+    $html = '
+    <h3 style="color: #2980B9; border-bottom: 2px solid #3498DB; padding-bottom: 5px;">Firma Digital</h3>
+    <div style="text-align: center; margin-top: 20px;">';
+    $pdf->writeHTML($html, true, false, true, false, '');
+    $pdf->Image($row['firma_digital'], 30, null, 150, 50, '', '', 'T', false, 300, '', false, false, 1, false, false, false);
+    $pdf->writeHTML('<div style="border-top: 1px solid #BDC3C7; margin-top: 60px; padding-top: 5px; text-align: center; color: #7F8C8D;">Firma del Encargado</div>', true, false, true, false, '');
 }
 
 $pdf->Output('acuse_recibo_'.$row['id'].'.pdf', 'I');

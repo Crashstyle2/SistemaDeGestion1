@@ -174,5 +174,17 @@ if(!$informeData) {
             </div>
         </div>
     </div>
+<?php
+$foto_ruta = '../../uploads/informe_tecnico/fotos/' . $_SESSION['foto_informe'];
+if(isset($_SESSION['foto_informe']) && file_exists($foto_ruta)): ?>
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5>Foto del Trabajo Realizado</h5>
+        </div>
+        <div class="card-body text-center">
+            <img src="<?php echo $foto_ruta; ?>" class="img-fluid" style="max-height: 400px;">
+        </div>
+    </div>
+<?php endif; ?>
 </body>
 </html>

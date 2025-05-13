@@ -346,6 +346,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </script>
 
             <div class="form-group">
+                <label for="foto">Foto del trabajo realizado (opcional)</label>
+                <input type="file" class="form-control-file" id="foto" name="foto" accept="image/*">
+            </div>
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save"></i> Guardar Informe
                 </button>

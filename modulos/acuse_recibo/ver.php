@@ -25,6 +25,12 @@ if(!$row) {
     header("Location: index.php");
     exit;
 }
+
+// Verificar que el usuario tenga acceso a este acuse
+if($_SESSION['user_rol'] === 'tecnico' && $row['tecnico_id'] !== $_SESSION['user_id']) {
+    header("Location: index.php");
+    exit;
+}
 ?>
 
 <!DOCTYPE html>

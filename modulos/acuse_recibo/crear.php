@@ -37,6 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $acuse->jefe_encargado = $_POST['jefe_encargado'];
     $acuse->observaciones = $_POST['observaciones'];
     $acuse->firma_digital = $_POST['firma'];
+    // Asignar el ID del técnico actual
     $acuse->tecnico_id = $_SESSION['user_id'];
 
     if($acuse->crear()) {

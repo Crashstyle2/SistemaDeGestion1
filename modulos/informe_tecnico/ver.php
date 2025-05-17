@@ -161,6 +161,17 @@ if(!$informeData) {
             </div>
             <?php endif; ?>
 
+            <?php if(!empty($informeData['foto_trabajo'])): ?>
+            <div class="mt-4">
+                <h4 class="observaciones-title">Foto del Trabajo Realizado</h4>
+                <div class="text-center" style="margin: 20px;">
+                    <img src="data:image/jpeg;base64,<?php echo $informeData['foto_trabajo']; ?>" 
+                         class="img-fluid" 
+                         style="max-height: 400px; border: 1px solid #ddd; padding: 5px; border-radius: 5px;">
+                </div>
+            </div>
+            <?php endif; ?>
+
             <div class="action-buttons" style="margin-top: 40px;">
                 <form action="generar_pdf.php" method="GET" style="display: inline;">
                     <input type="hidden" name="id" value="<?php echo $_GET['id']; ?>">
@@ -174,17 +185,5 @@ if(!$informeData) {
             </div>
         </div>
     </div>
-<?php
-$foto_ruta = '../../uploads/informe_tecnico/fotos/' . $_SESSION['foto_informe'];
-if(isset($_SESSION['foto_informe']) && file_exists($foto_ruta)): ?>
-    <div class="card mt-4">
-        <div class="card-header">
-            <h5>Foto del Trabajo Realizado</h5>
-        </div>
-        <div class="card-body text-center">
-            <img src="<?php echo $foto_ruta; ?>" class="img-fluid" style="max-height: 400px;">
-        </div>
-    </div>
-<?php endif; ?>
 </body>
 </html>

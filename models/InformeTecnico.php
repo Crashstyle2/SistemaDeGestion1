@@ -22,32 +22,46 @@ class InformeTecnico {
         $this->conn = $db;
     }
 
-    public function crear() {
-        $query = "INSERT INTO " . $this->table_name . " 
-                (local, sector, equipo_asistido, orden_trabajo, patrimonio, 
-                jefe_turno, observaciones, firma_digital, tecnico_id) 
-                VALUES 
-                (:local, :sector, :equipo_asistido, :orden_trabajo, :patrimonio, 
-                :jefe_turno, :observaciones, :firma_digital, :tecnico_id)";
-
-        try {
-            $stmt = $this->conn->prepare($query);
-
-            // Sanitizar y vincular valores
-            $stmt->bindParam(":local", $this->local);
-            $stmt->bindParam(":sector", $this->sector);
-            $stmt->bindParam(":equipo_asistido", $this->equipo_asistido);
-            $stmt->bindParam(":orden_trabajo", $this->orden_trabajo);
-            $stmt->bindParam(":patrimonio", $this->patrimonio);
-            $stmt->bindParam(":jefe_turno", $this->jefe_turno);
-            $stmt->bindParam(":observaciones", $this->observaciones);
-            $stmt->bindParam(":firma_digital", $this->firma_digital);
-            $stmt->bindParam(":tecnico_id", $this->tecnico_id);
-
-            return $stmt->execute();
-        } catch(PDOException $e) {
-            return false;
-        }
+    // En el método crear()
+    public function crear($data) {
+        $query = "INSERT INTO informe_tecnico (
+            local, 
+            sector, 
+            equipo_asistido, 
+            orden_trabajo, 
+            patrimonio, 
+            jefe_turno, 
+            observaciones, 
+            firma_digital, 
+            tecnico_id,
+            foto_trabajo
+        ) VALUES (
+            :local, 
+            :sector, 
+            :equipo, 
+            :orden, 
+            :patrimonio, 
+            :jefe, 
+            :observaciones, 
+            :firma, 
+            :tecnico_id,
+            :foto
+        )";
+    
+        $stmt = $this->conn->prepare($query);
+        
+        return $stmt->execute([
+            ':local' => $data['local'],
+            ':sector' => $data['sector'],
+            ':equipo' => $data['equipo_asistido'],
+            ':orden' => $data['orden_trabajo'],
+            ':patrimonio' => $data['patrimonio'],
+            ':jefe' => $data['jefe_turno'],
+            ':observaciones' => $data['observaciones'],
+            ':firma' => $data['firma_digital'],
+            ':tecnico_id' => $data['tecnico_id'],
+            ':foto' => $data['foto_trabajo']
+        ]);
     }
 
     public function obtenerTodos() {

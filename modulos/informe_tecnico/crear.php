@@ -15,6 +15,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $informe = new InformeTecnico($db);
     $registro = new RegistroActividad($db);
 
+    // Procesar la foto si existe
+    $foto_base64 = null;
+    if(isset($_FILES['foto']) && $_FILES['foto']['error'] == 0) {
+        $foto_base64 = base64_encode(file_get_contents($_FILES['foto']['tmp_name']));
+    }
+
     // Asignar valores
     $informe->local = $_POST['local'];
     $informe->sector = $_POST['sector'];
@@ -24,9 +30,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $informe->jefe_turno = $_POST['jefe_turno'];
     $informe->observaciones = $_POST['observaciones'];
     $informe->firma_digital = $_POST['firma_digital'];
-    $informe->tecnico_id = $_SESSION['user_id'];  // Asignamos el ID del técnico actual
+    $informe->tecnico_id = $_SESSION['user_id'];
+    $informe->foto_trabajo = $foto_base64;
 
-    if($informe->crear()) {
+    if($informe->crear([
+        'local' => $informe->local,
+        'sector' => $informe->sector,
+        'equipo_asistido' => $informe->equipo_asistido,
+        'orden_trabajo' => $informe->orden_trabajo,
+        'patrimonio' => $informe->patrimonio,
+        'jefe_turno' => $informe->jefe_turno,
+        'observaciones' => $informe->observaciones,
+        'firma_digital' => $informe->firma_digital,
+        'tecnico_id' => $informe->tecnico_id,
+        'foto_trabajo' => $foto_base64
+    ])) {
         // Registrar la actividad con el nuevo formato
         require_once '../../config/ActivityLogger.php';
         ActivityLogger::logAccion(
@@ -74,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="container mt-4">
         <h2>Nuevo Informe Técnico</h2>
-        <form method="POST" id="informeForm">
+        <form method="POST" id="informeForm" enctype="multipart/form-data">
             <div class="form-group">
                 <label>Local</label>
                 <input type="text" name="local" class="form-control" required>

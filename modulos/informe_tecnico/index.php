@@ -30,6 +30,13 @@ $stmt = $informe->leerTodos($tecnico_id);
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="../../assets/css/style.css">
+    <style>
+        @media screen and (max-width: 768px) {
+            .columna-oculta-movil {
+                display: none !important;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container mt-4">
@@ -44,47 +51,74 @@ $stmt = $informe->leerTodos($tecnico_id);
             </a>
         </div>
 
+        <style>
+            /* Estilos base */
+            .table td, .table th {
+                font-size: 0.95rem;
+            }
+            
+            /* Estilos móviles */
+            @media screen and (max-width: 768px) {
+                .table th:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(3)):not(:nth-child(9)),
+                .table td:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(3)):not(:nth-child(9)) {
+                    display: none !important;
+                }
+                
+                .table td, .table th {
+                    font-size: 0.85rem;
+                    padding: 0.4rem;
+                }
+                
+                /* Ajustar anchos de columnas visibles */
+                .table td:nth-child(1) { width: 20%; }  /* Fecha */
+                .table td:nth-child(2) { width: 35%; }  /* Local */
+                .table td:nth-child(3) { width: 30%; }  /* Técnico */
+                .table td:nth-child(9) { width: 15%; }  /* Acciones */
+            }
+        </style>
+
         <div class="table-responsive">
             <div class="mb-3">
                 <input type="text" id="searchInput" class="form-control" placeholder="Buscar en cualquier campo...">
             </div>
+            <!-- Modificar la estructura de la tabla -->
             <table class="table table-hover" id="dataTable">
                 <thead>
                     <tr>
+                        <th>Acciones</th>
                         <th>Fecha</th>
                         <th>Local</th>
-                        <th>Equipo</th>
                         <th>Técnico</th>
-                        <th>Patrimonio</th>
-                        <th>Jefe Turno</th>
-                        <th>Sector</th>
-                        <th>Orden de Trabajo</th>
-                        <th>Acciones</th>
+                        <th class="columna-oculta-movil">Equipo</th>
+                        <th class="columna-oculta-movil">Patrimonio</th>
+                        <th class="columna-oculta-movil">Jefe Turno</th>
+                        <th class="columna-oculta-movil">Sector</th>
+                        <th class="columna-oculta-movil">OT</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php while ($row = $stmt->fetch(PDO::FETCH_ASSOC)): ?>
                         <tr>
-                            <td><?php echo $row['fecha_creacion'] ? htmlspecialchars($row['fecha_creacion']) : ''; ?></td>
-                            <td><?php echo $row['local'] ? htmlspecialchars($row['local']) : ''; ?></td>
-                            <td><?php echo $row['equipo_asistido'] ? htmlspecialchars($row['equipo_asistido']) : ''; ?></td>
-                            <td><?php echo $row['nombre_tecnico'] ? htmlspecialchars($row['nombre_tecnico']) : ''; ?></td>
-                            <td><?php echo $row['patrimonio'] ? htmlspecialchars($row['patrimonio']) : ''; ?></td>
-                            <td><?php echo $row['jefe_turno'] ? htmlspecialchars($row['jefe_turno']) : ''; ?></td>
-                            <td><?php echo $row['sector'] ? htmlspecialchars($row['sector']) : ''; ?></td>
-                            <td><?php echo !empty($row['orden_trabajo']) ? htmlspecialchars($row['orden_trabajo']) : '-'; ?></td>
                             <td>
-                                <div class="btn-group">
-                                    <a href="ver.php?id=<?php echo $row['id']; ?>" class="btn btn-info btn-sm" title="Ver">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="ver.php?id=<?php echo $row['id']; ?>" class="btn btn-info btn-sm">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     <?php if($_SESSION['user_rol'] === 'administrador'): ?>
-                                    <a href="#" class="btn btn-danger btn-sm eliminar-informe" data-id="<?php echo $row['id']; ?>" title="Eliminar">
+                                    <a href="#" class="btn btn-danger btn-sm eliminar-informe" data-id="<?php echo $row['id']; ?>">
                                         <i class="fas fa-trash"></i>
                                     </a>
                                     <?php endif; ?>
                                 </div>
                             </td>
+                            <td><?php echo $row['fecha_creacion'] ? htmlspecialchars(date('d/m/y', strtotime($row['fecha_creacion']))) : ''; ?></td>
+                            <td><?php echo $row['local'] ? htmlspecialchars($row['local']) : ''; ?></td>
+                            <td><?php echo $row['nombre_tecnico'] ? htmlspecialchars($row['nombre_tecnico']) : ''; ?></td>
+                            <td class="columna-oculta-movil"><?php echo $row['equipo_asistido'] ? htmlspecialchars($row['equipo_asistido']) : ''; ?></td>
+                            <td class="columna-oculta-movil"><?php echo $row['patrimonio'] ? htmlspecialchars($row['patrimonio']) : ''; ?></td>
+                            <td class="columna-oculta-movil"><?php echo $row['jefe_turno'] ? htmlspecialchars($row['jefe_turno']) : ''; ?></td>
+                            <td class="columna-oculta-movil"><?php echo $row['sector'] ? htmlspecialchars($row['sector']) : ''; ?></td>
+                            <td class="columna-oculta-movil"><?php echo !empty($row['orden_trabajo']) ? htmlspecialchars($row['orden_trabajo']) : '-'; ?></td>
                         </tr>
                     <?php endwhile; ?>
                 </tbody>
@@ -137,6 +171,22 @@ $stmt = $informe->leerTodos($tecnico_id);
         </div>
     </div>
 
+    <style>
+        @media screen and (max-width: 768px) {
+            .table td:nth-child(4),
+            .table th:nth-child(4),
+            .table td:nth-child(5),
+            .table th:nth-child(5),
+            .table td:nth-child(6),
+            .table th:nth-child(6),
+            .table td:nth-child(7),
+            .table th:nth-child(7),
+            .table td:nth-child(8),
+            .table th:nth-child(8) {
+                display: none;
+            }
+        }
+    </style>
     <script>
     $(document).ready(function() {
         let idToDelete = null;

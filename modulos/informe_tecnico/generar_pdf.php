@@ -95,37 +95,54 @@ $html = '
     </div>
 ';
 
-// Sección de firma y foto optimizada
-if(!empty($informeData['firma_digital']) || !empty($informeData['foto_trabajo'])) {
-    $html .= '<table style="width: 100%; margin-top: 15px;"><tr>';
+// Después de obtener $informeData, agregar:
+$fotos = $informe->obtenerFotos($_GET['id']);
+
+// ÚNICA sección de firma y fotos
+if(!empty($informeData['firma_digital']) || !empty($fotos)) {
+    $html .= '<div style="margin-top: 5px;">';
     
     if(!empty($informeData['firma_digital'])) {
-        $html .= '<td style="width: 50%; padding: 5px; text-align: center;">
-            <div style="border: 1px solid #ddd; padding: 5px; background-color: #fff;">
-                <img src="' . $informeData['firma_digital'] . '" style="max-width: 180px; max-height: 60px;">
-                <div style="margin-top: 3px; font-size: 9px; font-weight: bold;">Firma Digital del Jefe de Turno</div>
-                <div style="font-size: 8px; color: #666;">Firma de conformidad del trabajo realizado</div>
-            </div>
-        </td>';
+        $html .= '
+        <div style="text-align: center; margin-bottom: 5px;">
+            <img src="' . $informeData['firma_digital'] . '" style="width: 200px;">
+            <div style="margin-top: 2px; font-size: 9px;">Firma Digital del Jefe de Turno</div>
+        </div>';
     }
     
-    if(!empty($informeData['foto_trabajo'])) {
-        $html .= '<td style="width: 50%; padding: 5px; text-align: center;">
-            <div style="border: 1px solid #ddd; padding: 5px; background-color: #fff;">
-                <img src="data:image/jpeg;base64,' . $informeData['foto_trabajo'] . '" style="max-width: 200px; max-height: 150px;">
-                <div style="margin-top: 3px; font-size: 9px; font-weight: bold;">Foto del Trabajo Realizado</div>
-            </div>
-        </td>';
+    if(!empty($fotos)) {
+        $html .= '
+        <div style="background-color: #2c3e50; color: white; padding: 3px; margin: 5px 0; font-size: 11px;">
+            <strong>Registro Fotográfico</strong>
+        </div>
+        <table style="width: 100%; border-collapse: separate; border-spacing: 2px;">
+            <tr>';
+        
+        $fotoAntes = array_filter($fotos, function($foto) { return $foto['tipo'] === 'antes'; });
+        $fotoDespues = array_filter($fotos, function($foto) { return $foto['tipo'] === 'despues'; });
+        
+        $html .= '<td style="width: 48%; border: 1px solid #ddd; padding: 2px;">
+            <div style="text-align: center; font-weight: bold; background-color: #f8f9fa; padding: 2px;">ANTES</div>';
+        if(!empty($fotoAntes)) {
+            $fotoAntes = array_values($fotoAntes)[0];
+            $html .= '<img src="data:image/jpeg;base64,' . $fotoAntes['foto'] . '" style="width: 320px; height: 240px;">';
+        }
+        $html .= '</td>';
+        
+        $html .= '<td style="width: 48%; border: 1px solid #ddd; padding: 2px;">
+            <div style="text-align: center; font-weight: bold; background-color: #f8f9fa; padding: 2px;">DESPUÉS</div>';
+        if(!empty($fotoDespues)) {
+            $fotoDespues = array_values($fotoDespues)[0];
+            $html .= '<img src="data:image/jpeg;base64,' . $fotoDespues['foto'] . '" style="width: 320px; height: 240px;">';
+        }
+        $html .= '</td></tr></table>';
     }
     
-    $html .= '</tr></table>';
+    $html .= '</div>';
 }
 
 $html .= '</div>';
 
-// Optimizar escala de imágenes
-$pdf->setImageScale(1.2);
-$pdf->writeHTML($html, true, false, true, false, '');
-
 // Generar PDF
+$pdf->writeHTML($html, true, false, true, false, '');
 $pdf->Output('Informe_Tecnico_' . $informeData['id'] . '.pdf', 'D');

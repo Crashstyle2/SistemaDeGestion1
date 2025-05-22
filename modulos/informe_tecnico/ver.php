@@ -17,9 +17,8 @@ if(!isset($_GET['id'])) {
 $database = new Database();
 $db = $database->getConnection();
 $informe = new InformeTecnico($db);
-
-// Obtener el informe con el ID proporcionado
 $informeData = $informe->obtenerUno($_GET['id']);
+$fotos = $informe->obtenerFotos($_GET['id']); // Agregar esta línea
 
 if(!$informeData) {
     header("Location: index.php");
@@ -37,70 +36,85 @@ if(!$informeData) {
     <link rel="stylesheet" href="../../assets/css/style.css">
     <style>
         .card {
-            max-width: 800px; /* Aumentado de 600px a 800px */
+            max-width: 800px;
             margin: 20px auto;
             background: white;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .card-header {
-            background: linear-gradient(to right, #3498db, #8e44ad);
+            background: linear-gradient(to right, #3498db, #2c3e50);
             color: white;
-            padding: 15px;
+            padding: 12px;
             border-radius: 8px 8px 0 0;
         }
         .card-header h2 {
             margin: 0;
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             text-align: center;
         }
         .card-body {
-            padding: 20px;
+            padding: 15px 20px;
         }
         .info-row {
             display: flex;
-            padding: 8px 0;
+            padding: 6px 0;
             border-bottom: 1px solid #eee;
         }
         .info-label {
-            width: 180px;
-            font-weight: 500;
+            width: 160px;
+            font-weight: 600;
+            color: #2c3e50;
         }
         .info-value {
             flex: 1;
         }
         .observaciones-title {
-            margin: 30px 20px 15px 20px;
-            font-size: 1.2rem;
+            color: #2c3e50;
+            margin: 20px 0 10px 0;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #3498db;
         }
         .observaciones-content {
-            margin: 0 20px;
-            padding: 20px;
             background: #f8f9fa;
+            padding: 15px;
             border-radius: 4px;
-            line-height: 1.6;
+            border: 1px solid #e9ecef;
         }
         .firma-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .registro-fotografico {
             margin-top: 20px;
-            margin-bottom: 20px;
         }
-        .firma-container {
-            border: 1px solid #ddd;
-            padding: 15px;
-            display: inline-block;
-            margin-top: 10px;
-            min-width: 300px;
-            min-height: 150px;
-            background-color: #f8f9fa;
+        .foto-container {
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 15px;
         }
-        .firma-container img {
-            max-width: 100%;
-            height: auto;
+        .foto-header {
+            background: #f8f9fa;
+            padding: 8px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .foto-body {
+            padding: 10px;
+            text-align: center;
+        }
+        .foto-body img {
+            max-height: 300px;
+            width: auto;
+            object-fit: contain;
         }
         .action-buttons {
-            margin-top: 30px;
             text-align: center;
-            padding-bottom: 20px;
+            margin-top: 20px;
+            padding: 10px 0;
+            border-top: 1px solid #eee;
         }
     </style>
 </head>
@@ -150,37 +164,47 @@ if(!$informeData) {
             </div>
 
             <?php if(!empty($informeData['firma_digital'])): ?>
-            <div class="firma-section" style="margin: 30px 20px;">
-                <h4>Firma Digital del Jefe de Turno</h4>
-                <div class="firma-container" style="margin: 20px auto; text-align: center;">
-                    <img src="<?php echo $informeData['firma_digital']; ?>" 
-                         alt="Firma Digital del Jefe de Turno" 
-                         style="max-width: 300px; padding: 15px;">
-                    <div style="margin-top: 10px; color: #666;">Firma de conformidad del trabajo realizado</div>
+            <div class="firma-section text-center">
+                <h5 class="mb-2">Firma Digital del Jefe de Turno</h5>
+                <img src="<?php echo $informeData['firma_digital']; ?>" 
+                     alt="Firma Digital" 
+                     style="max-width: 200px;">
+            </div>
+            <?php endif; ?>
+
+            <!-- Registro Fotográfico integrado -->
+            <!-- Sección de fotos mejorada -->
+            <?php if (!empty($fotos)): ?>
+            <div class="registro-fotografico">
+                <h4 class="observaciones-title">Registro Fotográfico</h4>
+                <div class="row">
+                    <?php foreach ($fotos as $foto): ?>
+                    <div class="col-md-6">
+                        <div class="foto-container">
+                            <div class="foto-header">
+                                <?php echo ucfirst($foto['tipo']); ?>
+                            </div>
+                            <div class="foto-body">
+                                <img src="data:image/jpeg;base64,<?php echo $foto['foto']; ?>" 
+                                     class="img-fluid" 
+                                     alt="Foto <?php echo $foto['tipo']; ?>">
+                            </div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
             <?php endif; ?>
 
-            <?php if(!empty($informeData['foto_trabajo'])): ?>
-            <div class="mt-4">
-                <h4 class="observaciones-title">Foto del Trabajo Realizado</h4>
-                <div class="text-center" style="margin: 20px;">
-                    <img src="data:image/jpeg;base64,<?php echo $informeData['foto_trabajo']; ?>" 
-                         class="img-fluid" 
-                         style="max-height: 400px; border: 1px solid #ddd; padding: 5px; border-radius: 5px;">
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <div class="action-buttons" style="margin-top: 40px;">
-                <form action="generar_pdf.php" method="GET" style="display: inline;">
+            <div class="action-buttons">
+                <form action="generar_pdf.php" method="GET" class="d-inline">
                     <input type="hidden" name="id" value="<?php echo $_GET['id']; ?>">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-file-pdf mr-2"></i>Descargar PDF
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="fas fa-file-pdf"></i> PDF
                     </button>
                 </form>
-                <a href="index.php" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left mr-2"></i>Volver
+                <a href="index.php" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver
                 </a>
             </div>
         </div>

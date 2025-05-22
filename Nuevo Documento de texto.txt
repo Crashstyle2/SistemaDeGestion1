@@ -1,1 +1,12 @@
 $2y$10$24vEvldevqhJzTHAf9hV3.WGPcsmOF8iYx.d4QwZEwKIbAW8II0ka
+
+
+
+CREATE TABLE fotos_informe_tecnico (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    informe_id INT NOT NULL,
+    foto LONGTEXT NOT NULL,
+    descripcion TEXT,
+    tipo ENUM('antes', 'despues') NOT NULL,
+    FOREIGN KEY (informe_id) REFERENCES informe_tecnico(id) ON DELETE CASCADE
+);

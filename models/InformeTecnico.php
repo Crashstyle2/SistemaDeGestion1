@@ -22,32 +22,51 @@ class InformeTecnico {
         $this->conn = $db;
     }
 
-    public function crear() {
-        $query = "INSERT INTO " . $this->table_name . " 
-                (local, sector, equipo_asistido, orden_trabajo, patrimonio, 
-                jefe_turno, observaciones, firma_digital, tecnico_id) 
-                VALUES 
-                (:local, :sector, :equipo_asistido, :orden_trabajo, :patrimonio, 
-                :jefe_turno, :observaciones, :firma_digital, :tecnico_id)";
-
-        try {
-            $stmt = $this->conn->prepare($query);
-
-            // Sanitizar y vincular valores
-            $stmt->bindParam(":local", $this->local);
-            $stmt->bindParam(":sector", $this->sector);
-            $stmt->bindParam(":equipo_asistido", $this->equipo_asistido);
-            $stmt->bindParam(":orden_trabajo", $this->orden_trabajo);
-            $stmt->bindParam(":patrimonio", $this->patrimonio);
-            $stmt->bindParam(":jefe_turno", $this->jefe_turno);
-            $stmt->bindParam(":observaciones", $this->observaciones);
-            $stmt->bindParam(":firma_digital", $this->firma_digital);
-            $stmt->bindParam(":tecnico_id", $this->tecnico_id);
-
-            return $stmt->execute();
-        } catch(PDOException $e) {
-            return false;
+    // En el método crear()
+    public function crear($data) {
+        $query = "INSERT INTO informe_tecnico 
+                  (local, sector, equipo_asistido, orden_trabajo, patrimonio, 
+                   jefe_turno, observaciones, firma_digital, tecnico_id) 
+                  VALUES 
+                  (:local, :sector, :equipo_asistido, :orden_trabajo, :patrimonio,
+                   :jefe_turno, :observaciones, :firma_digital, :tecnico_id)";
+        
+        $stmt = $this->conn->prepare($query);
+        
+        $stmt->bindParam(":local", $data['local']);
+        $stmt->bindParam(":sector", $data['sector']);
+        $stmt->bindParam(":equipo_asistido", $data['equipo_asistido']);
+        $stmt->bindParam(":orden_trabajo", $data['orden_trabajo']);
+        $stmt->bindParam(":patrimonio", $data['patrimonio']);
+        $stmt->bindParam(":jefe_turno", $data['jefe_turno']);
+        $stmt->bindParam(":observaciones", $data['observaciones']);
+        $stmt->bindParam(":firma_digital", $data['firma_digital']);
+        $stmt->bindParam(":tecnico_id", $data['tecnico_id']);
+        
+        if($stmt->execute()) {
+            return $this->conn->lastInsertId();
         }
+        return false;
+    }
+
+    public function guardarFotos($informe_id, $fotos) {
+        $query = "INSERT INTO fotos_informe_tecnico 
+                  (informe_id, foto, descripcion, tipo) 
+                  VALUES 
+                  (:informe_id, :foto, :descripcion, :tipo)";
+        
+        $stmt = $this->conn->prepare($query);
+        
+        foreach ($fotos as $foto) {
+            $stmt->bindParam(":informe_id", $informe_id);
+            $stmt->bindParam(":foto", $foto['foto']);
+            $stmt->bindParam(":descripcion", $foto['descripcion']);
+            $stmt->bindParam(":tipo", $foto['tipo']);
+            if (!$stmt->execute()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public function obtenerTodos() {
@@ -127,5 +146,13 @@ class InformeTecnico {
             error_log("Error en eliminación: " . $e->getMessage());
             return false;
         }
+    }
+
+    public function obtenerFotos($informe_id) {
+        $query = "SELECT * FROM fotos_informe_tecnico WHERE informe_id = :informe_id ORDER BY tipo";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":informe_id", $informe_id);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

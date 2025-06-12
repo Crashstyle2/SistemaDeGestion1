@@ -9,24 +9,44 @@ require_once '../../config/database.php';
 require_once '../../models/InformeTecnico.php';
 require_once '../../models/RegistroActividad.php';  // Agregamos el modelo faltante
 
+// Modificar la sección de procesamiento POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $database = new Database();
     $db = $database->getConnection();
     $informe = new InformeTecnico($db);
     $registro = new RegistroActividad($db);
 
-    // Asignar valores
-    $informe->local = $_POST['local'];
-    $informe->sector = $_POST['sector'];
-    $informe->equipo_asistido = $_POST['equipo_asistido'];
-    $informe->orden_trabajo = $_POST['orden_trabajo'];
-    $informe->patrimonio = $_POST['patrimonio'];
-    $informe->jefe_turno = $_POST['jefe_turno'];
-    $informe->observaciones = $_POST['observaciones'];
-    $informe->firma_digital = $_POST['firma_digital'];
-    $informe->tecnico_id = $_SESSION['user_id'];  // Asignamos el ID del técnico actual
+    // Crear el informe primero
+    $informe_id = $informe->crear([
+        'local' => $_POST['local'],
+        'sector' => $_POST['sector'],
+        'equipo_asistido' => $_POST['equipo_asistido'],
+        'orden_trabajo' => $_POST['orden_trabajo'],
+        'patrimonio' => $_POST['patrimonio'],
+        'jefe_turno' => $_POST['jefe_turno'],
+        'observaciones' => $_POST['observaciones'],
+        'firma_digital' => $_POST['firma_digital'],
+        'tecnico_id' => $_SESSION['user_id']
+    ]);
 
-    if($informe->crear()) {
+    if($informe_id) {
+        // Procesar las fotos
+        $fotos = [];
+        foreach($_FILES['fotos']['tmp_name'] as $key => $tmp_name) {
+            if($_FILES['fotos']['error'][$key] == 0) {
+                $fotos[] = [
+                    'foto' => base64_encode(file_get_contents($tmp_name)),
+                    'descripcion' => $_POST['descripcion_foto'][$key],
+                    'tipo' => $_POST['tipo_foto'][$key]
+                ];
+            }
+        }
+        
+        // Guardar las fotos
+        if(!empty($fotos)) {
+            $informe->guardarFotos($informe_id, $fotos);
+        }
+
         // Registrar la actividad con el nuevo formato
         require_once '../../config/ActivityLogger.php';
         ActivityLogger::logAccion(
@@ -38,8 +58,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         header("Location: index.php?mensaje=Informe creado exitosamente");
         exit;
-    } else {
-        $error = "Error al crear el informe";
     }
 }
 ?>
@@ -74,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="container mt-4">
         <h2>Nuevo Informe Técnico</h2>
-        <form method="POST" id="informeForm">
+        <form method="POST" id="informeForm" enctype="multipart/form-data">
             <div class="form-group">
                 <label>Local</label>
                 <input type="text" name="local" class="form-control" required>
@@ -345,7 +363,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
             </script>
 
+            <!-- Reemplazar la sección de foto única con esto -->
             <div class="form-group">
+                <label>Fotos del trabajo</label>
+                <div id="fotosContainer">
+                    <div class="foto-entrada mb-3">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <input type="file" class="form-control-file" name="fotos[]" accept="image/*">
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-control" name="tipo_foto[]">
+                                    <option value="antes">Foto Antes</option>
+                                    <option value="despues">Foto Después</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <textarea class="form-control" name="descripcion_foto[]" placeholder="Descripción de la foto"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-info btn-sm mt-2" id="agregarFoto">
+                    <i class="fas fa-plus"></i> Agregar otra foto
+                </button>
+            </div>
+
+            <script>
+            $(document).ready(function() {
+                $('#agregarFoto').click(function() {
+                    const nuevaFoto = $('.foto-entrada:first').clone();
+                    nuevaFoto.find('input[type="file"]').val('');
+                    nuevaFoto.find('textarea').val('');
+                    $('#fotosContainer').append(nuevaFoto);
+                });
+            });
+            </script>
+
+            <!-- Remove old single photo upload section -->
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save"></i> Guardar Informe
                 </button>

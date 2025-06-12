@@ -48,12 +48,23 @@ class AcuseRecibo {
     }
 
     public function leer() {
-        $query = "SELECT ar.*, u.nombre as nombre_tecnico 
-                 FROM " . $this->table_name . " ar 
-                 LEFT JOIN usuarios u ON ar.tecnico_id = u.id 
-                 ORDER BY ar.fecha_creacion DESC";
-
+        $query = "SELECT a.*, u.nombre as nombre_tecnico 
+                 FROM " . $this->table_name . " a 
+                 LEFT JOIN usuarios u ON a.tecnico_id = u.id";
+        
+        // Filtrar por técnico si se especifica
+        if($this->tecnico_id) {
+            $query .= " WHERE a.tecnico_id = :tecnico_id";
+        }
+        
+        $query .= " ORDER BY a.fecha_creacion DESC";
+        
         $stmt = $this->conn->prepare($query);
+        
+        if($this->tecnico_id) {
+            $stmt->bindParam(":tecnico_id", $this->tecnico_id);
+        }
+        
         $stmt->execute();
         return $stmt;
     }

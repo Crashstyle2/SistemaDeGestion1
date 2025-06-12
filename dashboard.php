@@ -116,24 +116,9 @@ if(!isset($_SESSION['user_id'])) {
                     </div>
                 </div>
             </div>
-            <!-- Módulo Acuse de Recibo -->
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body d-flex flex-column">
-                        <div class="text-center mb-3">
-                            <i class="fas fa-receipt fa-3x text-success"></i>
-                        </div>
-                        <h5 class="card-title text-center">Acuse de Recibo</h5>
-                        <p class="card-text text-center flex-grow-1">Registro y control de documentos entregados</p>
-                        <a href="modulos/acuse_recibo/index.php" class="btn btn-success mt-auto">
-                            <i class="fas fa-folder-open mr-2"></i>Acceder
-                        </a>
-                    </div>
-                </div>
-            </div>
             <?php endif; ?>
             
-            <!-- Módulo Informe Técnico -->
+            <!-- Módulos visibles para todos los usuarios -->
             <div class="col-md-4 mb-4">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body d-flex flex-column">
@@ -143,6 +128,21 @@ if(!isset($_SESSION['user_id'])) {
                         <h5 class="card-title text-center">Informe Técnico</h5>
                         <p class="card-text text-center flex-grow-1">Gestión de informes técnicos y registro de trabajos realizados</p>
                         <a href="modulos/informe_tecnico/index.php" class="btn btn-info mt-auto">
+                            <i class="fas fa-folder-open mr-2"></i>Acceder
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <div class="text-center mb-3">
+                            <i class="fas fa-receipt fa-3x text-success"></i>
+                        </div>
+                        <h5 class="card-title text-center">Acuse de Recibo</h5>
+                        <p class="card-text text-center flex-grow-1">Registro y control de documentos entregados</p>
+                        <a href="modulos/acuse_recibo/index.php" class="btn btn-success mt-auto">
                             <i class="fas fa-folder-open mr-2"></i>Acceder
                         </a>
                     </div>

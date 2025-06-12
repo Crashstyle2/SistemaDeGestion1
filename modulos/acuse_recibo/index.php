@@ -11,6 +11,13 @@ include_once '../../models/AcuseRecibo.php';
 $database = new Database();
 $db = $database->getConnection();
 $acuse = new AcuseRecibo($db);
+
+// Filtrar por usuario si es técnico
+if($_SESSION['user_rol'] === 'tecnico') {
+    $acuse->tecnico_id = $_SESSION['user_id'];
+}
+
+$stmt = $acuse->leer();
 ?>
 
 <!DOCTYPE html>
@@ -75,16 +82,18 @@ $acuse = new AcuseRecibo($db);
                                 echo "<td>{$documento}</td>";
                                 echo "<td>{$jefe_encargado}</td>";
                                 echo "<td>{$nombre_tecnico}</td>";
-                                echo "<td class='text-center'>";
-                                echo "<div class='btn-group btn-group-sm'>";
-                                echo "<a href='ver.php?id={$id}' class='btn btn-info' title='Ver'><i class='fas fa-eye'></i></a>";
-                                echo "<a href='generar_pdf.php?id={$id}' class='btn btn-secondary' title='PDF' target='_blank'><i class='fas fa-file-pdf'></i></a>";
+                                // En la sección de la tabla donde están los botones
+                                echo '<td class="text-center">';
+                                echo '<div class="btn-group btn-group-sm">';
+                                echo '<a href="ver.php?id=' . $row['id'] . '" class="btn btn-info btn-sm"><i class="fas fa-eye"></i></a>';
+                                
                                 if($_SESSION['user_rol'] === 'administrador') {
-                                    echo "<a href='editar.php?id={$id}' class='btn btn-warning' title='Editar'><i class='fas fa-edit'></i></a>";
-                                    echo "<button onclick='confirmarEliminar({$id})' class='btn btn-danger' title='Eliminar'><i class='fas fa-trash'></i></button>";
+                                    echo '<a href="editar.php?id=' . $row['id'] . '" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i></a>';
+                                    echo '<a href="eliminar.php?id=' . $row['id'] . '" class="btn btn-danger btn-sm" onclick="return confirm(\'¿Está seguro?\')"><i class="fas fa-trash"></i></a>';
                                 }
-                                echo "</div>";
-                                echo "</td>";
+                                
+                                echo '</div>';
+                                echo '</td>';
                                 echo "</tr>";
                             }
                             ?>

@@ -21,6 +21,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     $usuario->username = $_POST['username'];
     $usuario->nombre = $_POST['nombre'];
     $usuario->rol = $_POST['rol'];
+    $usuario->estado = $_POST['estado'];
     
     if($usuario->actualizarUsuario()) {
         // Agregar registro de actividad
@@ -29,7 +30,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['user_id'],
             'usuarios',
             'editar',
-            "Usuario actualizado - Username: {$_POST['username']}, Nombre: {$_POST['nombre']}, Rol: {$_POST['rol']}"
+            "Usuario actualizado - Username: {$_POST['username']}, Nombre: {$_POST['nombre']}, Rol: {$_POST['rol']}, Estado: {$_POST['estado']}"
         );
 
         $_SESSION['mensaje'] = "Usuario actualizado correctamente";
@@ -88,7 +89,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     </nav>
 
     <div class="container">
-        <!-- Eliminar el div de bienvenida duplicado aquí -->
         <div class="card">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0"><i class="fas fa-user-edit mr-2"></i>Editar Usuario - <?php echo htmlspecialchars($usuario->nombre); ?></h5>
@@ -100,28 +100,36 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
                     </div>
                 <?php endif; ?>
 
-                <form method="POST">
-                    <input type="hidden" name="id" value="<?php echo $usuario->id; ?>">
+                <form method="POST" class="needs-validation" novalidate>
+                    <input type="hidden" name="id" value="<?php echo htmlspecialchars($usuario->id); ?>">
                     
                     <div class="form-group">
-                        <label><i class="fas fa-user mr-2"></i>Nombre de Usuario</label>
-                        <input type="text" name="username" class="form-control" value="<?php echo htmlspecialchars($usuario->username); ?>" required>
+                        <label for="username">Nombre de Usuario:</label>
+                        <input type="text" class="form-control" id="username" name="username" value="<?php echo htmlspecialchars($usuario->username); ?>" required>
                     </div>
 
                     <div class="form-group">
-                        <label><i class="fas fa-id-card mr-2"></i>Nombre Completo</label>
-                        <input type="text" name="nombre" class="form-control" value="<?php echo htmlspecialchars($usuario->nombre); ?>" required>
+                        <label for="nombre">Nombre Completo:</label>
+                        <input type="text" class="form-control" id="nombre" name="nombre" value="<?php echo htmlspecialchars($usuario->nombre); ?>" required>
                     </div>
 
                     <div class="form-group">
-                        <label><i class="fas fa-user-tag mr-2"></i>Rol</label>
-                        <select name="rol" class="form-control" required>
-                            <option value="tecnico" <?php echo $usuario->rol == 'tecnico' ? 'selected' : ''; ?>>Técnico</option>
-                            <option value="administrador" <?php echo $usuario->rol == 'administrador' ? 'selected' : ''; ?>>Administrador</option>
+                        <label for="rol">Rol:</label>
+                        <select name="rol" id="rol" class="form-control" required>
+                            <option value="administrador" <?php echo $usuario->rol === 'administrador' ? 'selected' : ''; ?>>Administrador</option>
+                            <option value="tecnico" <?php echo $usuario->rol === 'tecnico' ? 'selected' : ''; ?>>Técnico</option>
                         </select>
                     </div>
 
-                    <div class="d-flex justify-content-end mt-4">
+                    <div class="form-group">
+                        <label for="estado">Estado:</label>
+                        <select class="form-control" id="estado" name="estado" required>
+                            <option value="activo" <?php echo $usuario->estado === 'activo' ? 'selected' : ''; ?>>Activo</option>
+                            <option value="inactivo" <?php echo $usuario->estado === 'inactivo' ? 'selected' : ''; ?>>Inactivo</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group text-right">
                         <a href="index.php" class="btn btn-secondary mr-2">
                             <i class="fas fa-times mr-2"></i>Cancelar
                         </a>
@@ -135,6 +143,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>

@@ -246,7 +246,7 @@ class ReporteCierres {
         $query .= ", SUM(r.cantidad_cierres) as total_anual
                     FROM usuarios u 
                     LEFT JOIN " . $this->table_name . " r ON u.id = r.tecnico_id AND r.anio = :anio
-                    WHERE u.rol = 'tecnico'
+                    WHERE u.rol = 'tecnico' AND u.estado = 'activo'
                     GROUP BY u.id, u.nombre, u.username, u.codigo_tecnico
                     ORDER BY u.nombre";
     

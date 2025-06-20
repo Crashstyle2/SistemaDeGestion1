@@ -6,6 +6,7 @@ class Usuario {
     public $password;
     public $nombre;
     public $rol;
+    public $estado;
     
     public function __construct($db) {
         $this->conn = $db;
@@ -69,7 +70,7 @@ class Usuario {
 
             $password_hash = password_hash($this->password, PASSWORD_DEFAULT);
 
-            $query = "INSERT INTO usuarios (username, password, nombre, rol) VALUES (?, ?, ?, ?)";
+            $query = "INSERT INTO usuarios (username, password, nombre, rol, estado) VALUES (?, ?, ?, ?, 'activo')";
             $stmt = $this->conn->prepare($query);
             $result = $stmt->execute([
                 $this->username,
@@ -91,13 +92,22 @@ class Usuario {
     
     public function listarUsuarios() {
         try {
-            $query = "SELECT id, username, nombre, rol FROM usuarios ORDER BY nombre";
+            if (!$this->conn) {
+                throw new PDOException("No hay conexión a la base de datos");
+            }
+
+            $query = "SELECT id, username, nombre, rol, estado FROM usuarios ORDER BY nombre";
             $stmt = $this->conn->prepare($query);
-            $stmt->execute();
+            
+            if (!$stmt->execute()) {
+                $error = $stmt->errorInfo();
+                throw new PDOException("Error al ejecutar la consulta: " . $error[2]);
+            }
+            
             return $stmt;
         } catch(PDOException $e) {
             error_log("Error al listar usuarios: " . $e->getMessage());
-            return false;
+            throw new Exception("Error al obtener la lista de usuarios: " . $e->getMessage());
         }
     }
     
@@ -108,7 +118,7 @@ class Usuario {
                 return false;
             }
             
-            $query = "SELECT id, username, nombre, rol FROM usuarios WHERE id = ?";
+            $query = "SELECT id, username, nombre, rol, estado FROM usuarios WHERE id = ?";
             $stmt = $this->conn->prepare($query);
             $stmt->execute([$id]);
             
@@ -118,6 +128,7 @@ class Usuario {
                 $this->username = $row['username'];
                 $this->nombre = $row['nombre'];
                 $this->rol = $row['rol'];
+                $this->estado = $row['estado'];
                 return true;
             }
             return false;
@@ -160,8 +171,8 @@ class Usuario {
                 throw new Exception("El nombre de usuario ya está en uso");
             }
 
-            $query = "UPDATE usuarios SET username = ?, nombre = ?, rol = ?";
-            $params = [$this->username, $this->nombre, $this->rol];
+            $query = "UPDATE usuarios SET username = ?, nombre = ?, rol = ?, estado = ?";
+            $params = [$this->username, $this->nombre, $this->rol, $this->estado ?? 'activo'];
             
             if (!empty($this->password)) {
                 $query .= ", password = ?";
@@ -182,10 +193,32 @@ class Usuario {
     
     public function eliminar($id) {
         try {
-            $query = "DELETE FROM usuarios WHERE id = ?";
+            if (!is_numeric($id)) {
+                throw new Exception("ID de usuario inválido");
+            }
+            
+            // Verificar si el usuario existe y está activo
+            $checkQuery = "SELECT estado FROM usuarios WHERE id = ?";
+            $checkStmt = $this->conn->prepare($checkQuery);
+            $checkStmt->execute([$id]);
+            $usuario = $checkStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$usuario) {
+                throw new Exception("Usuario no encontrado");
+            }
+            
+            $query = "UPDATE usuarios SET estado = 'inactivo' WHERE id = ?";
             $stmt = $this->conn->prepare($query);
-            return $stmt->execute([$id]);
-        } catch(PDOException $e) {
+            $result = $stmt->execute([$id]);
+            
+            if ($result) {
+                error_log("Usuario inactivado correctamente: ID " . $id);
+                return true;
+            } else {
+                throw new Exception("No se pudo inactivar el usuario");
+            }
+        } catch(Exception $e) {
+            error_log("Error al inactivar usuario: " . $e->getMessage());
             return false;
         }
     }
@@ -205,6 +238,7 @@ class Usuario {
                 $this->username = $row['username'];
                 $this->nombre = $row['nombre'];
                 $this->rol = $row['rol'];
+                $this->estado = $row['estado'];
                 return true;
             }
             
@@ -301,7 +335,7 @@ class Usuario {
     }
     
     public function obtenerTecnicos() {
-        $query = "SELECT id, nombre FROM usuarios WHERE rol = 'tecnico' ORDER BY nombre";
+        $query = "SELECT id, nombre FROM usuarios WHERE rol = 'tecnico' AND estado = 'activo' ORDER BY nombre";
         
         try {
             $stmt = $this->conn->prepare($query);

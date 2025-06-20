@@ -85,41 +85,82 @@ class InformeTecnico {
     }
 
     public function obtenerUno($id) {
-        $query = "SELECT i.*, u.nombre as nombre_tecnico 
-                 FROM " . $this->table_name . " i 
-                 LEFT JOIN usuarios u ON i.tecnico_id = u.id 
+        $query = "SELECT i.*, u.nombre as nombre_tecnico
+                 FROM " . $this->table_name . " i
+                 LEFT JOIN usuarios u ON i.tecnico_id = u.id
                  WHERE i.id = :id";
 
         try {
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(":id", $id);
             $stmt->execute();
-            
+
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch(PDOException $e) {
             return false;
         }
     }
 
-    public function leerTodos($tecnico_id = null) {
-        $query = "SELECT i.*, u.nombre as nombre_tecnico 
-                FROM " . $this->table_name . " i 
+    // Se agregaron parámetros opcionales limit y offset para paginación
+    // Se seleccionaron columnas específicas en lugar de i.* para mejor rendimiento en vistas de lista
+    public function leerTodos($tecnico_id = null, $limit = null, $offset = null) {
+        // Seleccionar solo las columnas necesarias para la lista
+        $query = "SELECT i.id, i.local, i.sector, i.fecha_creacion, i.tecnico_id, u.nombre as nombre_tecnico
+                FROM " . $this->table_name . " i
                 LEFT JOIN usuarios u ON i.tecnico_id = u.id";
-        
+
+        $conditions = [];
+        $params = [];
+
         if ($tecnico_id) {
-            $query .= " WHERE i.tecnico_id = :tecnico_id";
+            $conditions[] = "i.tecnico_id = :tecnico_id";
+            $params[":tecnico_id"] = $tecnico_id;
         }
-        
+
+        if (!empty($conditions)) {
+            $query .= " WHERE " . implode(" AND ", $conditions);
+        }
+
         $query .= " ORDER BY i.fecha_creacion DESC";
-        
-        $stmt = $this->conn->prepare($query);
-        
-        if ($tecnico_id) {
-            $stmt->bindParam(":tecnico_id", $tecnico_id);
+
+        // Agregar cláusulas LIMIT y OFFSET para paginación
+        if ($limit !== null) {
+            $query .= " LIMIT :limit";
+            // Asegurar que limit sea un entero y vincularlo como tal
+            $params[":limit"] = (int) $limit;
         }
-        
-        $stmt->execute();
-        return $stmt;
+
+        if ($offset !== null) {
+            $query .= " OFFSET :offset";
+            // Asegurar que offset sea un entero y vincularlo como tal
+            $params[":offset"] = (int) $offset;
+        }
+
+        $stmt = $this->conn->prepare($query);
+
+        // Vincular parámetros dinámicamente
+        foreach ($params as $key => &$val) {
+            // Usar el tipo PDO apropiado si es posible, de lo contrario usar el predeterminado
+            $type = PDO::PARAM_STR;
+            if (is_int($val)) {
+                $type = PDO::PARAM_INT;
+            } elseif (is_bool($val)) {
+                 $type = PDO::PARAM_BOOL;
+            } elseif (is_null($val)) {
+                 $type = PDO::PARAM_NULL;
+            }
+            $stmt->bindParam($key, $val, $type);
+        }
+        unset($val); // Deshacer la referencia después del bucle
+
+        try {
+            $stmt->execute();
+            return $stmt;
+        } catch(PDOException $e) {
+            // Registrar el error para depuración
+            error_log("Error en leerTodos: " . $e->getMessage());
+            return false;
+        }
     }
 
     public function eliminar($id) {
@@ -154,5 +195,47 @@ class InformeTecnico {
         $stmt->bindParam(":informe_id", $informe_id);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Nuevo método para contar el total de informes, opcionalmente filtrado por técnico
+    public function contarTodos($tecnico_id = null) {
+        $query = "SELECT COUNT(*) as total FROM " . $this->table_name;
+
+        $conditions = [];
+        $params = [];
+
+        if ($tecnico_id) {
+            $conditions[] = "tecnico_id = :tecnico_id";
+            $params[":tecnico_id"] = $tecnico_id;
+        }
+
+        if (!empty($conditions)) {
+            $query .= " WHERE " . implode(" AND ", $conditions);
+        }
+
+        try {
+            $stmt = $this->conn->prepare($query);
+
+            // Vincular parámetros dinámicamente
+            foreach ($params as $key => &$val) {
+                $type = PDO::PARAM_STR;
+                if (is_int($val)) {
+                    $type = PDO::PARAM_INT;
+                } elseif (is_bool($val)) {
+                     $type = PDO::PARAM_BOOL;
+                } elseif (is_null($val)) {
+                     $type = PDO::PARAM_NULL;
+                }
+                $stmt->bindParam($key, $val, $type);
+            }
+            unset($val); // Deshacer la referencia después del bucle
+
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row['total'];
+        } catch(PDOException $e) {
+            error_log("Error en contarTodos: " . $e->getMessage());
+            return 0; // Retornar 0 en caso de error
+        }
     }
 }

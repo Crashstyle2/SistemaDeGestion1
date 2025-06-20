@@ -18,7 +18,33 @@ if ($_SESSION['user_rol'] !== 'administrador') {
     $tecnico_id = $_SESSION['user_id'];
 }
 
-$stmt = $informe->leerTodos($tecnico_id);
+// --- Configuración de Paginación ---
+$limit = 10; // Número de informes por página
+$currentPage = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($currentPage - 1) * $limit;
+
+// Obtener el total de informes (para calcular el número total de páginas)
+$totalCount = $informe->contarTodos($tecnico_id);
+$totalPages = ceil($totalCount / $limit);
+
+// Asegurarse de que la página actual no sea menor a 1
+if ($currentPage < 1) {
+    $currentPage = 1;
+    $offset = 0;
+}
+// Asegurarse de que la página actual no exceda el total de páginas si hay informes
+if ($totalPages > 0 && $currentPage > $totalPages) {
+    $currentPage = $totalPages;
+    $offset = ($currentPage - 1) * $limit;
+} elseif ($totalPages == 0) {
+    // Si no hay informes, establecer la página actual a 1 y offset a 0
+    $currentPage = 1;
+    $offset = 0;
+}
+
+
+// Obtener los informes para la página actual
+$stmt = $informe->leerTodos($tecnico_id, $limit, $offset);
 ?>
 
 <!DOCTYPE html>
@@ -41,7 +67,7 @@ $stmt = $informe->leerTodos($tecnico_id);
 <body>
     <div class="container mt-4">
         <h2 class="mb-4">Informes Técnicos</h2>
-        
+
         <div class="mb-3">
             <a href="/MantenimientodeUPS/modulos/informe_tecnico/crear.php" class="btn btn-primary">
                 <i class="fas fa-plus mr-2"></i>Nuevo Informe
@@ -56,24 +82,26 @@ $stmt = $informe->leerTodos($tecnico_id);
             .table td, .table th {
                 font-size: 0.95rem;
             }
-            
+
             /* Estilos móviles */
             @media screen and (max-width: 768px) {
-                .table th:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(3)):not(:nth-child(9)),
-                .table td:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(3)):not(:nth-child(9)) {
+                /* Ajustar selectores para las columnas que SÍ se muestran */
+                .table th:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(3)):not(:nth-child(5)),
+                .table td:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(3)):not(:nth-child(5)) {
                     display: none !important;
                 }
-                
+
                 .table td, .table th {
                     font-size: 0.85rem;
                     padding: 0.4rem;
                 }
-                
+
                 /* Ajustar anchos de columnas visibles */
-                .table td:nth-child(1) { width: 20%; }  /* Fecha */
-                .table td:nth-child(2) { width: 35%; }  /* Local */
-                .table td:nth-child(3) { width: 30%; }  /* Técnico */
-                .table td:nth-child(9) { width: 15%; }  /* Acciones */
+                .table td:nth-child(1) { width: 20%; }  /* Acciones */
+                .table td:nth-child(2) { width: 25%; }  /* Fecha */
+                .table td:nth-child(3) { width: 30%; }  /* Local */
+                .table td:nth-child(4) { width: 25%; }  /* Técnico */
+                /* La columna de Sector (ahora la 5ta visible) se ocultará en móvil por la regla de arriba */
             }
         </style>
 
@@ -89,11 +117,12 @@ $stmt = $informe->leerTodos($tecnico_id);
                         <th>Fecha</th>
                         <th>Local</th>
                         <th>Técnico</th>
-                        <th class="columna-oculta-movil">Equipo</th>
-                        <th class="columna-oculta-movil">Patrimonio</th>
-                        <th class="columna-oculta-movil">Jefe Turno</th>
+                        <!-- Removed headers for columns no longer fetched by leerTodos -->
+                        <!-- <th class="columna-oculta-movil">Equipo</th> -->
+                        <!-- <th class="columna-oculta-movil">Patrimonio</th> -->
+                        <!-- <th class="columna-oculta-movil">Jefe Turno</th> -->
                         <th class="columna-oculta-movil">Sector</th>
-                        <th class="columna-oculta-movil">OT</th>
+                        <!-- <th class="columna-oculta-movil">OT</th> -->
                     </tr>
                 </thead>
                 <tbody>
@@ -114,16 +143,54 @@ $stmt = $informe->leerTodos($tecnico_id);
                             <td><?php echo $row['fecha_creacion'] ? htmlspecialchars(date('d/m/y', strtotime($row['fecha_creacion']))) : ''; ?></td>
                             <td><?php echo $row['local'] ? htmlspecialchars($row['local']) : ''; ?></td>
                             <td><?php echo $row['nombre_tecnico'] ? htmlspecialchars($row['nombre_tecnico']) : ''; ?></td>
-                            <td class="columna-oculta-movil"><?php echo $row['equipo_asistido'] ? htmlspecialchars($row['equipo_asistido']) : ''; ?></td>
-                            <td class="columna-oculta-movil"><?php echo $row['patrimonio'] ? htmlspecialchars($row['patrimonio']) : ''; ?></td>
-                            <td class="columna-oculta-movil"><?php echo $row['jefe_turno'] ? htmlspecialchars($row['jefe_turno']) : ''; ?></td>
+                            <!-- Removed table cells for columns no longer fetched -->
+                            <!-- <td class="columna-oculta-movil"><?php echo $row['equipo_asistido'] ? htmlspecialchars($row['equipo_asistido']) : ''; ?></td> -->
+                            <!-- <td class="columna-oculta-movil"><?php echo $row['patrimonio'] ? htmlspecialchars($row['patrimonio']) : ''; ?></td> -->
+                            <!-- <td class="columna-oculta-movil"><?php echo $row['jefe_turno'] ? htmlspecialchars($row['jefe_turno']) : ''; ?></td> -->
                             <td class="columna-oculta-movil"><?php echo $row['sector'] ? htmlspecialchars($row['sector']) : ''; ?></td>
-                            <td class="columna-oculta-movil"><?php echo !empty($row['orden_trabajo']) ? htmlspecialchars($row['orden_trabajo']) : '-'; ?></td>
+                            <!-- <td class="columna-oculta-movil"><?php echo !empty($row['orden_trabajo']) ? htmlspecialchars($row['orden_trabajo']) : '-'; ?></td> -->
                         </tr>
                     <?php endwhile; ?>
+                    <?php if ($stmt->rowCount() === 0 && $totalCount > 0): ?>
+                        <tr>
+                            <td colspan="5" class="text-center">No se encontraron informes en esta página.</td>
+                        </tr>
+                    <?php elseif ($totalCount === 0): ?>
+                         <tr>
+                            <td colspan="5" class="text-center">No hay informes disponibles.</td>
+                        </tr>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
+
+        <!-- Controles de Paginación -->
+        <?php if ($totalPages > 1): ?>
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item <?php echo ($currentPage <= 1) ? 'disabled' : ''; ?>">
+                        <a class="page-link" href="?page=<?php echo $currentPage - 1; ?><?php echo $tecnico_id ? '&tecnico_id=' . $tecnico_id : ''; ?>" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                            <span class="sr-only">Anterior</span>
+                        </a>
+                    </li>
+                    <?php
+                    // Mostrar un rango de páginas (opcional, para tablas grandes)
+                    // Simplificado: solo mostrar Anterior/Siguiente
+                    ?>
+                    <li class="page-item disabled">
+                        <span class="page-link">Página <?php echo $currentPage; ?> de <?php echo $totalPages; ?></span>
+                    </li>
+                    <li class="page-item <?php echo ($currentPage >= $totalPages) ? 'disabled' : ''; ?>">
+                        <a class="page-link" href="?page=<?php echo $currentPage + 1; ?><?php echo $tecnico_id ? '&tecnico_id=' . $tecnico_id : ''; ?>" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                            <span class="sr-only">Siguiente</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        <?php endif; ?>
+
     </div>
 
     <!-- Agregar antes de los modales -->

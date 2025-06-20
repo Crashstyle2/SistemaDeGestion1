@@ -11,7 +11,13 @@ include_once '../../models/Usuario.php';
 $database = new Database();
 $db = $database->getConnection();
 $usuario = new Usuario($db);
-$usuarios = $usuario->listarUsuarios();
+
+try {
+    $usuarios = $usuario->listarUsuarios();
+} catch (Exception $e) {
+    $_SESSION['error'] = "Error al cargar la lista de usuarios: " . $e->getMessage();
+    $usuarios = null;
+}
 
 ?>
 
@@ -66,6 +72,16 @@ $usuarios = $usuario->listarUsuarios();
         <!-- Tabla -->
         <div class="card">
             <div class="card-body p-0">
+                <?php if (isset($_SESSION['error'])): ?>
+                    <div class="alert alert-danger m-3">
+                        <?php 
+                            echo htmlspecialchars($_SESSION['error']); 
+                            unset($_SESSION['error']);
+                        ?>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if ($usuarios): ?>
                 <div class="table-responsive">
                     <div class="mb-3">
                         <input type="text" id="searchInput" class="form-control" placeholder="Buscar en cualquier campo...">
@@ -77,37 +93,34 @@ $usuarios = $usuario->listarUsuarios();
                                 <th>Usuario</th>
                                 <th>Nombre</th>
                                 <th>Rol</th>
+                                <th>Estado</th>
                                 <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php while ($row = $usuarios->fetch(PDO::FETCH_ASSOC)): ?>
-                                <tr>
+                                <tr class="<?php echo $row['estado'] === 'inactivo' ? 'table-secondary' : ''; ?>">
                                     <td><?php echo htmlspecialchars($row['id']); ?></td>
                                     <td><?php echo htmlspecialchars($row['username']); ?></td>
                                     <td><?php echo htmlspecialchars($row['nombre']); ?></td>
                                     <td>
-                                        <span class="badge badge-<?php echo $row['rol'] === 'administrador' ? 'primary' : 'info'; ?>">
+                                        <span class="badge <?php echo $row['rol'] === 'administrador' ? 'badge-primary' : 'badge-info'; ?>">
                                             <?php echo htmlspecialchars($row['rol']); ?>
                                         </span>
                                     </td>
+                                    <td>
+                                        <span class="badge <?php echo $row['estado'] === 'activo' ? 'badge-success' : 'badge-danger'; ?>">
+                                            <?php echo htmlspecialchars($row['estado']); ?>
+                                        </span>
+                                    </td>
                                     <td class="text-center">
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="editar_usuario.php?id=<?php echo $row['id']; ?>" 
-                                               class="btn btn-outline-primary" 
-                                               title="Editar">
+                                        <div class="btn-group">
+                                            <a href="editar_usuario.php?id=<?php echo $row['id']; ?>" class="btn btn-primary" title="Editar">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <a href="cambiar_password.php?id=<?php echo $row['id']; ?>" 
-                                               class="btn btn-outline-warning" 
-                                               title="Cambiar Contraseña">
+                                            <a href="cambiar_password.php?id=<?php echo $row['id']; ?>" class="btn btn-info" title="Cambiar Contraseña">
                                                 <i class="fas fa-key"></i>
                                             </a>
-                                            <button class="btn btn-outline-danger" 
-                                                    onclick="confirmarEliminacion(<?php echo $row['id']; ?>)"
-                                                    title="Eliminar">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -115,6 +128,9 @@ $usuarios = $usuario->listarUsuarios();
                         </tbody>
                     </table>
                 </div>
+                <?php else: ?>
+                    <div class="alert alert-info m-3">No hay usuarios registrados.</div>
+                <?php endif; ?>
             </div>
         </div>
     </div>

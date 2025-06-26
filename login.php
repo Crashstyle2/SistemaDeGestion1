@@ -17,6 +17,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST') {
         $_SESSION['user_id'] = $usuario->id;
         $_SESSION['user_rol'] = $usuario->rol;
         $_SESSION['nombre'] = $usuario->nombre;
+        $_SESSION['user_name'] = $usuario->username;
 
         // Agregar registro de actividad
         require_once 'config/ActivityLogger.php';

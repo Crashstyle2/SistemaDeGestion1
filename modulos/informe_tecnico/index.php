@@ -23,8 +23,11 @@ $limit = 10; // Número de informes por página
 $currentPage = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($currentPage - 1) * $limit;
 
+// Obtener el término de búsqueda
+$search_term = isset($_GET['search']) ? $_GET['search'] : '';
+
 // Obtener el total de informes (para calcular el número total de páginas)
-$totalCount = $informe->contarTodos($tecnico_id);
+$totalCount = $informe->contarTodos($tecnico_id, $search_term);
 $totalPages = ceil($totalCount / $limit);
 
 // Asegurarse de que la página actual no sea menor a 1
@@ -44,7 +47,7 @@ if ($totalPages > 0 && $currentPage > $totalPages) {
 
 
 // Obtener los informes para la página actual
-$stmt = $informe->leerTodos($tecnico_id, $limit, $offset);
+$stmt = $informe->leerTodos($tecnico_id, $limit, $offset, $search_term);
 ?>
 
 <!DOCTYPE html>
@@ -77,37 +80,22 @@ $stmt = $informe->leerTodos($tecnico_id, $limit, $offset);
             </a>
         </div>
 
-        <style>
-            /* Estilos base */
-            .table td, .table th {
-                font-size: 0.95rem;
-            }
-
-            /* Estilos móviles */
-            @media screen and (max-width: 768px) {
-                /* Ajustar selectores para las columnas que SÍ se muestran */
-                .table th:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(3)):not(:nth-child(5)),
-                .table td:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(3)):not(:nth-child(5)) {
-                    display: none !important;
-                }
-
-                .table td, .table th {
-                    font-size: 0.85rem;
-                    padding: 0.4rem;
-                }
-
-                /* Ajustar anchos de columnas visibles */
-                .table td:nth-child(1) { width: 20%; }  /* Acciones */
-                .table td:nth-child(2) { width: 25%; }  /* Fecha */
-                .table td:nth-child(3) { width: 30%; }  /* Local */
-                .table td:nth-child(4) { width: 25%; }  /* Técnico */
-                /* La columna de Sector (ahora la 5ta visible) se ocultará en móvil por la regla de arriba */
-            }
-        </style>
+        
 
         <div class="table-responsive">
-            <div class="mb-3">
-                <input type="text" id="searchInput" class="form-control" placeholder="Buscar en cualquier campo...">
+            <div class="mb-3 d-flex flex-column flex-md-row align-items-md-center">
+                <form method="GET" action="index.php" class="flex-grow-1 mb-2 mb-md-0">
+                    <input type="hidden" name="page" value="<?php echo $currentPage; ?>">
+                    <div class="input-group w-100">
+                        <input type="text" id="searchInput" name="search" class="form-control" placeholder="Buscar en cualquier campo..." value="<?php echo htmlspecialchars($search_term); ?>">
+                        <div class="input-group-append">
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Buscar</button>
+                            <?php if (!empty($search_term)): ?>
+                                <a href="index.php" class="btn btn-outline-secondary"><i class="fas fa-times"></i> Limpiar</a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </form>
             </div>
             <!-- Modificar la estructura de la tabla -->
             <table class="table table-hover" id="dataTable">
@@ -169,20 +157,16 @@ $stmt = $informe->leerTodos($tecnico_id, $limit, $offset);
             <nav aria-label="Page navigation">
                 <ul class="pagination justify-content-center">
                     <li class="page-item <?php echo ($currentPage <= 1) ? 'disabled' : ''; ?>">
-                        <a class="page-link" href="?page=<?php echo $currentPage - 1; ?><?php echo $tecnico_id ? '&tecnico_id=' . $tecnico_id : ''; ?>" aria-label="Previous">
+                        <a class="page-link" href="?page=<?php echo $currentPage - 1; ?><?php echo $tecnico_id ? '&tecnico_id=' . $tecnico_id : ''; ?><?php echo !empty($search_term) ? '&search=' . urlencode($search_term) : ''; ?>" aria-label="Previous">
                             <span aria-hidden="true">&laquo;</span>
                             <span class="sr-only">Anterior</span>
                         </a>
                     </li>
-                    <?php
-                    // Mostrar un rango de páginas (opcional, para tablas grandes)
-                    // Simplificado: solo mostrar Anterior/Siguiente
-                    ?>
                     <li class="page-item disabled">
                         <span class="page-link">Página <?php echo $currentPage; ?> de <?php echo $totalPages; ?></span>
                     </li>
                     <li class="page-item <?php echo ($currentPage >= $totalPages) ? 'disabled' : ''; ?>">
-                        <a class="page-link" href="?page=<?php echo $currentPage + 1; ?><?php echo $tecnico_id ? '&tecnico_id=' . $tecnico_id : ''; ?>" aria-label="Next">
+                        <a class="page-link" href="?page=<?php echo $currentPage + 1; ?><?php echo $tecnico_id ? '&tecnico_id=' . $tecnico_id : ''; ?><?php echo !empty($search_term) ? '&search=' . urlencode($search_term) : ''; ?>" aria-label="Next">
                             <span aria-hidden="true">&raquo;</span>
                             <span class="sr-only">Siguiente</span>
                         </a>
@@ -238,22 +222,7 @@ $stmt = $informe->leerTodos($tecnico_id, $limit, $offset);
         </div>
     </div>
 
-    <style>
-        @media screen and (max-width: 768px) {
-            .table td:nth-child(4),
-            .table th:nth-child(4),
-            .table td:nth-child(5),
-            .table th:nth-child(5),
-            .table td:nth-child(6),
-            .table th:nth-child(6),
-            .table td:nth-child(7),
-            .table th:nth-child(7),
-            .table td:nth-child(8),
-            .table th:nth-child(8) {
-                display: none;
-            }
-        }
-    </style>
+
     <script>
     $(document).ready(function() {
         let idToDelete = null;
@@ -292,15 +261,6 @@ $stmt = $informe->leerTodos($tecnico_id, $limit, $offset);
         });
     });
     </script>
-    <script>
-    $(document).ready(function() {
-        $("#searchInput").on("keyup", function() {
-            var value = $(this).val().toLowerCase();
-            $("#dataTable tbody tr").filter(function() {
-                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
-            });
-        });
-    });
-    </script>
-</body>
-</html>
+    }
+  ]
+}

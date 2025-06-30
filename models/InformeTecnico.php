@@ -103,7 +103,7 @@ class InformeTecnico {
 
     // Se agregaron parámetros opcionales limit y offset para paginación
     // Se seleccionaron columnas específicas en lugar de i.* para mejor rendimiento en vistas de lista
-    public function leerTodos($tecnico_id = null, $limit = null, $offset = null) {
+    public function leerTodos($tecnico_id = null, $limit = null, $offset = null, $search_term = null) {
         // Seleccionar solo las columnas necesarias para la lista
         $query = "SELECT i.id, i.local, i.sector, i.fecha_creacion, i.tecnico_id, u.nombre as nombre_tecnico
                 FROM " . $this->table_name . " i
@@ -115,6 +115,28 @@ class InformeTecnico {
         if ($tecnico_id) {
             $conditions[] = "i.tecnico_id = :tecnico_id";
             $params[":tecnico_id"] = $tecnico_id;
+        }
+
+
+
+        if ($search_term) {
+            $search_like = '%' . $search_term . '%';
+            $conditions[] = "(i.local LIKE :search_term OR
+                              i.sector LIKE :search_term OR
+                              i.equipo_asistido LIKE :search_term OR
+                              i.patrimonio LIKE :search_term OR
+                              i.jefe_turno LIKE :search_term OR
+                              i.observaciones LIKE :search_term OR
+                              u.nombre LIKE :search_term)";
+            $params[":search_term"] = $search_like;
+        }
+
+
+
+        if ($search_term) {
+            $search_like = '%' . $search_term . '%';
+            $conditions[] = "(i.local LIKE :search_term OR\n                              i.sector LIKE :search_term OR\n                              i.equipo_asistido LIKE :search_term OR\n                              i.patrimonio LIKE :search_term OR\n                              i.jefe_turno LIKE :search_term OR\n                              i.observaciones LIKE :search_term OR\n                              u.nombre LIKE :search_term)";
+            $params[":search_term"] = $search_like;
         }
 
         if (!empty($conditions)) {
@@ -198,15 +220,28 @@ class InformeTecnico {
     }
 
     // Nuevo método para contar el total de informes, opcionalmente filtrado por técnico
-    public function contarTodos($tecnico_id = null) {
-        $query = "SELECT COUNT(*) as total FROM " . $this->table_name;
+
+
+    // Nuevo método para contar el total de informes, opcionalmente filtrado por técnico y término de búsqueda
+    public function contarTodos($tecnico_id = null, $search_term = null) {
+        $query = "SELECT COUNT(*) as total FROM " . $this->table_name . " i LEFT JOIN usuarios u ON i.tecnico_id = u.id";
 
         $conditions = [];
         $params = [];
 
         if ($tecnico_id) {
-            $conditions[] = "tecnico_id = :tecnico_id";
+            $conditions[] = "i.tecnico_id = :tecnico_id";
             $params[":tecnico_id"] = $tecnico_id;
+        }
+
+
+
+
+
+        if ($search_term) {
+            $search_like = '%' . $search_term . '%';
+            $conditions[] = "(i.local LIKE :search_term OR\n                              i.sector LIKE :search_term OR\n                              i.equipo_asistido LIKE :search_term OR\n                              i.patrimonio LIKE :search_term OR\n                              i.jefe_turno LIKE :search_term OR\n                              i.observaciones LIKE :search_term OR\n                              u.nombre LIKE :search_term)";
+            $params[":search_term"] = $search_like;
         }
 
         if (!empty($conditions)) {
@@ -216,26 +251,25 @@ class InformeTecnico {
         try {
             $stmt = $this->conn->prepare($query);
 
-            // Vincular parámetros dinámicamente
             foreach ($params as $key => &$val) {
                 $type = PDO::PARAM_STR;
                 if (is_int($val)) {
                     $type = PDO::PARAM_INT;
                 } elseif (is_bool($val)) {
-                     $type = PDO::PARAM_BOOL;
+                    $type = PDO::PARAM_BOOL;
                 } elseif (is_null($val)) {
-                     $type = PDO::PARAM_NULL;
+                    $type = PDO::PARAM_NULL;
                 }
                 $stmt->bindParam($key, $val, $type);
             }
-            unset($val); // Deshacer la referencia después del bucle
+            unset($val);
 
             $stmt->execute();
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             return $row['total'];
         } catch(PDOException $e) {
             error_log("Error en contarTodos: " . $e->getMessage());
-            return 0; // Retornar 0 en caso de error
+            return 0;
         }
     }
 }

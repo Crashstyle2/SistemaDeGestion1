@@ -275,8 +275,8 @@ body {
 }
 
 .btn-group-sm > .btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
 }
 
 .table-responsive {
@@ -324,6 +324,49 @@ body {
 #video {
     width: 100%;
     border-radius: 4px;
+}
+
+/* Estilos para el grupo de búsqueda */
+.input-group .form-control {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    padding-right: 0;
+}
+
+.input-group .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    height: calc(2.25rem + 2px); /* Adjust to match form-control height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.input-group-append .btn:not(:last-child) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.input-group-append .btn:last-child {
+    border-top-right-radius: 25px;
+    border-bottom-right-radius: 25px;
+}
+
+/* Ensure the search button is rounded on the right side */
+.input-group-append .btn-primary {
+    border-radius: 0 25px 25px 0;
+}
+
+/* Adjust for the clear button if present */
+.input-group-append .btn-outline-secondary {
+    border-radius: 0;
+}
+
+.input-group-append .btn-outline-secondary + .btn-primary {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-top-right-radius: 25px;
+    border-bottom-right-radius: 25px;
 }
 
 /* Actualizar los estilos de firma digital */

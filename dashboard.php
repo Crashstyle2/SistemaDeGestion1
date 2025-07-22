@@ -148,6 +148,22 @@ if(!isset($_SESSION['user_id'])) {
                     </div>
                 </div>
             </div>
+
+            <!-- Módulo Uso de Combustible -->
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <div class="text-center mb-3">
+                            <i class="fas fa-gas-pump fa-3x text-info"></i>
+                        </div>
+                        <h5 class="card-title text-center">Uso de Combustible</h5>
+                        <p class="card-text text-center flex-grow-1">Registro y control de uso de combustible</p>
+                        <a href="modulos/uso_combustible/index.php" class="btn btn-info mt-auto">
+                            <i class="fas fa-folder-open mr-2"></i>Acceder
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <?php if($_SESSION['user_rol'] === 'administrador'): ?>

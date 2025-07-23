@@ -10,7 +10,6 @@ require_once '../../config/Database.php';
 // Verificar el rol del usuario
 $rol = $_SESSION['user_rol'];
 
-// Verificar si es un rol válido
 if (!in_array($rol, ['tecnico', 'supervisor', 'administrativo', 'administrador'])) {
     header("Location: ../../dashboard.php");
     exit;
@@ -58,15 +57,15 @@ $db = $database->getConnection();
                         </div>
                     </div>
                     <div class="card-body">
-                        <form id="formCombustible" action="guardar_registro.php" method="POST">
+                        <form id="formCombustible" method="POST">
                             <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label for="fecha">Fecha</label>
                                     <input type="date" class="form-control" id="fecha" name="fecha" value="<?php echo date('Y-m-d'); ?>" required>
                                 </div>
                                 <div class="form-group col-md-6">
-                                    <label for="nombreConductor">Conductor</label>
-                                    <input type="text" class="form-control" id="nombreConductor" name="nombreConductor" value="<?php echo htmlspecialchars($_SESSION['nombre']); ?>" readonly>
+                                    <label for="conductor">Conductor</label>
+                                    <input type="text" class="form-control" id="conductor" name="conductor" value="<?php echo htmlspecialchars($_SESSION['nombre']); ?>" required>
                                 </div>
                             </div>
                             <div class="form-row">
@@ -75,74 +74,68 @@ $db = $database->getConnection();
                                     <input type="text" class="form-control" id="chapa" name="chapa" required>
                                 </div>
                                 <div class="form-group col-md-6">
-                                    <label for="numeroBaucher">Nº Voucher</label>
-                                    <input type="text" class="form-control" id="numeroBaucher" name="numeroBaucher" required>
+                                    <label for="numero_voucher">Nº Voucher</label>
+                                    <input type="text" class="form-control" id="numero_voucher" name="numero_voucher" required>
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label for="tarjeta">Nº tarjeta (últimos 4 dígitos)</label>
-                                    <input type="text" class="form-control" id="tarjeta" name="tarjeta" maxlength="4" required>
+                                    <input type="text" class="form-control" id="tarjeta" name="tarjeta" maxlength="4">
                                 </div>
                                 <div class="form-group col-md-6">
-                                    <label for="litrosCargados">Litros Cargados</label>
-                                    <input type="number" step="0.01" class="form-control" id="litrosCargados" name="litrosCargados" required>
+                                    <label for="litros_cargados">Litros Cargados</label>
+                                    <input type="number" step="0.01" class="form-control" id="litros_cargados" name="litros_cargados" required>
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-6">
-                                    <label for="tipoVehiculo">Tipo de Vehículo</label>
-                                    <select class="form-control" id="tipoVehiculo" name="tipoVehiculo" required>
+                                    <label for="tipo_vehiculo">Tipo de Vehículo</label>
+                                    <select class="form-control" id="tipo_vehiculo" name="tipo_vehiculo" required>
                                         <option value="">Seleccione tipo de vehículo</option>
                                         <option value="particular">Particular</option>
                                         <option value="movil_retail">Móvil de Retail</option>
                                     </select>
                                 </div>
                                 <div class="form-group col-md-6">
-                                    <label for="fecha_carga">Fecha de Carga</label>
-                                    <input type="date" class="form-control" id="fecha_carga" name="fecha_carga" value="<?php echo date('Y-m-d'); ?>" required>
+                                    <label for="documento">Documento</label>
+                                    <input type="text" class="form-control" id="documento" name="documento" required>
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group col-md-6">
-                                    <label for="documento">Documento</label>
-                                    <input type="text" class="form-control" id="documento" name="documento" required>
+                                    <label for="fecha_carga">Fecha de Carga</label>
+                                    <input type="date" class="form-control" id="fecha_carga" name="fecha_carga" value="<?php echo date('Y-m-d'); ?>" required>
                                 </div>
                                 <div class="form-group col-md-6">
                                     <label for="hora_carga">Hora de Carga</label>
                                     <input type="time" class="form-control" id="hora_carga" name="hora_carga" value="<?php echo date('H:i'); ?>" required>
                                 </div>
                             </div>
-                            <div id="recorridos">
-                                <h5 class="mb-3">Recorridos</h5>
-                                <div class="recorrido-item mb-3">
+                            
+                            <!-- Sección de Recorridos (sin kilómetros) -->
+                            <h5 class="mb-3">Recorridos</h5>
+                            <div id="recorridos-container">
+                                <div class="recorrido-item border p-3 mb-3">
                                     <div class="form-row">
                                         <div class="form-group col-md-6">
-                                            <label for="origen_0">Origen</label>
-                                            <input type="text" class="form-control" id="origen_0" name="origen[]" required>
+                                            <label>Origen</label>
+                                            <input type="text" class="form-control" name="origen[]" required>
                                         </div>
                                         <div class="form-group col-md-6">
-                                            <label for="destino_0">Destino</label>
-                                            <input type="text" class="form-control" id="destino_0" name="destino[]" required>
-                                        </div>
-                                    </div>
-                                    <div class="form-row">
-                                        <div class="form-group col-md-6">
-                                            <label for="km_inicial_0">Kilómetro Inicial</label>
-                                            <input type="number" step="0.01" class="form-control" id="km_inicial_0" name="km_inicial[]">
-                                        </div>
-                                        <div class="form-group col-md-6">
-                                            <label for="km_final_0">Kilómetro Final</label>
-                                            <input type="number" step="0.01" class="form-control" id="km_final_0" name="km_final[]">
+                                            <label>Destino</label>
+                                            <input type="text" class="form-control" name="destino[]" required>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                            
                             <div class="text-right mb-3">
                                 <button type="button" class="btn btn-secondary" onclick="agregarRecorrido()">
                                     <i class="fas fa-plus mr-2"></i>Agregar Recorrido
                                 </button>
                             </div>
+                            
                             <div class="text-center">
                                 <button type="submit" class="btn btn-primary btn-lg">
                                     <i class="fas fa-save mr-2"></i>Guardar Registro
@@ -157,6 +150,71 @@ $db = $database->getConnection();
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../assets/js/uso_combustible.js"></script>
+    
+    <script>
+    function agregarRecorrido() {
+        const container = document.getElementById('recorridos-container');
+        const nuevoRecorrido = document.createElement('div');
+        nuevoRecorrido.className = 'recorrido-item border p-3 mb-3';
+        nuevoRecorrido.innerHTML = `
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label>Origen:</label>
+                    <input type="text" class="form-control" name="origen[]" required>
+                </div>
+                <div class="form-group col-md-6">
+                    <label>Destino:</label>
+                    <input type="text" class="form-control" name="destino[]" required>
+                </div>
+            </div>
+            <button type="button" class="btn btn-danger btn-sm" onclick="eliminarRecorrido(this)">
+                <i class="fas fa-trash"></i> Eliminar
+            </button>
+        `;
+        container.appendChild(nuevoRecorrido);
+    }
+    
+    function eliminarRecorrido(button) {
+        button.closest('.recorrido-item').remove();
+    }
+    
+    // Manejar envío del formulario
+    $('#formCombustible').on('submit', function(e) {
+        e.preventDefault();
+        
+        $.ajax({
+            url: 'guardar_registro.php',
+            type: 'POST',
+            data: $(this).serialize(),
+            dataType: 'json',
+            success: function(response) {
+                if(response.success) {
+                    alert('Registro guardado correctamente');
+                    $('#formCombustible')[0].reset();
+                    // Mantener solo un recorrido
+                    $('#recorridos-container').html(`
+                        <div class="recorrido-item border p-3 mb-3">
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label>Origen</label>
+                                    <input type="text" class="form-control" name="origen[]" required>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label>Destino</label>
+                                    <input type="text" class="form-control" name="destino[]" required>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function() {
+                alert('Error al procesar la solicitud');
+            }
+        });
+    });
+    </script>
 </body>
 </html>

@@ -254,5 +254,57 @@ class MantenimientoUPS {
     public function getLastError() {
         return $this->conn->errorInfo()[2];
     }
+    
+    // Método para contar total de registros
+    public function contarTodos($busqueda = '') {
+        if (!empty($busqueda)) {
+            $query = "SELECT COUNT(*) as total FROM " . $this->table_name . " 
+                     WHERE cadena LIKE :busqueda 
+                     OR sucursal LIKE :busqueda 
+                     OR marca LIKE :busqueda 
+                     OR tipo_bateria LIKE :busqueda 
+                     OR potencia_ups LIKE :busqueda 
+                     OR observaciones LIKE :busqueda 
+                     OR estado_mantenimiento LIKE :busqueda";
+            $stmt = $this->conn->prepare($query);
+            $busqueda_param = "%{$busqueda}%";
+            $stmt->bindParam(":busqueda", $busqueda_param);
+        } else {
+            $query = "SELECT COUNT(*) as total FROM " . $this->table_name;
+            $stmt = $this->conn->prepare($query);
+        }
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row['total'];
+    }
+    
+    // Método para leer con paginación
+    public function leerConPaginacion($limite = 25, $offset = 0, $busqueda = '') {
+        if (!empty($busqueda)) {
+            $query = "SELECT * FROM " . $this->table_name . " 
+                     WHERE cadena LIKE :busqueda 
+                     OR sucursal LIKE :busqueda 
+                     OR marca LIKE :busqueda 
+                     OR tipo_bateria LIKE :busqueda 
+                     OR potencia_ups LIKE :busqueda 
+                     OR observaciones LIKE :busqueda 
+                     OR estado_mantenimiento LIKE :busqueda
+                     ORDER BY fecha_proximo_mantenimiento ASC 
+                     LIMIT :limite OFFSET :offset";
+            $stmt = $this->conn->prepare($query);
+            $busqueda_param = "%{$busqueda}%";
+            $stmt->bindParam(":busqueda", $busqueda_param);
+        } else {
+            $query = "SELECT * FROM " . $this->table_name . " 
+                     ORDER BY fecha_proximo_mantenimiento ASC 
+                     LIMIT :limite OFFSET :offset";
+            $stmt = $this->conn->prepare($query);
+        }
+        
+        $stmt->bindParam(":limite", $limite, PDO::PARAM_INT);
+        $stmt->bindParam(":offset", $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt;
+    }
 }
 ?>

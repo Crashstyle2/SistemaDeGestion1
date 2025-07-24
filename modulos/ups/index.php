@@ -27,9 +27,20 @@ function determinarColorFila($fechaProximo) {
 
 $database = new Database();
 $db = $database->getConnection();
-
 $mantenimiento = new MantenimientoUPS($db);
-$stmt = $mantenimiento->leerTodos();
+
+// Configuración de paginación
+$registros_por_pagina = 25;
+$pagina_actual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
+$busqueda = isset($_GET['busqueda']) ? trim($_GET['busqueda']) : '';
+$offset = ($pagina_actual - 1) * $registros_por_pagina;
+
+// Obtener total de registros y calcular páginas
+$total_registros = $mantenimiento->contarTodos($busqueda);
+$total_paginas = ceil($total_registros / $registros_por_pagina);
+
+// Obtener registros de la página actual
+$stmt = $mantenimiento->leerConPaginacion($registros_por_pagina, $offset, $busqueda);
 ?>
 
 <!DOCTYPE html>
@@ -41,20 +52,135 @@ $stmt = $mantenimiento->leerTodos();
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="../../assets/css/style.css">
+    <style>
+        .details-row {
+            display: none;
+            background-color: #f8f9fa;
+        }
+        .btn-toggle {
+            background: none;
+            border: none;
+            color: #007bff;
+            cursor: pointer;
+            padding: 0;
+        }
+        .btn-toggle:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+        .compact-table th {
+            font-size: 0.9rem;
+            padding: 0.5rem;
+        }
+        .compact-table td {
+            padding: 0.5rem;
+            vertical-align: middle;
+        }
+        .details-content {
+            padding: 1rem;
+            border-left: 4px solid #007bff;
+            margin: 0.5rem 0;
+        }
+        /* Estilos para dropdown */
+        .dropdown-menu {
+            min-width: 180px;
+        }
+        .dropdown-item {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+        /* Columna de acciones más compacta */
+        .compact-table th:last-child,
+        .compact-table td:last-child {
+            width: 100px;
+            min-width: 100px;
+            max-width: 100px;
+            text-align: center;
+        }
+        /* Columna Ver Detalles también compacta */
+        .compact-table th:nth-child(6),
+        .compact-table td:nth-child(6) {
+            width: 90px;
+            min-width: 90px;
+            max-width: 90px;
+            text-align: center;
+        }
+        .details-content {
+            padding: 1rem;
+            border-left: 4px solid #007bff;
+            margin: 0.5rem 0;
+        }
+        /* Estilos para dropdown compacto */
+        .dropdown {
+            width: 100%;
+        }
+        .dropdown .btn {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            width: 100%;
+        }
+        .dropdown-menu {
+            min-width: 160px;
+            font-size: 0.85rem;
+        }
+        .dropdown-item {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+        }
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+        .dropdown-item i {
+            width: 16px;
+        }
+        .details-content {
+            padding: 1rem;
+            border-left: 4px solid #007bff;
+            margin: 0.5rem 0;
+        }
+        /* Estilos para botones compactos */
+        .btn-group .btn {
+            border-radius: 0;
+            margin-right: 1px;
+        }
+        .btn-group .btn:first-child {
+            border-top-left-radius: 0.25rem;
+            border-bottom-left-radius: 0.25rem;
+        }
+        .btn-group .btn:last-child {
+            border-top-right-radius: 0.25rem;
+            border-bottom-right-radius: 0.25rem;
+            margin-right: 0;
+        }
+        /* Estilos para dropdown */
+        .dropdown-menu {
+            min-width: 180px;
+        }
+        .dropdown-item {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-white">
         <div class="container">
-            <div class="d-flex flex-column w-100">
-                <div class="d-flex align-items-center mb-2">
+            <div class="d-flex justify-content-between align-items-center w-100">
+                <div class="d-flex align-items-center">
                     <i class="fas fa-bolt mr-2 text-primary"></i>
-                    <span class="h5 mb-0">Sistema UPS</span>
+                    <span class="h5 mb-0">Sistema de UPS</span>
                 </div>
-                <div class="d-flex align-items-center mb-2">
-                    <i class="fas fa-user mr-2"></i>
-                    <span>Bienvenido, <?php echo htmlspecialchars($_SESSION['nombre'] ?? ''); ?></span>
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-user mr-2 text-primary"></i>
+                    <span class="h5 mb-0">Bienvenido, <?php echo htmlspecialchars($_SESSION['nombre'] ?? ''); ?></span>
                 </div>
-                <div class="d-flex">
+                <div class="d-flex align-items-center">
                     <a href="../../dashboard.php" class="btn btn-outline-primary">
                         <i class="fas fa-home mr-2"></i>Volver al Panel
                     </a>
@@ -75,75 +201,117 @@ $stmt = $mantenimiento->leerTodos();
         </div>
         <?php endif; ?>
 
-        <!-- Agregar campo de búsqueda -->
-        <div class="mb-3">
-            <input type="text" id="searchInput" class="form-control" placeholder="Buscar en cualquier campo...">
-        </div>
+        <!-- Campo de búsqueda -->
+        <form method="GET" class="mb-3">
+            <div class="input-group">
+                <input type="text" name="busqueda" class="form-control" 
+                       placeholder="Buscar en cualquier campo..." 
+                       value="<?php echo htmlspecialchars($busqueda); ?>">
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <?php if(!empty($busqueda)): ?>
+                        <a href="index.php" class="btn btn-outline-danger">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </form>
         
-        <div class="d-flex flex-column mb-3">
-            <?php if($_SESSION['user_rol'] === 'administrador'): ?>
-                <a href="crear.php" class="btn btn-primary mb-2">
-                    <i class="fas fa-plus mr-2"></i>Nuevo Registro
+        <!-- Información de paginación -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="pagination-info">
+                Mostrando <?php echo $offset + 1; ?> - <?php echo min($offset + $registros_por_pagina, $total_registros); ?> 
+                de <?php echo $total_registros; ?> registros
+                <?php if(!empty($busqueda)): ?>
+                    (filtrado por: "<?php echo htmlspecialchars($busqueda); ?>")
+                <?php endif; ?>
+            </div>
+            <div>
+                <?php if($_SESSION['user_rol'] === 'administrador'): ?>
+                    <a href="crear.php" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus mr-1"></i>Nuevo
+                    </a>
+                <?php endif; ?>
+                <a href="../../exportar_excel.php" class="btn btn-success btn-sm">
+                    <i class="fas fa-file-excel mr-1"></i>Excel
                 </a>
-            <?php endif; ?>
-            <a href="../../exportar_excel.php" class="btn btn-success">
-                <i class="fas fa-file-excel mr-2"></i>Exportar a Excel
-            </a>
-            <a href="../../dashboard.php" class="btn btn-secondary mt-2">
-                <i class="fas fa-home mr-2"></i>Volver al Inicio
-            </a>
+            </div>
         </div>
 
         <div class="table-responsive">
-            <table class="table table-bordered table-striped" id="dataTable">
+            <table class="table table-bordered table-striped compact-table" id="dataTable">
                 <thead class="thead-dark">
                     <tr>
-                        <th>Patrimonio</th>
                         <th>Cadena</th>
                         <th>Sucursal</th>
-                        <th>Marca</th>
-                        <th>Tipo Batería</th>
-                        <th>Cantidad</th>
-                        <th>Potencia</th>
                         <th>Último Mant.</th>
                         <th>Próximo Mant.</th>
-                        <th>Observaciones</th>
                         <th>Estado</th>
+                        <th>Ver Detalles</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php while ($row = $stmt->fetch(PDO::FETCH_ASSOC)): ?>
-                        <tr class="<?php echo determinarColorFila($row['fecha_proximo_mantenimiento']); ?>">
-                            <td><?php echo htmlspecialchars($row['patrimonio']); ?></td>
+                        <tr class="<?php echo determinarColorFila($row['fecha_proximo_mantenimiento']); ?>" data-patrimonio="<?php echo $row['patrimonio']; ?>">
                             <td><?php echo htmlspecialchars($row['cadena']); ?></td>
                             <td><?php echo htmlspecialchars($row['sucursal']); ?></td>
-                            <td><?php echo htmlspecialchars($row['marca']); ?></td>
-                            <td><?php echo htmlspecialchars($row['tipo_bateria']); ?></td>
-                            <td><?php echo htmlspecialchars($row['cantidad']); ?></td>
-                            <td><?php echo htmlspecialchars($row['potencia_ups']); ?></td>
                             <td><?php echo htmlspecialchars($row['fecha_ultimo_mantenimiento']); ?></td>
                             <td><?php echo htmlspecialchars($row['fecha_proximo_mantenimiento']); ?></td>
-                            <td><?php echo htmlspecialchars($row['observaciones'] ?? ''); ?></td>
                             <td class="text-dark"><?php echo htmlspecialchars($row['estado_mantenimiento'] ?? 'Pendiente'); ?></td>
                             <td>
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <?php if($_SESSION['user_rol'] === 'administrador'): ?>
-                                        <a href="editar.php?id=<?php echo $row['patrimonio']; ?>" class="btn btn-info" title="Editar">
-                                            <i class="fas fa-edit"></i>
+                                <button class="btn-toggle" onclick="toggleDetails(<?php echo $row['patrimonio']; ?>)">
+                                    <i class="fas fa-eye mr-1"></i>Ver UPS
+                                </button>
+                            </td>
+                            <td>
+                                <div class="dropdown">
+                                    <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-cog mr-1"></i>Acciones
+                                    </button>
+                                    <div class="dropdown-menu">
+                                        <?php if($_SESSION['user_rol'] === 'administrador'): ?>
+                                            <a class="dropdown-item" href="editar.php?id=<?php echo $row['patrimonio']; ?>">
+                                                <i class="fas fa-edit mr-2 text-info"></i>Editar
+                                            </a>
+                                        <?php endif; ?>
+                                        <a class="dropdown-item" href="realizar_mantenimiento.php?id=<?php echo $row['patrimonio']; ?>">
+                                            <i class="fas fa-tools mr-2 text-success"></i>Realizar Mantenimiento
                                         </a>
-                                    <?php endif; ?>
-                                    <a href="realizar_mantenimiento.php?id=<?php echo $row['patrimonio']; ?>" class="btn btn-success" title="Realizar Mantenimiento">
-                                        <i class="fas fa-tools"></i>
-                                    </a>
-                                    <a href="historial.php?id=<?php echo $row['patrimonio']; ?>" class="btn btn-info" title="Historial">
-                                        <i class="fas fa-history"></i>
-                                    </a>
-                                    <?php if($_SESSION['user_rol'] === 'administrador'): ?>
-                                        <button class="btn btn-danger" onclick="confirmarEliminacion(<?php echo $row['patrimonio']; ?>)" title="Eliminar">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
-                                    <?php endif; ?>
+                                        <a class="dropdown-item" href="historial.php?id=<?php echo $row['patrimonio']; ?>">
+                                            <i class="fas fa-history mr-2 text-info"></i>Ver Historial
+                                        </a>
+                                        <?php if($_SESSION['user_rol'] === 'administrador'): ?>
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item text-danger" href="#" onclick="confirmarEliminacion(<?php echo $row['patrimonio']; ?>)">
+                                                <i class="fas fa-trash-alt mr-2"></i>Eliminar
+                                            </a>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- Fila de detalles oculta -->
+                        <tr class="details-row" id="details-<?php echo $row['patrimonio']; ?>">
+                            <td colspan="7">
+                                <div class="details-content">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-info-circle mr-2"></i>Información General</h6>
+                                            <p><strong>Patrimonio:</strong> <?php echo htmlspecialchars($row['patrimonio']); ?></p>
+                                            <p><strong>Marca:</strong> <?php echo htmlspecialchars($row['marca']); ?></p>
+                                            <p><strong>Potencia UPS:</strong> <?php echo htmlspecialchars($row['potencia_ups']); ?></p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6><i class="fas fa-battery-half mr-2"></i>Información de Batería</h6>
+                                            <p><strong>Tipo Batería:</strong> <?php echo htmlspecialchars($row['tipo_bateria']); ?></p>
+                                            <p><strong>Cantidad:</strong> <?php echo htmlspecialchars($row['cantidad']); ?></p>
+                                            <p><strong>Observaciones:</strong> <?php echo htmlspecialchars($row['observaciones'] ?? 'Sin observaciones'); ?></p>
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
@@ -151,13 +319,66 @@ $stmt = $mantenimiento->leerTodos();
                 </tbody>
             </table>
         </div>
+        
+        <!-- Paginación -->
+        <?php if($total_paginas > 1): ?>
+        <nav aria-label="Navegación de páginas">
+            <ul class="pagination justify-content-center">
+                <!-- Botón Anterior -->
+                <li class="page-item <?php echo ($pagina_actual <= 1) ? 'disabled' : ''; ?>">
+                    <a class="page-link" href="?pagina=<?php echo $pagina_actual - 1; ?><?php echo !empty($busqueda) ? '&busqueda=' . urlencode($busqueda) : ''; ?>">
+                        <i class="fas fa-chevron-left"></i> Anterior
+                    </a>
+                </li>
+                
+                <?php
+                // Calcular rango de páginas a mostrar
+                $inicio = max(1, $pagina_actual - 2);
+                $fin = min($total_paginas, $pagina_actual + 2);
+                
+                // Mostrar primera página si no está en el rango
+                if($inicio > 1): ?>
+                    <li class="page-item">
+                        <a class="page-link" href="?pagina=1<?php echo !empty($busqueda) ? '&busqueda=' . urlencode($busqueda) : ''; ?>">1</a>
+                    </li>
+                    <?php if($inicio > 2): ?>
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    <?php endif;
+                endif;
+                
+                // Mostrar páginas en el rango
+                for($i = $inicio; $i <= $fin; $i++): ?>
+                    <li class="page-item <?php echo ($i == $pagina_actual) ? 'active' : ''; ?>">
+                        <a class="page-link" href="?pagina=<?php echo $i; ?><?php echo !empty($busqueda) ? '&busqueda=' . urlencode($busqueda) : ''; ?>">
+                            <?php echo $i; ?>
+                        </a>
+                    </li>
+                <?php endfor;
+                
+                // Mostrar última página si no está en el rango
+                if($fin < $total_paginas): 
+                    if($fin < $total_paginas - 1): ?>
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    <?php endif; ?>
+                    <li class="page-item">
+                        <a class="page-link" href="?pagina=<?php echo $total_paginas; ?><?php echo !empty($busqueda) ? '&busqueda=' . urlencode($busqueda) : ''; ?>">
+                            <?php echo $total_paginas; ?>
+                        </a>
+                    </li>
+                <?php endif; ?>
+                
+                <!-- Botón Siguiente -->
+                <li class="page-item <?php echo ($pagina_actual >= $total_paginas) ? 'disabled' : ''; ?>">
+                    <a class="page-link" href="?pagina=<?php echo $pagina_actual + 1; ?><?php echo !empty($busqueda) ? '&busqueda=' . urlencode($busqueda) : ''; ?>">
+                        Siguiente <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <?php endif; ?>
     </div>
 
-    <footer class="footer">
-        <div class="container">
-            <p>Propiedad Intelectual del Ing. Juan Caceres &copy; 2025</p>
-        </div>
-    </footer>
+
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -213,8 +434,11 @@ $stmt = $mantenimiento->leerTodos();
                     data: { id: idToDelete },
                     success: function(response) {
                         if (response === 'success') {
-                            // Eliminar la fila específica usando el patrimonio como identificador
-                            $(`#dataTable tbody tr td:first-child:contains('${idToDelete}')`).closest('tr').fadeOut(400, function() {
+                            // Eliminar las filas (principal y detalles)
+                            $(`tr[data-patrimonio='${idToDelete}']`).fadeOut(400, function() {
+                                $(this).remove();
+                            });
+                            $(`#details-${idToDelete}`).fadeOut(400, function() {
                                 $(this).remove();
                             });
 
@@ -238,11 +462,37 @@ $stmt = $mantenimiento->leerTodos();
 
         $("#searchInput").on("keyup", function() {
             var value = $(this).val().toLowerCase();
-            $("#dataTable tbody tr").filter(function() {
-                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+            $("#dataTable tbody tr:not(.details-row)").filter(function() {
+                var isVisible = $(this).text().toLowerCase().indexOf(value) > -1;
+                $(this).toggle(isVisible);
+                // También ocultar la fila de detalles correspondiente si la principal no es visible
+                var patrimonio = $(this).data('patrimonio');
+                if (!isVisible) {
+                    $(`#details-${patrimonio}`).hide();
+                }
+                return isVisible;
             });
         });
     });
+
+    // Función para mostrar/ocultar detalles
+    function toggleDetails(patrimonio) {
+        const detailsRow = $(`#details-${patrimonio}`);
+        const button = $(`tr[data-patrimonio='${patrimonio}'] .btn-toggle`);
+        
+        if (detailsRow.is(':visible')) {
+            detailsRow.slideUp(300);
+            button.html('<i class="fas fa-eye mr-1"></i>Ver UPS');
+        } else {
+            // Ocultar otros detalles abiertos
+            $('.details-row:visible').slideUp(300);
+            $('.btn-toggle').html('<i class="fas fa-eye mr-1"></i>Ver UPS');
+            
+            // Mostrar los detalles de este registro
+            detailsRow.slideDown(300);
+            button.html('<i class="fas fa-eye-slash mr-1"></i>Ocultar');
+        }
+    }
     </script>
 </body>
 </html>

@@ -185,12 +185,6 @@ if(!isset($_SESSION['user_id'])) {
         <?php endif; ?>
     </div>
 
-    <footer class="footer">
-        <div class="container">
-            <p>Propiedad Intelectual del Ing. Juan Caceres © 2025</p>
-        </div>
-    </footer>
-
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
     

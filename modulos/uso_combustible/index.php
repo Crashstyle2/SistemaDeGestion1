@@ -60,6 +60,44 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
             color: white;
             font-size: 2rem;
         }
+        
+        /* Estilos para el modal de selección */
+        .searchable-dropdown {
+            display: none !important; /* Ocultar dropdowns originales */
+        }
+        
+        .searchable-input {
+            cursor: pointer;
+            background-color: white;
+        }
+        
+        .searchable-input:focus {
+            cursor: text;
+        }
+        
+        .selection-modal .modal-body {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .option-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .option-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .option-item:last-child {
+            border-bottom: none;
+        }
+        
+        .search-modal-input {
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -68,6 +106,27 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
         <div class="text-center">
             <i class="fas fa-spinner fa-spin loading-spinner"></i>
             <div class="text-white mt-2">Guardando registro...</div>
+        </div>
+    </div>
+
+    <!-- Modal para selección de sucursales -->
+    <div class="modal fade" id="selectionModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered selection-modal" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="selectionModalTitle">Seleccionar Sucursal</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" class="form-control search-modal-input" id="modalSearchInput" placeholder="Buscar sucursal...">
+                    <div id="modalOptions"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -119,7 +178,7 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
                                 <i class="fas fa-gas-pump mr-2"></i>Registro de Uso de Combustible
                             </h5>
                             <div>
-                                <?php if($_SESSION['user_rol'] === 'administrador'): ?>
+                                <?php if(in_array($_SESSION['user_rol'], ['administrador', 'administrativo'])): ?>
                                 <a href="sucursales.php" class="btn btn-warning btn-sm mr-2">
                                     <i class="fas fa-building mr-2"></i>Gestionar Sucursales
                                 </a>
@@ -194,29 +253,33 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
                                 <div id="recorridos-container">
                                     <div class="recorrido-item border p-3 mb-3">
                                         <div class="form-row">
-                                            <div class="form-group col-md-6">
-                                                <label>Origen</label>
-                                                <select class="form-control" name="origen[]" required>
-                                                    <option value="">Seleccione origen</option>
-                                                    <?php foreach($sucursales as $sucursal): ?>
-                                                    <option value="<?php echo htmlspecialchars($sucursal['local']); ?>">
-                                                        <?php echo htmlspecialchars($sucursal['local']); ?>
-                                                    </option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                            </div>
-                                            <div class="form-group col-md-6">
-                                                <label>Destino</label>
-                                                <select class="form-control" name="destino[]" required>
-                                                    <option value="">Seleccione destino</option>
-                                                    <?php foreach($sucursales as $sucursal): ?>
-                                                    <option value="<?php echo htmlspecialchars($sucursal['local']); ?>">
-                                                        <?php echo htmlspecialchars($sucursal['local']); ?>
-                                                    </option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                            </div>
-                                        </div>
+                                <div class="form-group col-md-4">
+                                    <label>Origen</label>
+                                    <div class="searchable-select">
+                                        <input type="text" class="form-control searchable-input" 
+                                               placeholder="Click para seleccionar origen..." 
+                                               data-target="origen_0" 
+                                               autocomplete="off" readonly>
+                                        <input type="hidden" name="origen[]" id="origen_0" required>
+                                    </div>
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label>KM entre Sucursales</label>
+                                    <input type="number" class="form-control" name="km_sucursales[]" 
+                                           placeholder="Ingrese KM aproximados" 
+                                           min="0" step="0.1" required>
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label>Destino</label>
+                                    <div class="searchable-select">
+                                        <input type="text" class="form-control searchable-input" 
+                                               placeholder="Click para seleccionar destino..." 
+                                               data-target="destino_0" 
+                                               autocomplete="off" readonly>
+                                        <input type="hidden" name="destino[]" id="destino_0" required>
+                                    </div>
+                                </div>
+                            </div>
                                     </div>
                                 </div>
                             </div>
@@ -243,6 +306,116 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
+    // Variables globales para el modal de selección
+    let currentInput = null;
+    let currentHiddenInput = null;
+    let sucursalesData = [];
+    
+    // Cargar datos de sucursales
+    <?php 
+    echo "sucursalesData = [";
+    foreach($sucursales as $index => $sucursal) {
+        if($index > 0) echo ",";
+        echo "{value: '" . htmlspecialchars($sucursal['local']) . "', text: '" . htmlspecialchars($sucursal['local']) . "'}";
+    }
+    echo "];";
+    ?>
+    
+    // Funcionalidad para dropdowns buscables
+    let searchableCounter = 1;
+    
+    function initSearchableSelects() {
+        $('.searchable-input').each(function() {
+            const input = $(this);
+            const hiddenInput = $('#' + input.data('target'));
+            
+            // Hacer el input de solo lectura y agregar evento click
+            input.attr('readonly', true);
+            
+            input.on('click', function() {
+                currentInput = input;
+                currentHiddenInput = hiddenInput;
+                
+                // Configurar el modal
+                const fieldType = input.closest('.form-group').find('label').text().trim();
+                $('#selectionModalTitle').text('Seleccionar ' + fieldType);
+                
+                // Limpiar y cargar opciones
+                loadModalOptions();
+                
+                // Mostrar modal
+                $('#selectionModal').modal('show');
+            });
+        });
+    }
+    
+    function loadModalOptions(searchTerm = '') {
+        const modalOptions = $('#modalOptions');
+        modalOptions.empty();
+        
+        // Agregar opción vacía
+        modalOptions.append(`
+            <div class="option-item" data-value="">
+                <i class="fas fa-times text-muted mr-2"></i>Limpiar selección
+            </div>
+        `);
+        
+        // Filtrar y agregar sucursales
+        sucursalesData.forEach(function(sucursal) {
+            if (searchTerm === '' || sucursal.text.toLowerCase().includes(searchTerm.toLowerCase())) {
+                modalOptions.append(`
+                    <div class="option-item" data-value="${sucursal.value}">
+                        <i class="fas fa-building text-primary mr-2"></i>${sucursal.text}
+                    </div>
+                `);
+            }
+        });
+        
+        // Si no hay resultados
+        if (modalOptions.children().length === 1 && searchTerm !== '') {
+            modalOptions.append(`
+                <div class="option-item text-muted" style="cursor: default;">
+                    <i class="fas fa-search mr-2"></i>No se encontraron resultados
+                </div>
+            `);
+        }
+    }
+    
+    // Eventos del modal
+    $(document).ready(function() {
+        // Búsqueda en el modal
+        $('#modalSearchInput').on('input', function() {
+            const searchTerm = $(this).val();
+            loadModalOptions(searchTerm);
+        });
+        
+        // Selección de opción
+        $(document).on('click', '.option-item[data-value]', function() {
+            const value = $(this).data('value');
+            const text = $(this).text().trim();
+            
+            if (currentInput && currentHiddenInput) {
+                if (value === '') {
+                    currentInput.val('');
+                    currentHiddenInput.val('');
+                } else {
+                    currentInput.val(text);
+                    currentHiddenInput.val(value);
+                }
+            }
+            
+            $('#selectionModal').modal('hide');
+        });
+        
+        // Limpiar búsqueda cuando se abre el modal
+        $('#selectionModal').on('shown.bs.modal', function() {
+            $('#modalSearchInput').val('').focus();
+        });
+        
+        // Inicializar
+        initSearchableSelects();
+    });
+    
     // Función para cambiar automáticamente el campo Documento según el tipo de vehículo
     $('#tipo_vehiculo').on('change', function() {
         const tipoVehiculo = $(this).val();
@@ -257,50 +430,94 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
         }
     });
     
+    // Función actualizada para agregar recorrido
     function agregarRecorrido() {
         const container = document.getElementById('recorridos-container');
         const nuevoRecorrido = document.createElement('div');
         nuevoRecorrido.className = 'recorrido-item border p-3 mb-3';
         
-        // Crear las opciones de sucursales para los nuevos selects
-        const opcionesSucursales = `
-            <option value="">Seleccione origen</option>
-            <?php foreach($sucursales as $sucursal): ?>
-            <option value="<?php echo htmlspecialchars($sucursal['local']); ?>">
-                <?php echo htmlspecialchars($sucursal['local']); ?>
-            </option>
-            <?php endforeach; ?>
-        `;
+        const origenId = `origen_${searchableCounter}`;
+        const destinoId = `destino_${searchableCounter}`;
         
-        const opcionesDestino = `
-            <option value="">Seleccione destino</option>
-            <?php foreach($sucursales as $sucursal): ?>
-            <option value="<?php echo htmlspecialchars($sucursal['local']); ?>">
-                <?php echo htmlspecialchars($sucursal['local']); ?>
-            </option>
-            <?php endforeach; ?>
-        `;
+        // Obtener el último destino para usarlo como origen del nuevo recorrido
+        let ultimoDestino = '';
+        let ultimoDestinoTexto = '';
+        
+        // Buscar el último recorrido existente
+        const recorridosExistentes = container.querySelectorAll('.recorrido-item');
+        if (recorridosExistentes.length > 0) {
+            const ultimoRecorrido = recorridosExistentes[recorridosExistentes.length - 1];
+            const ultimoDestinoInput = ultimoRecorrido.querySelector('input[name="destino[]"]');
+            const ultimoDestinoVisible = ultimoRecorrido.querySelector('.searchable-input[data-target*="destino"]');
+            
+            if (ultimoDestinoInput && ultimoDestinoInput.value) {
+                ultimoDestino = ultimoDestinoInput.value;
+                ultimoDestinoTexto = ultimoDestinoVisible ? ultimoDestinoVisible.value : ultimoDestino;
+            }
+        }
         
         nuevoRecorrido.innerHTML = `
             <div class="form-row">
-                <div class="form-group col-md-6">
+                <div class="form-group col-md-4">
                     <label>Origen:</label>
-                    <select class="form-control" name="origen[]" required>
-                        ${opcionesSucursales}
-                    </select>
+                    <div class="searchable-select">
+                        <input type="text" class="form-control searchable-input" 
+                               placeholder="Click para seleccionar origen..." 
+                               data-target="${origenId}" 
+                               autocomplete="off" readonly
+                               value="${ultimoDestinoTexto}">
+                        <input type="hidden" name="origen[]" id="${origenId}" required value="${ultimoDestino}">
+                    </div>
                 </div>
-                <div class="form-group col-md-6">
+                <div class="form-group col-md-4">
+                    <label>KM entre Sucursales:</label>
+                    <input type="number" class="form-control" name="km_sucursales[]" 
+                           placeholder="Ingrese KM aproximados" 
+                           min="0" step="0.1" required>
+                </div>
+                <div class="form-group col-md-4">
                     <label>Destino:</label>
-                    <select class="form-control" name="destino[]" required>
-                        ${opcionesDestino}
-                    </select>
+                    <div class="searchable-select">
+                        <input type="text" class="form-control searchable-input" 
+                               placeholder="Click para seleccionar destino..." 
+                               data-target="${destinoId}" 
+                               autocomplete="off" readonly>
+                        <input type="hidden" name="destino[]" id="${destinoId}" required>
+                    </div>
                 </div>
             </div>
             <button type="button" class="btn btn-danger btn-sm" onclick="eliminarRecorrido(this)">
                 <i class="fas fa-trash"></i> Eliminar
             </button>
         `;
+        
         container.appendChild(nuevoRecorrido);
+        searchableCounter++;
+        
+        // Reinicializar los eventos para los nuevos elementos
+        initSearchableSelects();
+        
+        // Mostrar mensaje informativo si se auto-completó el origen
+        if (ultimoDestino) {
+            // Opcional: mostrar un pequeño mensaje de confirmación
+            const mensaje = document.createElement('div');
+            mensaje.className = 'alert alert-info alert-dismissible fade show mt-2';
+            mensaje.innerHTML = `
+                <small><i class="fas fa-info-circle mr-1"></i>
+                Se estableció automáticamente "${ultimoDestinoTexto}" como origen del nuevo recorrido.</small>
+                <button type="button" class="close" data-dismiss="alert" style="font-size: 1rem; line-height: 1;">
+                    <span>&times;</span>
+                </button>
+            `;
+            nuevoRecorrido.appendChild(mensaje);
+            
+            // Auto-ocultar el mensaje después de 3 segundos
+            setTimeout(() => {
+                if (mensaje.parentNode) {
+                    $(mensaje).alert('close');
+                }
+            }, 3000);
+        }
     }
     
     function eliminarRecorrido(button) {
@@ -374,35 +591,21 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
                         $('#hora_carga').val('<?php echo date('H:i'); ?>');
                         $('#conductor').val('<?php echo htmlspecialchars($_SESSION['nombre']); ?>');
                         
-                        // Reset recorridos
-                        $('#recorridos-container').html(`
-                            <div class="recorrido-item border p-3 mb-3">
-                                <div class="form-row">
-                                    <div class="form-group col-md-6">
-                                        <label>Origen</label>
-                                        <select class="form-control" name="origen[]" required>
-                                            <option value="">Seleccione origen</option>
-                                            <?php foreach($sucursales as $sucursal): ?>
-                                            <option value="<?php echo htmlspecialchars($sucursal['local']); ?>">
-                                                <?php echo htmlspecialchars($sucursal['local']); ?>
-                                            </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="form-group col-md-6">
-                                        <label>Destino</label>
-                                        <select class="form-control" name="destino[]" required>
-                                            <option value="">Seleccione destino</option>
-                                            <?php foreach($sucursales as $sucursal): ?>
-                                            <option value="<?php echo htmlspecialchars($sucursal['local']); ?>">
-                                                <?php echo htmlspecialchars($sucursal['local']); ?>
-                                            </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        `);
+                        // Reset recorridos - clonar el primer elemento
+                        const firstRecorrido = $('#recorridos-container .recorrido-item:first');
+                        if (firstRecorrido.length > 0) {
+                            // Limpiar valores del primer elemento
+                            firstRecorrido.find('input[type="text"]').val('');
+                            firstRecorrido.find('input[type="hidden"]').val('');
+                            firstRecorrido.find('input[type="number"]').val('');
+                            
+                            // Remover elementos adicionales
+                            $('#recorridos-container .recorrido-item:not(:first)').remove();
+                        }
+                        
+                        // Reinicializar los elementos searchable
+                        searchableCounter = 1;
+                        initSearchableSelects();
                     }, 2000);
                 } else {
                     let title = 'Error';
@@ -454,6 +657,11 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
             }
         });
     });
+    
+    // Inicializar cuando el documento esté listo
+    $(document).ready(function() {
+        initSearchableSelects();
+    });
     </script>
 </body>
 </html>
@@ -462,9 +670,9 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
     // Funciones para gestión de sucursales (solo administradores) - OCULTO
     <?php if($_SESSION['user_rol'] === 'administrador'): ?>
     
-    // Todo el código JavaScript de sucursales comentado...
+    // Todo el código JavaScript de sucursales
     
-    <?php endif; ?>
+
 */ ?>
 </body>
 </html>

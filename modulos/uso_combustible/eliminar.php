@@ -2,7 +2,7 @@
 session_start();
 header('Content-Type: application/json');
 
-if(!isset($_SESSION['user_id']) || $_SESSION['user_rol'] !== 'administrador') {
+if(!isset($_SESSION['user_id']) || !in_array($_SESSION['user_rol'], ['administrador'])) {
     echo json_encode(['success' => false, 'message' => 'Acceso no autorizado. Solo los administradores pueden eliminar registros.']);
     exit;
 }

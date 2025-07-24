@@ -2,8 +2,8 @@
 session_start();
 require_once '../../config/Database.php';
 
-// Verificar que sea administrador
-if(!isset($_SESSION['user_id']) || $_SESSION['user_rol'] !== 'administrador') {
+// Verificar que sea administrador o administrativo
+if(!isset($_SESSION['user_id']) || !in_array($_SESSION['user_rol'], ['administrador', 'administrativo'])) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Acceso denegado']);
     exit;

@@ -10,8 +10,14 @@ require_once '../../config/Database.php';
 // Verificar el rol del usuario
 $rol = $_SESSION['user_rol'];
 
-if (!in_array($rol, ['tecnico', 'supervisor', 'administrativo', 'administrador'])) {
+if (!in_array($rol, ['tecnico', 'supervisor', 'administrador'])) {
     header("Location: ../../dashboard.php");
+    exit;
+}
+
+// Verificar permisos de edición para rol administrativo
+if ($rol === 'administrativo') {
+    header("Location: ver_registros.php?error=sin_permisos");
     exit;
 }
 

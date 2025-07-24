@@ -60,12 +60,12 @@ class UsoCombustible {
         return false;
     }
 
-    // Agregar recorrido sin kilómetros
-    public function agregarRecorrido($uso_combustible_id, $origen, $destino) {
+    // Agregar recorrido con kilómetros
+    public function agregarRecorrido($uso_combustible_id, $origen, $destino, $km_sucursales = null) {
         $query = "INSERT INTO " . $this->recorridos_table . " 
-                  (uso_combustible_id, origen, destino) 
+                  (uso_combustible_id, origen, destino, km_sucursales) 
                   VALUES 
-                  (:uso_combustible_id, :origen, :destino)";
+                  (:uso_combustible_id, :origen, :destino, :km_sucursales)";
 
         $stmt = $this->conn->prepare($query);
         
@@ -76,14 +76,15 @@ class UsoCombustible {
         $stmt->bindParam(":uso_combustible_id", $uso_combustible_id);
         $stmt->bindParam(":origen", $origen);
         $stmt->bindParam(":destino", $destino);
+        $stmt->bindParam(":km_sucursales", $km_sucursales);
 
         return $stmt->execute();
     }
 
-    // Leer todos los registros
+    // Actualizar método leerTodos para incluir kilómetros
     public function leerTodos() {
         $query = "SELECT uc.*, 
-                         GROUP_CONCAT(CONCAT(ucr.origen, ' → ', ucr.destino) SEPARATOR '; ') as recorridos,
+                         GROUP_CONCAT(CONCAT(ucr.origen, ' → ', ucr.destino, ' (', IFNULL(ucr.km_sucursales, 0), ' km)') SEPARATOR '; ') as recorridos,
                          u.nombre as nombre_usuario
                   FROM " . $this->table_name . " uc
                   LEFT JOIN " . $this->recorridos_table . " ucr ON uc.id = ucr.uso_combustible_id

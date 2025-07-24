@@ -52,7 +52,8 @@ if(!isset($_SESSION['user_id'])) {
     <div class="container mt-4">
         <h1 class="mb-4">Panel de Control</h1>
         <div class="row">
-            <!-- Módulo UPS -->
+            <!-- Módulo UPS - Oculto para rol administrativo -->
+            <?php if($_SESSION['user_rol'] !== 'administrativo'): ?>
             <div class="col-md-4 mb-4">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body d-flex flex-column">
@@ -67,6 +68,7 @@ if(!isset($_SESSION['user_id'])) {
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
             
             <!-- Módulo Usuarios - Solo visible para administradores -->
             <?php if($_SESSION['user_rol'] === 'administrador'): ?>
@@ -149,7 +151,8 @@ if(!isset($_SESSION['user_id'])) {
                 </div>
             </div>
 
-            <!-- Módulo Uso de Combustible -->
+            <!-- Módulo Uso de Combustible - Visible para todos los roles autorizados -->
+            <?php if(in_array($_SESSION['user_rol'], ['administrador', 'tecnico', 'supervisor', 'administrativo'])): ?>
             <div class="col-md-4 mb-4">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body d-flex flex-column">
@@ -157,13 +160,20 @@ if(!isset($_SESSION['user_id'])) {
                             <i class="fas fa-gas-pump fa-3x text-info"></i>
                         </div>
                         <h5 class="card-title text-center">Uso de Combustible</h5>
-                        <p class="card-text text-center flex-grow-1">Registro y control de uso de combustible</p>
+                        <p class="card-text text-center flex-grow-1">
+                            <?php if($_SESSION['user_rol'] === 'administrativo'): ?>
+                                Consulta de registros de combustible (Solo lectura)
+                            <?php else: ?>
+                                Registro y control de uso de combustible
+                            <?php endif; ?>
+                        </p>
                         <a href="modulos/uso_combustible/index.php" class="btn btn-info mt-auto">
                             <i class="fas fa-folder-open mr-2"></i>Acceder
                         </a>
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
         </div>
         
         <?php if($_SESSION['user_rol'] === 'administrador'): ?>

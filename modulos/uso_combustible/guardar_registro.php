@@ -35,13 +35,20 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         // Validar recorridos
-        if(!isset($_POST['origen']) || !isset($_POST['destino']) || 
-           !is_array($_POST['origen']) || !is_array($_POST['destino'])) {
-            throw new Exception('Debe agregar al menos un recorrido válido', 400);
+        if(!isset($_POST['origen']) || !isset($_POST['destino']) || !isset($_POST['km_sucursales']) ||
+           !is_array($_POST['origen']) || !is_array($_POST['destino']) || !is_array($_POST['km_sucursales'])) {
+            throw new Exception('Debe agregar al menos un recorrido válido con sus kilómetros', 400);
         }
         
-        if(count($_POST['origen']) !== count($_POST['destino'])) {
-            throw new Exception('Error en los datos de recorridos. Verifique que cada origen tenga su destino correspondiente', 400);
+        if(count($_POST['origen']) !== count($_POST['destino']) || count($_POST['origen']) !== count($_POST['km_sucursales'])) {
+            throw new Exception('Error en los datos de recorridos. Verifique que cada origen tenga su destino y kilómetros correspondientes', 400);
+        }
+        
+        // Validar kilómetros
+        foreach($_POST['km_sucursales'] as $km) {
+            if(!is_numeric($km) || $km < 0) {
+                throw new Exception('Los kilómetros deben ser números válidos mayores o iguales a 0', 400);
+            }
         }
         
         $database = new Database();
@@ -58,7 +65,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         $usoCombustible->conductor = $_POST['conductor'];
         $usoCombustible->chapa = $_POST['chapa'];
         $usoCombustible->numero_voucher = $_POST['numero_voucher'];
-        $usoCombustible->tarjeta = $_POST['tarjeta'] ?? '0000';  // Agregar esta línea
+        $usoCombustible->tarjeta = $_POST['tarjeta'] ?? '0000';
         $usoCombustible->litros_cargados = $_POST['litros_cargados'];
         $usoCombustible->tipo_vehiculo = $_POST['tipo_vehiculo'];
         $usoCombustible->documento = $_POST['documento'];
@@ -74,29 +81,31 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Error al guardar el registro principal en la base de datos. Verifique los datos e intente nuevamente', 500);
         }
 
-        // Guardar recorridos
+        // Guardar recorridos con kilómetros
         $recorridosGuardados = 0;
         $origenes = $_POST['origen'];
         $destinos = $_POST['destino'];
+        $kilometros = $_POST['km_sucursales'];
         
         for($i = 0; $i < count($origenes); $i++) {
-            if(!empty(trim($origenes[$i])) && !empty(trim($destinos[$i]))) {
+            if(!empty(trim($origenes[$i])) && !empty(trim($destinos[$i])) && is_numeric($kilometros[$i])) {
                 $resultado = $usoCombustible->agregarRecorrido(
                     $registro_id,
                     trim($origenes[$i]),
-                    trim($destinos[$i])
+                    trim($destinos[$i]),
+                    floatval($kilometros[$i])
                 );
                 
                 if($resultado) {
                     $recorridosGuardados++;
                 } else {
-                    throw new Exception('Error al guardar el recorrido ' . ($i + 1) . ': ' . trim($origenes[$i]) . ' → ' . trim($destinos[$i]), 500);
+                    throw new Exception('Error al guardar el recorrido ' . ($i + 1) . ': ' . trim($origenes[$i]) . ' → ' . trim($destinos[$i]) . ' (' . $kilometros[$i] . ' km)', 500);
                 }
             }
         }
         
         if($recorridosGuardados === 0) {
-            throw new Exception('No se pudo guardar ningún recorrido. Verifique que los campos de origen y destino no estén vacíos', 400);
+            throw new Exception('No se pudo guardar ningún recorrido. Verifique que los campos de origen, destino y kilómetros no estén vacíos', 400);
         }
 
         // Registrar actividad

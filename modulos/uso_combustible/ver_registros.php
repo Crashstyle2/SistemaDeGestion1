@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export'])) {
 
 // Construir la consulta SQL base - MODIFICAR LÍNEAS 50-53
 $sql = "SELECT uc.*, u.nombre as nombre_usuario, 
-       ucr.origen, ucr.destino,
+       ucr.origen, ucr.destino, ucr.km_sucursales,
        s_origen.segmento as origen_segmento, s_origen.cebe as origen_cebe, 
        s_origen.local as origen_local, s_origen.m2_neto as origen_m2_neto, 
        s_origen.localidad as origen_localidad,
@@ -84,9 +84,9 @@ if (!empty($search)) {
     
     foreach ($searchWords as $word) {
         if (!empty(trim($word))) {
-            $searchConditions[] = "(u.nombre LIKE ? OR uc.nombre_conductor LIKE ? OR uc.chapa LIKE ? OR ucr.origen LIKE ? OR ucr.destino LIKE ? OR uc.numero_baucher LIKE ? OR uc.documento LIKE ?)";
+            $searchConditions[] = "(u.nombre LIKE ? OR uc.nombre_conductor LIKE ? OR uc.chapa LIKE ? OR ucr.origen LIKE ? OR ucr.destino LIKE ? OR uc.numero_baucher LIKE ? OR uc.documento LIKE ? OR uc.tarjeta LIKE ?)";
             $searchParam = "%" . trim($word) . "%";
-            $params = array_merge($params, [$searchParam, $searchParam, $searchParam, $searchParam, $searchParam, $searchParam, $searchParam]);
+            $params = array_merge($params, [$searchParam, $searchParam, $searchParam, $searchParam, $searchParam, $searchParam, $searchParam, $searchParam]);
         }
     }
     
@@ -134,8 +134,8 @@ if ($export === 'excel') {
         
         // Configurar encabezados - MODIFICAR LÍNEA 128
         $headers = ['Fecha', 'Técnico', 'Tipo Vehículo', 'Conductor', 'Chapa', 'Nº Voucher', 'Nº Tarjeta', 'Litros', 
-                   'Origen', 'Origen Segmento', 'Origen CEBE', 'Origen M2 Neto', 'Origen Localidad',
-                   'Destino', 'Destino Segmento', 'Destino CEBE', 'Destino M2 Neto', 'Destino Localidad', 'Documento'];
+                   'Origen', 'KM entre Sucursales', 'Destino', 'Origen Segmento', 'Origen CEBE', 'Origen M2 Neto', 'Origen Localidad',
+                   'Destino Segmento', 'Destino CEBE', 'Destino M2 Neto', 'Destino Localidad', 'Documento'];
         $sheet->fromArray($headers, null, 'A1');
         
         // Estilo para encabezados - MODIFICAR LÍNEA 136
@@ -144,7 +144,7 @@ if ($export === 'excel') {
             'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '4472C4']],
             'alignment' => ['horizontal' => 'center']
         ];
-        $sheet->getStyle('A1:S1')->applyFromArray($headerStyle);
+        $sheet->getStyle('A1:T1')->applyFromArray($headerStyle);
         
         // Agregar datos
         $row = 2;
@@ -159,11 +159,12 @@ if ($export === 'excel') {
                 $registro['tarjeta'] ?? '',
                 $registro['litros_cargados'] ?? 0,
                 $registro['origen'] ?? '',
+                $registro['km_sucursales'] ?? 0,
+                $registro['destino'] ?? '',
                 $registro['origen_segmento'] ?? '',
                 $registro['origen_cebe'] ?? '',
                 $registro['origen_m2_neto'] ?? '',
                 $registro['origen_localidad'] ?? '',
-                $registro['destino'] ?? '',
                 $registro['destino_segmento'] ?? '',
                 $registro['destino_cebe'] ?? '',
                 $registro['destino_m2_neto'] ?? '',
@@ -175,7 +176,7 @@ if ($export === 'excel') {
         }
         
         // Ajustar ancho de columnas - MODIFICAR LÍNEA 160
-        foreach (range('A', 'S') as $col) {
+        foreach (range('A', 'T') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
         
@@ -567,22 +568,25 @@ if ($export === 'excel') {
                                             <td><?php echo htmlspecialchars($subRecord['origen'] ?? ''); ?></td>
                                             <td><?php echo htmlspecialchars($subRecord['destino'] ?? ''); ?></td>
                                             <td><?php echo htmlspecialchars($subRecord['documento'] ?? ''); ?></td>
-                                            <?php if ($puedeModificar): ?>
+                                            <?php if (in_array($_SESSION['user_rol'], ['administrador', 'tecnico', 'supervisor'])): ?>
                                             <td class="text-center">
-                                                <a href="editar_registro.php?id=<?php echo $subRecord['id']; ?>" class="btn btn-sm btn-warning" title="Editar registro">
+                                                <a href="editar_registro.php?id=<?php echo $subRecord['id']; ?>" 
+                                                   class="btn btn-warning btn-sm" title="Editar">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
-                                            </td>
-                                            <?php endif; ?>
-                                            <?php if ($_SESSION['user_rol'] === 'administrador'): ?>
-                                            <td class="text-center">
+                                                <?php if ($_SESSION['user_rol'] === 'administrador'): ?>
                                                 <button class="btn btn-danger btn-sm eliminar-registro" 
                                                         data-id="<?php echo $subRecord['id']; ?>"
                                                         data-conductor="<?php echo htmlspecialchars($subRecord['nombre_conductor'] ?? ''); ?>"
                                                         data-chapa="<?php echo htmlspecialchars($subRecord['chapa'] ?? ''); ?>"
-                                                        title="Eliminar registro">
+                                                        title="Eliminar">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
+                                                <?php endif; ?>
+                                            </td>
+                                            <?php elseif ($_SESSION['user_rol'] === 'administrativo'): ?>
+                                            <td class="text-center">
+                                                <span class="text-muted"><i class="fas fa-eye"></i> Solo lectura</span>
                                             </td>
                                             <?php endif; ?>
                                         </tr>

@@ -5,8 +5,8 @@ if(!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Verificar que sea administrador
-if($_SESSION['user_rol'] !== 'administrador') {
+// Verificar que sea administrador o administrativo
+if(!in_array($_SESSION['user_rol'], ['administrador', 'administrativo'])) {
     header("Location: index.php");
     exit;
 }

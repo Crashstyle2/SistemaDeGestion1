@@ -268,6 +268,26 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
                                 </div>
                             </div>
                             
+                            <!-- Campo para foto del voucher -->
+                            <div class="form-row">
+                                <div class="form-group col-md-12">
+                                    <label for="foto_voucher">Foto del Voucher</label>
+                                    <div class="custom-file">
+                                        <input type="file" class="custom-file-input" id="foto_voucher" name="foto_voucher" accept="image/*" capture="camera">
+                                        <label class="custom-file-label" for="foto_voucher">Tomar foto del voucher...</label>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-camera mr-1"></i>Toque para abrir la cámara y capturar la foto del voucher
+                                    </small>
+                                    <div id="preview_foto_voucher" class="mt-2" style="display: none;">
+                                        <img id="img_preview_voucher" src="" alt="Vista previa" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+                                        <button type="button" class="btn btn-sm btn-danger ml-2" onclick="eliminarFotoVoucher()">
+                                            <i class="fas fa-trash"></i> Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <div class="card-header bg-info text-white">
                                 <h5 class="mb-0"><i class="fas fa-map-marker-alt mr-2"></i>Sucursales</h5>
                             </div>
@@ -653,10 +673,15 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
         $('#loadingOverlay').show();
         $('#submitBtn').prop('disabled', true);
         
+        // Crear FormData para manejar archivos
+        const formData = new FormData(this);
+        
         $.ajax({
             url: 'guardar_registro.php',
             type: 'POST',
-            data: $(this).serialize(),
+            data: formData,
+            processData: false,
+            contentType: false,
             dataType: 'json',
             timeout: 30000,
             success: function(response) {
@@ -668,29 +693,32 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
                         response.data ? `Registro ID: ${response.data.registro_id}, Recorridos guardados: ${response.data.recorridos_guardados}` : '');
                     
                     // Reset form after success
-                    setTimeout(() => {
-                        $('#formCombustible')[0].reset();
-                        $('#fecha').val('<?php echo date('Y-m-d'); ?>');
-                        $('#fecha_carga').val('<?php echo date('Y-m-d'); ?>');
-                        $('#hora_carga').val('<?php echo date('H:i'); ?>');
-                        $('#conductor').val('<?php echo htmlspecialchars($_SESSION['nombre']); ?>');
-                        
-                        // Reset recorridos - clonar el primer elemento
-                        const firstRecorrido = $('#recorridos-container .recorrido-item:first');
-                        if (firstRecorrido.length > 0) {
-                            // Limpiar valores del primer elemento
-                            firstRecorrido.find('input[type="text"]').val('');
-                            firstRecorrido.find('input[type="hidden"]').val('');
-                            firstRecorrido.find('input[type="number"]').val('');
+                        setTimeout(() => {
+                            $('#formCombustible')[0].reset();
+                            $('#fecha').val('<?php echo date('Y-m-d'); ?>');
+                            $('#fecha_carga').val('<?php echo date('Y-m-d'); ?>');
+                            $('#hora_carga').val('<?php echo date('H:i'); ?>');
+                            $('#conductor').val('<?php echo htmlspecialchars($_SESSION['nombre']); ?>');
                             
-                            // Remover elementos adicionales
-                            $('#recorridos-container .recorrido-item:not(:first)').remove();
-                        }
-                        
-                        // Reinicializar los elementos searchable
-                        searchableCounter = 1;
-                        initSearchableSelects();
-                    }, 2000);
+                            // Reset foto del voucher
+                            eliminarFotoVoucher();
+                            
+                            // Reset recorridos - clonar el primer elemento
+                            const firstRecorrido = $('#recorridos-container .recorrido-item:first');
+                            if (firstRecorrido.length > 0) {
+                                // Limpiar valores del primer elemento
+                                firstRecorrido.find('input[type="text"]').val('');
+                                firstRecorrido.find('input[type="hidden"]').val('');
+                                firstRecorrido.find('input[type="number"]').val('');
+                                
+                                // Remover elementos adicionales
+                                $('#recorridos-container .recorrido-item:not(:first)').remove();
+                            }
+                            
+                            // Reinicializar los elementos searchable
+                            searchableCounter = 1;
+                            initSearchableSelects();
+                        }, 2000);
                 } else {
                     let title = 'Error';
                     let details = '';
@@ -742,9 +770,36 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
         });
     });
     
+    // Función para manejar la foto del voucher
+    function eliminarFotoVoucher() {
+        $('#foto_voucher').val('');
+        $('#foto_voucher').next('.custom-file-label').text('Tomar foto del voucher...');
+        $('#preview_foto_voucher').hide();
+        $('#img_preview_voucher').attr('src', '');
+    }
+    
+
+    
     // Inicializar cuando el documento esté listo
     $(document).ready(function() {
         initSearchableSelects();
+        
+        // Inicializar eventos de foto del voucher
+        $('#foto_voucher').on('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Actualizar el label
+                $(this).next('.custom-file-label').text(file.name);
+                
+                // Mostrar vista previa
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    $('#img_preview_voucher').attr('src', e.target.result);
+                    $('#preview_foto_voucher').show();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
     });
     </script>
 </body>

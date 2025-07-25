@@ -71,8 +71,18 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         $usoCombustible->documento = $_POST['documento'];
         $usoCombustible->fecha_carga = $_POST['fecha_carga'];
         $usoCombustible->hora_carga = $_POST['hora_carga'];
-        $usoCombustible->usuario_id = $_SESSION['user_id'];
+        
+        // Procesar foto del voucher
+        $foto_voucher_base64 = null;
+        if (isset($_FILES['foto_voucher']) && $_FILES['foto_voucher']['error'] === UPLOAD_ERR_OK) {
+            $foto_temp = $_FILES['foto_voucher']['tmp_name'];
+            $foto_data = file_get_contents($foto_temp);
+            $foto_voucher_base64 = base64_encode($foto_data);
+        }
+        $usoCombustible->foto_voucher = $foto_voucher_base64;
+        
         $usoCombustible->user_id = $_SESSION['user_id'];
+        $usoCombustible->usuario_id = $_SESSION['user_id']; // Agregar esta línea
 
         // Crear registro principal
         $registro_id = $usoCombustible->crear();

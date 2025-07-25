@@ -16,6 +16,7 @@ class UsoCombustible {
     public $documento;
     public $fecha_carga;
     public $hora_carga;
+    public $foto_voucher;
     public $user_id;
     public $usuario_id;
 
@@ -27,10 +28,10 @@ class UsoCombustible {
     public function crear() {
         $query = "INSERT INTO " . $this->table_name . " 
                   (fecha, nombre_conductor, chapa, numero_baucher, tarjeta, litros_cargados, 
-                   tipo_vehiculo, documento, fecha_carga, hora_carga, user_id, usuario_id) 
+                   tipo_vehiculo, documento, fecha_carga, hora_carga, foto_voucher, user_id, usuario_id) 
                   VALUES 
                   (:fecha, :conductor, :chapa, :numero_voucher, :tarjeta, :litros_cargados,
-                   :tipo_vehiculo, :documento, :fecha_carga, :hora_carga, :user_id, :usuario_id)";
+                   :tipo_vehiculo, :documento, :fecha_carga, :hora_carga, :foto_voucher, :user_id, :usuario_id)";
 
         $stmt = $this->conn->prepare($query);
 
@@ -45,12 +46,13 @@ class UsoCombustible {
         $stmt->bindParam(":conductor", $this->conductor);
         $stmt->bindParam(":chapa", $this->chapa);
         $stmt->bindParam(":numero_voucher", $this->numero_voucher);
-        $stmt->bindParam(":tarjeta", $this->tarjeta);  // Agregar esta línea
+        $stmt->bindParam(":tarjeta", $this->tarjeta);
         $stmt->bindParam(":litros_cargados", $this->litros_cargados);
         $stmt->bindParam(":tipo_vehiculo", $this->tipo_vehiculo);
         $stmt->bindParam(":documento", $this->documento);
         $stmt->bindParam(":fecha_carga", $this->fecha_carga);
         $stmt->bindParam(":hora_carga", $this->hora_carga);
+        $stmt->bindParam(":foto_voucher", $this->foto_voucher);
         $stmt->bindParam(":user_id", $this->user_id);
         $stmt->bindParam(":usuario_id", $this->usuario_id);
 

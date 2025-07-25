@@ -460,6 +460,7 @@ if ($export === 'excel') {
                                         <th>Origen</th>
                                         <th>Destino</th>
                                         <th>Documento</th>
+                                        <th>Foto Voucher</th>
                                         <?php if ($puedeModificar): ?>
                                         <th>Editar</th>
                                         <?php endif; ?>
@@ -533,6 +534,17 @@ if ($export === 'excel') {
                                             <?php endif; ?>
                                         </td>
                                         <td><?php echo htmlspecialchars($mainRecord['documento'] ?? ''); ?></td>
+                                        <td class="text-center">
+                                            <?php if (!empty($mainRecord['foto_voucher'])): ?>
+                                                <button type="button" class="btn btn-sm btn-info ver-foto" 
+                                                        data-foto="<?php echo $mainRecord['foto_voucher']; ?>"
+                                                        title="Ver foto del voucher">
+                                                    <i class="fas fa-eye"></i> Ver
+                                                </button>
+                                            <?php else: ?>
+                                                <span class="text-muted">Sin foto</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <?php if ($puedeModificar): ?>
                                         <td class="text-center">
                                             <a href="editar_registro.php?id=<?php echo $mainRecord['id']; ?>" class="btn btn-sm btn-warning" title="Editar registro">
@@ -575,6 +587,17 @@ if ($export === 'excel') {
                                             <td><?php echo htmlspecialchars($subRecord['origen'] ?? ''); ?></td>
                                             <td><?php echo htmlspecialchars($subRecord['destino'] ?? ''); ?></td>
                                             <td><?php echo htmlspecialchars($subRecord['documento'] ?? ''); ?></td>
+                                            <td class="text-center">
+                                                <?php if (!empty($subRecord['foto_voucher'])): ?>
+                                                    <button type="button" class="btn btn-sm btn-info ver-foto" 
+                                                            data-foto="<?php echo $subRecord['foto_voucher']; ?>"
+                                                            title="Ver foto del voucher">
+                                                        <i class="fas fa-eye"></i> Ver
+                                                    </button>
+                                                <?php else: ?>
+                                                    <span class="text-muted">Sin foto</span>
+                                                <?php endif; ?>
+                                            </td>
                                             <?php if (in_array($_SESSION['user_rol'], ['administrador', 'tecnico', 'supervisor'])): ?>
                                             <td class="text-center">
                                                 <a href="editar_registro.php?id=<?php echo $subRecord['id']; ?>" 
@@ -769,6 +792,110 @@ if ($export === 'excel') {
     <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap4.min.js"></script>
 
+    <!-- Modal personalizado para mostrar foto del voucher -->
+    <div id="fotoVoucherModal" class="foto-modal" style="display: none;">
+        <div class="foto-modal-overlay">
+            <div class="foto-modal-content">
+                <div class="foto-modal-header">
+                    <h5><i class="fas fa-image mr-2"></i>Foto del Voucher</h5>
+                    <button type="button" class="foto-modal-close" id="closeFotoModal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="foto-modal-body">
+                    <img id="fotoVoucherImg" src="" alt="Foto del voucher" class="foto-modal-img">
+                </div>
+                <div class="foto-modal-footer">
+                    <button type="button" class="btn btn-secondary" id="closeFotoModalBtn">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    /* Modal personalizado para fotos */
+    .foto-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10000;
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+
+    .foto-modal-overlay {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        padding: 20px;
+    }
+
+    .foto-modal-content {
+        background: white;
+        border-radius: 8px;
+        max-width: 90vw;
+        max-height: 90vh;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .foto-modal-header {
+        background: #007bff;
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .foto-modal-header h5 {
+        margin: 0;
+        font-size: 1.2rem;
+    }
+
+    .foto-modal-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .foto-modal-close:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+    }
+
+    .foto-modal-body {
+        padding: 20px;
+        text-align: center;
+        max-height: 70vh;
+        overflow: auto;
+    }
+
+    .foto-modal-img {
+        max-width: 100%;
+        max-height: 60vh;
+        height: auto;
+        border-radius: 4px;
+    }
+
+    .foto-modal-footer {
+        padding: 15px 20px;
+        background: #f8f9fa;
+        text-align: right;
+    }
+    </style>
+
     <script>
 // Esperar a que jQuery esté completamente cargado
 jQuery(document).ready(function($) {
@@ -778,6 +905,57 @@ jQuery(document).ready(function($) {
     
     // Variables globales
     let idToDelete = null;
+    
+    // Manejar clic en botón "Ver foto" - MODAL PERSONALIZADO
+    $(document).on('click', '.ver-foto', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const fotoBase64 = $(this).data('foto');
+        if (!fotoBase64) {
+            alert('No hay foto disponible');
+            return;
+        }
+        
+        const imgSrc = 'data:image/jpeg;base64,' + fotoBase64;
+        $('#fotoVoucherImg').attr('src', imgSrc);
+        $('#fotoVoucherModal').fadeIn(300);
+        $('body').css('overflow', 'hidden'); // Prevenir scroll
+    });
+    
+    // Función para cerrar el modal
+    function cerrarFotoModal() {
+        $('#fotoVoucherModal').fadeOut(300);
+        $('#fotoVoucherImg').attr('src', '');
+        $('body').css('overflow', 'auto'); // Restaurar scroll
+    }
+    
+    // Cerrar modal con botón X
+    $('#closeFotoModal').on('click', cerrarFotoModal);
+    
+    // Cerrar modal con botón Cerrar
+    $('#closeFotoModalBtn').on('click', cerrarFotoModal);
+    
+    // Cerrar modal al hacer clic en el fondo
+    $('#fotoVoucherModal').on('click', function(e) {
+        if (e.target === this) {
+            cerrarFotoModal();
+        }
+    });
+    
+    // Prevenir que el clic en el contenido cierre el modal
+    $('.foto-modal-content').on('click', function(e) {
+        e.stopPropagation();
+    });
+    
+    // Cerrar modal con tecla ESC
+    $(document).on('keydown', function(e) {
+        if (e.key === 'Escape' || e.keyCode === 27) {
+            if ($('#fotoVoucherModal').is(':visible')) {
+                cerrarFotoModal();
+            }
+        }
+    });
     
     // 1. Función para eliminar registros
     $(document).on('click', '.eliminar-registro', function(e) {

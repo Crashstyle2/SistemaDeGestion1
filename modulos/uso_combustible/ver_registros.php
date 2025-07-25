@@ -221,6 +221,7 @@ if ($export === 'excel') {
     }
     .sub-record {
         display: none !important;
+        background-color: #f8f9fa;
     }
     .sub-record.show {
         display: table-row !important;
@@ -233,10 +234,15 @@ if ($export === 'excel') {
         padding: 2px 5px;
         margin-right: 5px;
         font-size: 14px;
+        transition: color 0.2s ease;
     }
     .expand-btn:hover {
         color: #0056b3;
         text-decoration: none;
+    }
+    .expand-btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
     }
     .multiple-indicator {
         font-size: 0.8em;
@@ -495,10 +501,10 @@ if ($export === 'excel') {
                                         </td>
                                         <td>
                                             <?php if ($isMultiple): ?>
-                                                <button class="expand-btn" data-group="<?php echo $groupIndex; ?>" title="Expandir/Contraer registros">
-                                                    <i class="fas fa-chevron-right"></i>
-                                                </button>
-                                            <?php endif; ?>
+                                <button class="expand-btn" data-group="<?php echo $groupIndex; ?>" title="Expandir registros" type="button">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            <?php endif; ?>
                                             <?php echo date('d/m/Y H:i', strtotime($mainRecord['fecha_carga'] . ' ' . $mainRecord['hora_carga'])); ?>
                                             <?php if ($isMultiple): ?>
                                                 <span class="multiple-indicator"><?php echo count($group); ?> recorridos</span>
@@ -763,256 +769,263 @@ if ($export === 'excel') {
     <script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap4.min.js"></script>
 
     <script>
-    $(document).ready(function() {
-        console.log('🚀 Inicializando página...');
+// Esperar a que jQuery esté completamente cargado
+jQuery(document).ready(function($) {
+    'use strict';
+    
+    console.log('🚀 Iniciando ver_registros.php');
+    
+    // Variables globales
+    let idToDelete = null;
+    
+    // 1. Función para eliminar registros
+    $(document).on('click', '.eliminar-registro', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
         
-        // Variables globales
-        let idToDelete = null;
+        idToDelete = $(this).data('id');
+        const conductor = $(this).data('conductor') || 'N/A';
+        const chapa = $(this).data('chapa') || 'N/A';
         
-        // 1. Inicializar DataTable
-        if ($('#registrosTable').length) {
-            $('#registrosTable').DataTable({
-                "language": {
-                    "decimal": ",",
-                    "emptyTable": "No hay datos disponibles en la tabla",
-                    "info": "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                    "infoEmpty": "Mostrando 0 a 0 de 0 registros",
-                    "infoFiltered": "(filtrado de _MAX_ registros totales)",
-                    "lengthMenu": "Mostrar _MENU_ registros",
-                    "search": "Buscar:",
-                    "zeroRecords": "No se encontraron registros coincidentes",
-                    "paginate": {
-                        "first": "Primero",
-                        "last": "Último",
-                        "next": "Siguiente",
-                        "previous": "Anterior"
-                    }
-                },
-                "searching": false,
-                "pageLength": 25,
-                "ordering": false
-            });
-            console.log('✅ DataTable inicializado');
+        $('#modalConductorCustom').text(conductor);
+        $('#modalChapaCustom').text(chapa);
+        $('#customConfirmModal').fadeIn(300);
+    });
+    
+    // 2. Manejar botones del modal
+    $('#btnCancelarCustom').on('click', function() {
+        $('#customConfirmModal').fadeOut(300);
+        idToDelete = null;
+    });
+    
+    $('#btnConfirmarCustom').on('click', function() {
+        if (!idToDelete) {
+            alert('Error: No hay ID para eliminar');
+            return;
         }
         
-        // 2. Manejar eliminación de registros con modal personalizado
-        // 2. Manejar eliminación de registros (VERSIÓN ELEGANTE)
-        $(document).on('click', '.eliminar-registro', function(e) {
-            e.preventDefault();
-            console.log('🗑️ Click eliminar');
-            
-            const id = $(this).data('id');
-            const conductor = $(this).data('conductor');
-            const chapa = $(this).data('chapa');
-            
-            if (!id) {
-                alert('Error: No se pudo obtener el ID del registro');
-                return;
-            }
-            
-            // Configurar el modal personalizado
-            idToDelete = id;
-            $('#modalConductorCustom').text(conductor || 'N/A');
-            $('#modalChapaCustom').text(chapa || 'N/A');
-            $('#customConfirmModal').fadeIn(300);
-        });
+        const $btn = $(this);
+        $btn.html('<i class="fas fa-spinner fa-spin"></i> Eliminando...');
+        $btn.prop('disabled', true);
         
-        // Manejar botones del modal personalizado
-        $('#btnCancelarCustom').on('click', function() {
-            $('#customConfirmModal').fadeOut(300);
+        $.ajax({
+            url: 'eliminar.php',
+            type: 'POST',
+            data: { id: idToDelete },
+            dataType: 'json',
+            success: function(response) {
+                $('#customConfirmModal').fadeOut(300);
+                if (response.success) {
+                    $('body').append(`
+                        <div class="alert alert-success alert-dismissible fade show position-fixed" 
+                             style="top: 20px; right: 20px; z-index: 10000; min-width: 300px;">
+                            <i class="fas fa-check-circle"></i> Registro eliminado correctamente
+                            <button type="button" class="close" data-dismiss="alert">
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                    `);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    alert('Error: ' + (response.message || 'No se pudo eliminar'));
+                }
+            },
+            error: function() {
+                $('#customConfirmModal').fadeOut(300);
+                alert('Error de conexión al eliminar el registro');
+            },
+            complete: function() {
+                $btn.html('<i class="fas fa-trash"></i> Eliminar');
+                $btn.prop('disabled', false);
+            }
+        });
+    });
+    
+    // 3. Cerrar modal al hacer clic fuera
+    $(document).on('click', '#customConfirmModal', function(e) {
+        if (e.target === this) {
+            $(this).fadeOut(300);
             idToDelete = null;
-        });
+        }
+    });
+    
+    // 4. FUNCIONALIDAD EXPANDIR/CONTRAER - NUEVA VERSIÓN
+    $(document).on('click', '.expand-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
         
-        $('#btnConfirmarCustom').on('click', function() {
-            if (!idToDelete) {
-                alert('Error: No hay ID para eliminar');
-                return;
+        console.log('🔄 Botón expandir clickeado');
+        
+        const $button = $(this);
+        const groupId = $button.data('group');
+        const $icon = $button.find('i');
+        const $subRecords = $('.sub-record[data-group="' + groupId + '"]');
+        
+        console.log('📊 Grupo ID:', groupId);
+        console.log('📋 Sub-registros encontrados:', $subRecords.length);
+        
+        if ($subRecords.length === 0) {
+            console.warn('⚠️ No se encontraron sub-registros para el grupo:', groupId);
+            return;
+        }
+        
+        try {
+            // Verificar estado actual usando visibility
+            const isVisible = $subRecords.first().is(':visible');
+            
+            if (isVisible) {
+                // Contraer
+                $subRecords.hide().removeClass('show');
+                $icon.removeClass('fa-chevron-down').addClass('fa-chevron-right');
+                $button.attr('title', 'Expandir registros');
+                console.log('📥 Grupo contraído:', groupId);
+            } else {
+                // Expandir
+                $subRecords.show().addClass('show');
+                $icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
+                $button.attr('title', 'Contraer registros');
+                console.log('📤 Grupo expandido:', groupId);
+            }
+        } catch (error) {
+            console.error('❌ Error al expandir/contraer:', error);
+        }
+    });
+    
+    // 5. Función para actualizar información de selección
+    function updateSelectionInfo() {
+        const selectedCount = $('.main-checkbox:checked').length;
+        $('#selected-count').text(selectedCount);
+        $('#selection-text').text('Has seleccionado ' + selectedCount + ' registros de combustible');
+        
+        if (selectedCount > 0) {
+            $('#export_selected').prop('disabled', false);
+            $('#selection-info').show();
+        } else {
+            $('#export_selected').prop('disabled', true);
+            $('#export_all').prop('checked', true);
+            $('#selection-info').hide();
+        }
+    }
+    
+    // 6. Manejar checkboxes principales
+    $(document).on('change', '.main-checkbox', function() {
+        const groupId = $(this).data('group');
+        const isChecked = $(this).is(':checked');
+        $('.sub-checkbox[data-group="' + groupId + '"]').prop('checked', isChecked);
+        updateSelectionInfo();
+    });
+    
+    // 7. Manejar checkboxes secundarios
+    $(document).on('change', '.sub-checkbox', function() {
+        const groupId = $(this).data('group');
+        const $mainCheckbox = $('.main-checkbox[data-group="' + groupId + '"]');
+        const $subCheckboxes = $('.sub-checkbox[data-group="' + groupId + '"]');
+        const $checkedSubs = $('.sub-checkbox[data-group="' + groupId + '"]:checked');
+        
+        if ($checkedSubs.length === $subCheckboxes.length && $subCheckboxes.length > 0) {
+            $mainCheckbox.prop('checked', true);
+        } else {
+            $mainCheckbox.prop('checked', false);
+        }
+        updateSelectionInfo();
+    });
+    
+    // 8. Checkbox del header
+    $('#select-all-header').on('change', function() {
+        const isChecked = $(this).is(':checked');
+        $('.main-checkbox, .sub-checkbox').prop('checked', isChecked);
+        updateSelectionInfo();
+    });
+    
+    // 9. Botones de selección
+    $('#select-all-btn').on('click', function() {
+        $('.main-checkbox, .sub-checkbox, #select-all-header').prop('checked', true);
+        updateSelectionInfo();
+    });
+    
+    $('#clear-selection-btn').on('click', function() {
+        $('.main-checkbox, .sub-checkbox, #select-all-header').prop('checked', false);
+        updateSelectionInfo();
+    });
+    
+    // 10. Manejar formulario de exportación
+    $('#exportForm').on('submit', function(e) {
+        const exportType = $('input[name="export_type"]:checked').val();
+        
+        if (exportType === 'selected') {
+            const $checkedMainBoxes = $('.main-checkbox:checked');
+            
+            if ($checkedMainBoxes.length === 0) {
+                e.preventDefault();
+                alert('Por favor, selecciona al menos un registro para descargar.');
+                return false;
             }
             
-            console.log('📡 Eliminando registro:', idToDelete);
+            $('#selected-ids-container').empty();
+            const selectedIds = [];
             
-            // Mostrar estado de carga
-            $(this).html('<i class="fas fa-spinner fa-spin"></i> Eliminando...');
-            $(this).prop('disabled', true);
-            
-            $.ajax({
-                url: 'eliminar.php',
-                type: 'POST',
-                data: { id: idToDelete },
-                dataType: 'json',
-                success: function(response) {
-                    $('#customConfirmModal').fadeOut(300);
-                    
-                    if (response.success) {
-                        // Mostrar mensaje de éxito elegante
-                        $('body').append(`
-                            <div class="alert alert-success alert-dismissible fade show position-fixed" 
-                                 style="top: 20px; right: 20px; z-index: 10000; min-width: 300px;">
-                                <i class="fas fa-check-circle"></i> Registro eliminado correctamente
-                                <button type="button" class="close" data-dismiss="alert">
-                                    <span>&times;</span>
-                                </button>
-                            </div>
-                        `);
-                        
-                        setTimeout(() => {
-                            location.reload();
-                        }, 1500);
-                    } else {
-                        alert('Error: ' + (response.message || 'No se pudo eliminar'));
-                    }
-                },
-                error: function() {
-                    $('#customConfirmModal').fadeOut(300);
-                    alert('Error de conexión al eliminar el registro');
-                },
-                complete: function() {
-                    // Restaurar botón
-                    $('#btnConfirmarCustom').html('<i class="fas fa-trash"></i> Eliminar');
-                    $('#btnConfirmarCustom').prop('disabled', false);
-                }
+            $checkedMainBoxes.each(function() {
+                const groupId = $(this).data('group');
+                const mainId = $(this).val();
+                selectedIds.push(mainId);
+                
+                $('.sub-checkbox[data-group="' + groupId + '"]').each(function() {
+                    selectedIds.push($(this).val());
+                });
             });
-        });
+            
+            selectedIds.forEach(function(id) {
+                $('#selected-ids-container').append(
+                    $('<input>', {
+                        type: 'hidden',
+                        name: 'selected_ids[]',
+                        value: id
+                    })
+                );
+            });
+        } else {
+            $('#selected-ids-container').empty();
+        }
         
-        // Cerrar modal al hacer clic fuera de él
-        $(document).on('click', '#customConfirmModal', function(e) {
-            if (e.target === this) {
-                $(this).fadeOut(300);
-                idToDelete = null;
-            }
+        return true;
+    });
+    
+    // 11. Inicializar estado
+    updateSelectionInfo();
+    
+    // 12. Verificación de elementos al cargar
+    setTimeout(function() {
+        const expandButtons = $('.expand-btn').length;
+        const subRecords = $('.sub-record').length;
+        const mainRecords = $('.main-record').length;
+        
+        console.log('🔍 Verificación de elementos:');
+        console.log('- Registros principales:', mainRecords);
+        console.log('- Botones expandir:', expandButtons);
+        console.log('- Sub-registros:', subRecords);
+        
+        if (expandButtons === 0) {
+            console.warn('⚠️ No se encontraron botones de expandir');
+        } else {
+            console.log('✅ Botones de expandir encontrados correctamente');
+        }
+        
+        if (subRecords === 0) {
+            console.warn('⚠️ No se encontraron sub-registros');
+        } else {
+            console.log('✅ Sub-registros encontrados correctamente');
+        }
+        
+        // Verificar que los data-group coincidan
+        $('.expand-btn').each(function() {
+            const groupId = $(this).data('group');
+            const subCount = $('.sub-record[data-group="' + groupId + '"]').length;
+            console.log('📊 Grupo ' + groupId + ': ' + subCount + ' sub-registros');
         });
-                
-                // 3. Función para actualizar información de selección (movida aquí)
-                
-                // 4. Expandir/contraer grupos
-                $(document).on('click', '.expand-btn', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const groupId = $(this).data('group');
-                    const subRecords = $(`.sub-record[data-group="${groupId}"]`);
-                    const icon = $(this).find('i');
-                    const mainRow = $(this).closest('.main-record');
-                    
-                    if (subRecords.hasClass('show')) {
-                        subRecords.removeClass('show');
-                        icon.removeClass('fa-chevron-down').addClass('fa-chevron-right');
-                        mainRow.removeClass('expanded');
-                        $(this).attr('title', 'Expandir registros');
-                    } else {
-                        subRecords.addClass('show');
-                        icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
-                        mainRow.addClass('expanded');
-                        $(this).attr('title', 'Contraer registros');
-                    }
-                });
-                
-                // 5. Función para actualizar información de selección
-                function updateSelectionInfo() {
-                    const selectedCount = $('.main-checkbox:checked').length;
-                    $('#selected-count').text(selectedCount);
-                    $('#selection-text').text(`Has seleccionado ${selectedCount} registros de combustible`);
-                    
-                    if (selectedCount > 0) {
-                        $('#export_selected').prop('disabled', false);
-                        $('#selection-info').show();
-                    } else {
-                        $('#export_selected').prop('disabled', true);
-                        $('#export_all').prop('checked', true);
-                        $('#selection-info').hide();
-                    }
-                }
-                
-                // 6. Manejar checkboxes principales
-                $(document).on('change', '.main-checkbox', function() {
-                    const groupId = $(this).data('group');
-                    const isChecked = $(this).is(':checked');
-                    $(`.sub-checkbox[data-group="${groupId}"]`).prop('checked', isChecked);
-                    updateSelectionInfo();
-                });
-                
-                // 7. Manejar checkboxes secundarios
-                $(document).on('change', '.sub-checkbox', function() {
-                    const groupId = $(this).data('group');
-                    const mainCheckbox = $(`.main-checkbox[data-group="${groupId}"]`);
-                    const subCheckboxes = $(`.sub-checkbox[data-group="${groupId}"]`);
-                    const checkedSubs = $(`.sub-checkbox[data-group="${groupId}"]:checked`);
-                    
-                    if (checkedSubs.length === subCheckboxes.length && subCheckboxes.length > 0) {
-                        mainCheckbox.prop('checked', true);
-                    } else {
-                        mainCheckbox.prop('checked', false);
-                    }
-                    updateSelectionInfo();
-                });
-                
-                // 8. Checkbox del header
-                $('#select-all-header').on('change', function() {
-                    const isChecked = $(this).is(':checked');
-                    $('.main-checkbox').prop('checked', isChecked);
-                    $('.sub-checkbox').prop('checked', isChecked);
-                    updateSelectionInfo();
-                });
-                
-                // 9. Botones de selección
-                $('#select-all-btn').on('click', function() {
-                    $('.main-checkbox, .sub-checkbox, #select-all-header').prop('checked', true);
-                    updateSelectionInfo();
-                });
-                
-                $('#clear-selection-btn').on('click', function() {
-                    $('.main-checkbox, .sub-checkbox, #select-all-header').prop('checked', false);
-                    updateSelectionInfo();
-                });
-                
-                // 10. Manejar formulario de exportación
-                $('#exportForm').on('submit', function(e) {
-                    const exportType = $('input[name="export_type"]:checked').val();
-                    
-                    if (exportType === 'selected') {
-                        const checkedMainBoxes = $('.main-checkbox:checked');
-                        
-                        if (checkedMainBoxes.length === 0) {
-                            e.preventDefault();
-                            alert('Por favor, selecciona al menos un registro para descargar.');
-                            return false;
-                        }
-                        
-                        $('#selected-ids-container').empty();
-                        const selectedIds = [];
-                        
-                        checkedMainBoxes.each(function() {
-                            const groupId = $(this).data('group');
-                            const mainId = $(this).val();
-                            selectedIds.push(mainId);
-                            
-                            $(`.sub-checkbox[data-group="${groupId}"]`).each(function() {
-                                selectedIds.push($(this).val());
-                            });
-                        });
-                        
-                        selectedIds.forEach(function(id) {
-                            $('#selected-ids-container').append(
-                                $('<input>', {
-                                    type: 'hidden',
-                                    name: 'selected_ids[]',
-                                    value: id
-                                })
-                            );
-                        });
-                    } else {
-                        $('#selected-ids-container').empty();
-                    }
-                    
-                    return true;
-                });
-                
-                // 11. Inicializar estado
-                updateSelectionInfo();
-                $('#selection-info').show();
-                
-                console.log('🎉 Inicialización completa');
-            });
-            </script>
+    }, 500);
+    
+    console.log('🎉 Inicialización completa de ver_registros.php');
+});
+</script>
             </body>
             </html>

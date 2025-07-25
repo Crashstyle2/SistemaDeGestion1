@@ -60,23 +60,25 @@ class UsoCombustible {
         return false;
     }
 
-    // Agregar recorrido con kilómetros
-    public function agregarRecorrido($uso_combustible_id, $origen, $destino, $km_sucursales = null) {
+    // Agregar recorrido con kilómetros y comentarios
+    public function agregarRecorrido($uso_combustible_id, $origen, $destino, $km_sucursales = null, $comentarios_sector = null) {
         $query = "INSERT INTO " . $this->recorridos_table . " 
-                  (uso_combustible_id, origen, destino, km_sucursales) 
+                  (uso_combustible_id, origen, destino, km_sucursales, comentarios_sector) 
                   VALUES 
-                  (:uso_combustible_id, :origen, :destino, :km_sucursales)";
+                  (:uso_combustible_id, :origen, :destino, :km_sucursales, :comentarios_sector)";
 
         $stmt = $this->conn->prepare($query);
         
         // Limpiar datos
         $origen = htmlspecialchars(strip_tags($origen));
         $destino = htmlspecialchars(strip_tags($destino));
+        $comentarios_sector = $comentarios_sector ? htmlspecialchars(strip_tags($comentarios_sector)) : null;
         
         $stmt->bindParam(":uso_combustible_id", $uso_combustible_id);
         $stmt->bindParam(":origen", $origen);
         $stmt->bindParam(":destino", $destino);
         $stmt->bindParam(":km_sucursales", $km_sucursales);
+        $stmt->bindParam(":comentarios_sector", $comentarios_sector);
 
         return $stmt->execute();
     }

@@ -81,19 +81,24 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Error al guardar el registro principal en la base de datos. Verifique los datos e intente nuevamente', 500);
         }
 
-        // Guardar recorridos con kilómetros
+        // Guardar recorridos con kilómetros y comentarios
         $recorridosGuardados = 0;
         $origenes = $_POST['origen'];
         $destinos = $_POST['destino'];
         $kilometros = $_POST['km_sucursales'];
+        $comentarios = $_POST['comentarios_sector'] ?? [];
         
         for($i = 0; $i < count($origenes); $i++) {
             if(!empty(trim($origenes[$i])) && !empty(trim($destinos[$i])) && is_numeric($kilometros[$i])) {
+                $comentario = isset($comentarios[$i]) ? trim($comentarios[$i]) : null;
+                $comentario = empty($comentario) ? null : $comentario;
+                
                 $resultado = $usoCombustible->agregarRecorrido(
                     $registro_id,
                     trim($origenes[$i]),
                     trim($destinos[$i]),
-                    floatval($kilometros[$i])
+                    floatval($kilometros[$i]),
+                    $comentario
                 );
                 
                 if($resultado) {

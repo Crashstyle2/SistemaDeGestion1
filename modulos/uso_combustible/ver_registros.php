@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export'])) {
 
 // Construir la consulta SQL base - MODIFICAR LÍNEAS 50-53
 $sql = "SELECT uc.*, u.nombre as nombre_usuario, 
-       ucr.origen, ucr.destino, ucr.km_sucursales,
+       ucr.origen, ucr.destino, ucr.km_sucursales, ucr.comentarios_sector,
        s_origen.segmento as origen_segmento, s_origen.cebe as origen_cebe, 
        s_origen.local as origen_local, s_origen.m2_neto as origen_m2_neto, 
        s_origen.localidad as origen_localidad,
@@ -133,9 +133,10 @@ if ($export === 'excel') {
         $sheet = $spreadsheet->getActiveSheet();
         
         // Configurar encabezados - MODIFICAR LÍNEA 128
-        $headers = ['Fecha', 'Técnico', 'Tipo Vehículo', 'Conductor', 'Chapa', 'Nº Voucher', 'Nº Tarjeta', 'Litros', 
-                   'Origen', 'KM entre Sucursales', 'Destino', 'Origen Segmento', 'Origen CEBE', 'Origen M2 Neto', 'Origen Localidad',
-                   'Destino Segmento', 'Destino CEBE', 'Destino M2 Neto', 'Destino Localidad', 'Documento'];
+        $headers = ['Fecha', 'Conductor', 'Tipo Vehículo', 'Chapa', 'Nº Tarjeta', 'Nº Voucher', 'Litros Cargados', 
+                   'Origen', 'Origen Segmento', 'Origen CEBE', 'Origen Localidad', 'Origen M2 Neto',
+                   'Destino', 'Destino Segmento', 'Destino CEBE', 'Destino Localidad', 'Destino M2 Neto',
+                   'KM entre Sucursales', 'Comentarios', 'Documento'];
         $sheet->fromArray($headers, null, 'A1');
         
         // Estilo para encabezados - MODIFICAR LÍNEA 136
@@ -151,24 +152,24 @@ if ($export === 'excel') {
         foreach ($registrosParaExportar as $registro) {
             $data = [
                 date('d/m/Y H:i', strtotime($registro['fecha_carga'] . ' ' . $registro['hora_carga'])),
-                $registro['nombre_usuario'] ?? '',
-                ucfirst(str_replace('_', ' ', $registro['tipo_vehiculo'] ?? '')),
                 $registro['nombre_conductor'] ?? '',
+                ucfirst(str_replace('_', ' ', $registro['tipo_vehiculo'] ?? '')),
                 $registro['chapa'] ?? '',
-                $registro['numero_baucher'] ?? '',
                 $registro['tarjeta'] ?? '',
+                $registro['numero_baucher'] ?? '',
                 $registro['litros_cargados'] ?? 0,
                 $registro['origen'] ?? '',
-                $registro['km_sucursales'] ?? 0,
-                $registro['destino'] ?? '',
                 $registro['origen_segmento'] ?? '',
                 $registro['origen_cebe'] ?? '',
-                $registro['origen_m2_neto'] ?? '',
                 $registro['origen_localidad'] ?? '',
+                $registro['origen_m2_neto'] ?? '',
+                $registro['destino'] ?? '',
                 $registro['destino_segmento'] ?? '',
                 $registro['destino_cebe'] ?? '',
-                $registro['destino_m2_neto'] ?? '',
                 $registro['destino_localidad'] ?? '',
+                $registro['destino_m2_neto'] ?? '',
+                $registro['km_sucursales'] ?? 0,
+                $registro['comentarios_sector'] ?? '',
                 $registro['documento'] ?? ''
             ];
             $sheet->fromArray($data, null, 'A' . $row);

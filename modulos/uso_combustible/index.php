@@ -581,8 +581,6 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
         // Reinicializar los eventos para los nuevos elementos
         initSearchableSelects();
         
-
-        
         // Mostrar mensaje informativo si se auto-completó el origen
         if (ultimoDestino) {
             // Opcional: mostrar un pequeño mensaje de confirmación
@@ -780,17 +778,7 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
                                 </div>
                             </div>
                             
-                            <div class="text-right mb-3">
-                                <button type="button" class="btn btn-secondary" onclick="agregarRecorrido()" id="btn-agregar">
-                                    <i class="fas fa-plus mr-2"></i>Agregar Sucursal
-                                </button>
-                            </div>
-                            
-                            <div class="text-center">
-                                <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
-                                    <i class="fas fa-save mr-2"></i>Guardar Registro
-                                </button>
-                            </div>
+
                         </form>
                     </div>
                 </div>

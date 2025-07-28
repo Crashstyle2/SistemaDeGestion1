@@ -66,14 +66,27 @@ $params = array();
 // Verificar el tiempo límite de modificación para técnicos (3 horas)
 $puedeModificar = false;
 if ($rol === 'tecnico') {
+    // MODIFICAR: Los técnicos solo pueden ver sus propios registros
+    $sql .= " AND uc.user_id = ?";
+    $params[] = $_SESSION['user_id'];
+    
+    // Verificar si pueden modificar (dentro de 3 horas)
     $horasLimite = 3;
     $fechaActual = new DateTime();
     $fechaLimite = $fechaActual->modify("-{$horasLimite} hours");
     $fechaLimiteStr = $fechaLimite->format('Y-m-d H:i:s');
     
-    $sql .= " AND (uc.fecha_registro >= '{$fechaLimiteStr}' OR uc.user_id = {$_SESSION['user_id']})";
+    // Solo pueden modificar registros recientes
+    if (isset($registros)) {
+        foreach ($registros as &$registro) {
+            $fechaRegistro = new DateTime($registro['fecha_registro']);
+            $registro['puede_modificar'] = $fechaRegistro >= $fechaLimite;
+        }
+    }
+    
     $puedeModificar = true;
 } elseif ($rol === 'supervisor' || $rol === 'administrador' || $rol === 'administrativo') {
+    // Supervisores, administradores y administrativos pueden ver todos los registros
     $puedeModificar = true;
 }
 

@@ -15,6 +15,22 @@ if(!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
+
+// Función para mostrar rol amigable
+function obtenerRolAmigable($rol) {
+    switch($rol) {
+        case 'administrador':
+            return 'Administrador';
+        case 'administrativo':
+            return 'Administrativo';
+        case 'tecnico':
+            return 'Técnico';
+        case 'supervisor':
+            return 'Supervisor';
+        default:
+            return ucfirst($rol);
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -35,6 +51,7 @@ if(!isset($_SESSION['user_id'])) {
                 <a class="navbar-brand">
                     <i class="fas fa-user mr-2"></i>
                     Bienvenido, <?php echo isset($_SESSION['nombre']) ? htmlspecialchars($_SESSION['nombre']) : 'Usuario'; ?>
+                    <span class="badge badge-info ml-2"><?php echo obtenerRolAmigable($_SESSION['user_rol']); ?></span>
                 </a>
             </div>
             

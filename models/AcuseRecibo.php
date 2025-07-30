@@ -9,6 +9,7 @@ class AcuseRecibo {
     public $sector;
     public $documento;
     public $foto;
+    public $foto_ruta;
     public $jefe_encargado;
     public $observaciones;
     public $firma_digital;
@@ -21,9 +22,9 @@ class AcuseRecibo {
 
     public function crear() {
         $query = "INSERT INTO " . $this->table_name . "
-                (local, sector, documento, foto, jefe_encargado, observaciones, firma_digital, tecnico_id)
+                (local, sector, documento, foto, foto_ruta, jefe_encargado, observaciones, firma_digital, tecnico_id)
                 VALUES
-                (:local, :sector, :documento, :foto, :jefe_encargado, :observaciones, :firma_digital, :tecnico_id)";
+                (:local, :sector, :documento, :foto, :foto_ruta, :jefe_encargado, :observaciones, :firma_digital, :tecnico_id)";
 
         $stmt = $this->conn->prepare($query);
 
@@ -39,6 +40,7 @@ class AcuseRecibo {
         $stmt->bindParam(":sector", $this->sector);
         $stmt->bindParam(":documento", $this->documento);
         $stmt->bindParam(":foto", $this->foto);
+        $stmt->bindParam(":foto_ruta", $this->foto_ruta);
         $stmt->bindParam(":jefe_encargado", $this->jefe_encargado);
         $stmt->bindParam(":observaciones", $this->observaciones);
         $stmt->bindParam(":firma_digital", $this->firma_digital);
@@ -87,6 +89,7 @@ class AcuseRecibo {
                     sector = :sector,
                     documento = :documento,
                     foto = :foto,
+                    foto_ruta = :foto_ruta,
                     jefe_encargado = :jefe_encargado,
                     observaciones = :observaciones,
                     firma_digital = :firma_digital
@@ -99,6 +102,7 @@ class AcuseRecibo {
         $stmt->bindParam(":sector", $this->sector);
         $stmt->bindParam(":documento", $this->documento);
         $stmt->bindParam(":foto", $this->foto);
+        $stmt->bindParam(":foto_ruta", $this->foto_ruta);
         $stmt->bindParam(":jefe_encargado", $this->jefe_encargado);
         $stmt->bindParam(":observaciones", $this->observaciones);
         $stmt->bindParam(":firma_digital", $this->firma_digital);
@@ -112,5 +116,66 @@ class AcuseRecibo {
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(1, $id);
         return $stmt->execute();
+    }
+    
+    // Método para guardar foto como archivo
+    public function guardarFoto($archivo_subido, $acuse_id) {
+        if (!isset($archivo_subido) || $archivo_subido['error'] !== UPLOAD_ERR_OK) {
+            return false;
+        }
+        
+        // Crear directorio si no existe
+        $directorio = '../../img/acuse_recibo/fotos/';
+        if (!file_exists($directorio)) {
+            mkdir($directorio, 0755, true);
+        }
+        
+        // Generar nombre único para el archivo
+        $extension = pathinfo($archivo_subido['name'], PATHINFO_EXTENSION);
+        if (empty($extension)) {
+            $extension = 'jpg';
+        }
+        
+        $nombre_archivo = 'acuse_' . $acuse_id . '_' . time() . '.' . $extension;
+        $ruta_completa = $directorio . $nombre_archivo;
+        
+        // Mover archivo subido
+        if (move_uploaded_file($archivo_subido['tmp_name'], $ruta_completa)) {
+            return $nombre_archivo;
+        }
+        
+        return false;
+    }
+    
+    // Método para guardar foto de cámara como archivo
+    public function guardarFotoCamara($foto_base64, $acuse_id) {
+        if (empty($foto_base64)) {
+            return false;
+        }
+        
+        // Crear directorio si no existe
+        $directorio = '../../img/acuse_recibo/fotos/';
+        if (!file_exists($directorio)) {
+            mkdir($directorio, 0755, true);
+        }
+        
+        // Limpiar el Base64 y decodificar
+        $foto_data = str_replace('data:image/jpeg;base64,', '', $foto_base64);
+        $foto_decoded = base64_decode($foto_data);
+        
+        if ($foto_decoded === false) {
+            return false;
+        }
+        
+        // Generar nombre único para el archivo
+        $nombre_archivo = 'acuse_cam_' . $acuse_id . '_' . time() . '.jpg';
+        $ruta_completa = $directorio . $nombre_archivo;
+        
+        // Guardar archivo
+        if (file_put_contents($ruta_completa, $foto_decoded)) {
+            return $nombre_archivo;
+        }
+        
+        return false;
     }
 }

@@ -1,2 +1,0 @@
-ALTER TABLE usuarios
-ADD COLUMN estado ENUM('activo', 'inactivo') NOT NULL DEFAULT 'activo';

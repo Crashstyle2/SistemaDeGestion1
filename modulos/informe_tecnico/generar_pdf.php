@@ -17,7 +17,11 @@ if(!isset($_GET['id'])) {
 $database = new Database();
 $db = $database->getConnection();
 $informe = new InformeTecnico($db);
-$informeData = $informe->obtenerUno($_GET['id']);
+
+// CORREGIR: Usar leerUno() en lugar de obtenerUno()
+$informe->id = $_GET['id'];
+$stmt = $informe->leerUno();
+$informeData = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if(!$informeData) {
     header("Location: index.php");
@@ -96,7 +100,9 @@ $html = '
 ';
 
 // Después de obtener $informeData, agregar:
-$fotos = $informe->obtenerFotos($_GET['id']);
+// CORREGIR: Obtener el array de fotos desde el PDOStatement
+$stmt_fotos = $informe->obtenerFotos($_GET['id']);
+$fotos = $stmt_fotos->fetchAll(PDO::FETCH_ASSOC);
 
 // ÚNICA sección de firma y fotos
 if(!empty($informeData['firma_digital']) || !empty($fotos)) {
@@ -125,7 +131,18 @@ if(!empty($informeData['firma_digital']) || !empty($fotos)) {
             <div style="text-align: center; font-weight: bold; background-color: #f8f9fa; padding: 2px;">ANTES</div>';
         if(!empty($fotoAntes)) {
             $fotoAntes = array_values($fotoAntes)[0];
-            $html .= '<img src="data:image/jpeg;base64,' . $fotoAntes['foto'] . '" style="width: 320px; height: 240px;">';
+            // CORREGIR: Usar foto_ruta en lugar de foto (Base64)
+            if(!empty($fotoAntes['foto_ruta'])) {
+                // Convertir la imagen a Base64 para el PDF
+                $imagen_path = '../../img/informe_tecnicos/fotos/' . $fotoAntes['foto_ruta'];
+                if(file_exists($imagen_path)) {
+                    $imagen_data = base64_encode(file_get_contents($imagen_path));
+                    $html .= '<img src="data:image/jpeg;base64,' . $imagen_data . '" style="width: 320px; height: 240px;">';
+                }
+            } elseif(!empty($fotoAntes['foto'])) {
+                // Fallback a Base64 si existe
+                $html .= '<img src="data:image/jpeg;base64,' . $fotoAntes['foto'] . '" style="width: 320px; height: 240px;">';
+            }
         }
         $html .= '</td>';
         
@@ -133,7 +150,18 @@ if(!empty($informeData['firma_digital']) || !empty($fotos)) {
             <div style="text-align: center; font-weight: bold; background-color: #f8f9fa; padding: 2px;">DESPUÉS</div>';
         if(!empty($fotoDespues)) {
             $fotoDespues = array_values($fotoDespues)[0];
-            $html .= '<img src="data:image/jpeg;base64,' . $fotoDespues['foto'] . '" style="width: 320px; height: 240px;">';
+            // CORREGIR: Usar foto_ruta en lugar de foto (Base64)
+            if(!empty($fotoDespues['foto_ruta'])) {
+                // Convertir la imagen a Base64 para el PDF
+                $imagen_path = '../../img/informe_tecnicos/fotos/' . $fotoDespues['foto_ruta'];
+                if(file_exists($imagen_path)) {
+                    $imagen_data = base64_encode(file_get_contents($imagen_path));
+                    $html .= '<img src="data:image/jpeg;base64,' . $imagen_data . '" style="width: 320px; height: 240px;">';
+                }
+            } elseif(!empty($fotoDespues['foto'])) {
+                // Fallback a Base64 si existe
+                $html .= '<img src="data:image/jpeg;base64,' . $fotoDespues['foto'] . '" style="width: 320px; height: 240px;">';
+            }
         }
         $html .= '</td></tr></table>';
     }

@@ -19,6 +19,7 @@ class UsoCombustible {
     public $foto_voucher;
     public $user_id;
     public $usuario_id;
+    public $foto_voucher_ruta;
 
     public function __construct($db) {
         $this->conn = $db;
@@ -28,10 +29,10 @@ class UsoCombustible {
     public function crear() {
         $query = "INSERT INTO " . $this->table_name . " 
                   (fecha, nombre_conductor, chapa, numero_baucher, tarjeta, litros_cargados, 
-                   tipo_vehiculo, documento, fecha_carga, hora_carga, foto_voucher, user_id, usuario_id) 
+                   tipo_vehiculo, documento, fecha_carga, hora_carga, foto_voucher, foto_voucher_ruta, user_id, usuario_id) 
                   VALUES 
                   (:fecha, :conductor, :chapa, :numero_voucher, :tarjeta, :litros_cargados,
-                   :tipo_vehiculo, :documento, :fecha_carga, :hora_carga, :foto_voucher, :user_id, :usuario_id)";
+                   :tipo_vehiculo, :documento, :fecha_carga, :hora_carga, :foto_voucher, :foto_voucher_ruta, :user_id, :usuario_id)";
 
         $stmt = $this->conn->prepare($query);
 
@@ -53,6 +54,7 @@ class UsoCombustible {
         $stmt->bindParam(":fecha_carga", $this->fecha_carga);
         $stmt->bindParam(":hora_carga", $this->hora_carga);
         $stmt->bindParam(":foto_voucher", $this->foto_voucher);
+        $stmt->bindParam(":foto_voucher_ruta", $this->foto_voucher_ruta);
         $stmt->bindParam(":user_id", $this->user_id);
         $stmt->bindParam(":usuario_id", $this->usuario_id);
 
@@ -144,6 +146,41 @@ class UsoCombustible {
             $this->conn->rollback();
             return false;
         }
+    }
+    
+    // Método para guardar foto de voucher como archivo
+    public function guardarFotoVoucher($archivo_subido, $uso_combustible_id) {
+        if (!isset($archivo_subido) || $archivo_subido['error'] !== UPLOAD_ERR_OK) {
+            return false;
+        }
+        
+        // Crear directorio si no existe
+        $directorio = '../../img/uso_combustible/vouchers/';
+        if (!file_exists($directorio)) {
+            mkdir($directorio, 0755, true);
+        }
+        
+        // Generar nombre único para el archivo
+        $extension = pathinfo($archivo_subido['name'], PATHINFO_EXTENSION);
+        if (empty($extension)) {
+            $extension = 'jpg'; // Extensión por defecto
+        }
+        
+        $nombre_archivo = 'voucher_' . $uso_combustible_id . '_' . time() . '.' . $extension;
+        $ruta_completa = $directorio . $nombre_archivo;
+        
+        // Mover archivo subido
+        if (move_uploaded_file($archivo_subido['tmp_name'], $ruta_completa)) {
+            // Actualizar base de datos con la ruta
+            $query = "UPDATE " . $this->table_name . " SET foto_voucher_ruta = :ruta WHERE id = :id";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':ruta', $nombre_archivo);
+            $stmt->bindParam(':id', $uso_combustible_id);
+            
+            return $stmt->execute() ? $nombre_archivo : false;
+        }
+        
+        return false;
     }
 }
 ?>

@@ -93,8 +93,12 @@ if($_SESSION['user_rol'] === 'tecnico' && $row['tecnico_id'] !== $_SESSION['user
                     </div>
                     <div class="col-md-6">
                         <h5>Foto del Documento</h5>
-                        <?php if($row['foto']): ?>
-                            <img src="data:image/jpeg;base64,<?php echo $row['foto']; ?>" class="preview-image">
+                        <?php if($row['foto_ruta']): ?>
+                            <!-- Nueva implementación: mostrar desde archivo -->
+                            <img src="../../img/acuse_recibo/fotos/<?php echo $row['foto_ruta']; ?>" class="preview-image" alt="Foto del documento">
+                        <?php elseif($row['foto']): ?>
+                            <!-- Compatibilidad: mostrar Base64 existente -->
+                            <img src="data:image/jpeg;base64,<?php echo $row['foto']; ?>" class="preview-image" alt="Foto del documento">
                         <?php else: ?>
                             <p class="text-muted">No hay foto disponible</p>
                         <?php endif; ?>

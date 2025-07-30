@@ -15,21 +15,57 @@ $acuse = new AcuseRecibo($db);
 // En la sección de procesamiento POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $foto = null;
+    $foto_ruta = null;
     
     // Procesar foto de la cámara
     if (!empty($_POST['foto_camara'])) {
+        // Crear directorio si no existe
+        $directorio = '../../img/acuse_recibo/fotos/';
+        if (!file_exists($directorio)) {
+            mkdir($directorio, 0755, true);
+        }
+        
+        // Limpiar el Base64 y decodificar
         $foto_data = $_POST['foto_camara'];
         $foto_data = str_replace('data:image/jpeg;base64,', '', $foto_data);
-        $foto = $foto_data;
+        $foto_decoded = base64_decode($foto_data);
+        
+        if ($foto_decoded !== false) {
+            // Generar nombre único para el archivo
+            $nombre_archivo = 'acuse_cam_' . time() . '_' . uniqid() . '.jpg';
+            $ruta_completa = $directorio . $nombre_archivo;
+            
+            // Guardar archivo
+            if (file_put_contents($ruta_completa, $foto_decoded)) {
+                $foto_ruta = $nombre_archivo;
+            }
+        }
     }
     // Procesar foto subida
     else if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
-        $foto_temp = $_FILES['foto']['tmp_name'];
-        $foto_content = file_get_contents($foto_temp);
-        $foto = base64_encode($foto_content);
+        // Crear directorio si no existe
+        $directorio = '../../img/acuse_recibo/fotos/';
+        if (!file_exists($directorio)) {
+            mkdir($directorio, 0755, true);
+        }
+        
+        // Generar nombre único para el archivo
+        $extension = pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
+        if (empty($extension)) {
+            $extension = 'jpg';
+        }
+        
+        $nombre_archivo = 'acuse_' . time() . '_' . uniqid() . '.' . $extension;
+        $ruta_completa = $directorio . $nombre_archivo;
+        
+        // Mover archivo subido
+        if (move_uploaded_file($_FILES['foto']['tmp_name'], $ruta_completa)) {
+            $foto_ruta = $nombre_archivo;
+        }
     }
 
-    $acuse->foto = $foto;
+    $acuse->foto = $foto; // Mantener null para nuevos registros
+    $acuse->foto_ruta = $foto_ruta;
     $acuse->local = $_POST['local'];
     $acuse->sector = $_POST['sector'];
     $acuse->documento = $_POST['documento'];

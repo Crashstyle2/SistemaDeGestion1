@@ -79,6 +79,7 @@ if($_POST) {
             <div class="navbar-text text-white">
                 <i class="fas fa-user mr-2"></i>
                 Bienvenido, <?php echo isset($_SESSION['nombre']) ? htmlspecialchars($_SESSION['nombre']) : 'Usuario'; ?>
+                <span class="badge badge-light ml-2"><?php echo obtenerRolAmigable($_SESSION['user_rol']); ?></span>
             </div>
             <a href="../../dashboard.php" class="btn btn-outline-light">
                 <i class="fas fa-home"></i> Volver al Panel
@@ -116,6 +117,7 @@ if($_POST) {
                         <select name="rol" class="form-control" required>
                             <option value="tecnico">Técnico</option>
                             <option value="administrador">Administrador</option>
+                            <option value="administrativo">Administrativo</option>
                         </select>
                     </div>
 

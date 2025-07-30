@@ -17,8 +17,13 @@ if(!isset($_GET['id'])) {
 $database = new Database();
 $db = $database->getConnection();
 $informe = new InformeTecnico($db);
-$informeData = $informe->obtenerUno($_GET['id']);
-$fotos = $informe->obtenerFotos($_GET['id']); // Agregar esta línea
+
+// Corregir el nombre del método
+$informe->id = $_GET['id'];
+$stmt = $informe->leerUno();
+$informeData = $stmt->fetch(PDO::FETCH_ASSOC);
+
+$fotos = $informe->obtenerFotos($_GET['id']);
 
 if(!$informeData) {
     header("Location: index.php");
@@ -185,9 +190,23 @@ if(!$informeData) {
                                 <?php echo ucfirst($foto['tipo']); ?>
                             </div>
                             <div class="foto-body">
-                                <img src="data:image/jpeg;base64,<?php echo $foto['foto']; ?>" 
-                                     class="img-fluid" 
-                                     alt="Foto <?php echo $foto['tipo']; ?>">
+                                <?php if(!empty($foto['foto_ruta'])): ?>
+                                    <!-- Nueva lógica para archivos -->
+                                    <img src="../../img/informe_tecnicos/fotos/<?php echo htmlspecialchars($foto['foto_ruta']); ?>" 
+                                         class="img-fluid" alt="Foto" 
+                                         style="max-width: 100%; height: auto;">
+                                <?php elseif(!empty($foto['foto'])): ?>
+                                    <!-- Mantener compatibilidad con fotos Base64 existentes -->
+                                    <img src="data:image/jpeg;base64,<?php echo $foto['foto']; ?>" 
+                                         class="img-fluid" alt="Foto" 
+                                         style="max-width: 100%; height: auto;">
+                                <?php else: ?>
+                                    <p class="text-muted">No hay imagen disponible</p>
+                                <?php endif; ?>
+                                
+                                <?php if(!empty($foto['descripcion'])): ?>
+                                    <p class="mt-2"><small><?php echo htmlspecialchars($foto['descripcion']); ?></small></p>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>

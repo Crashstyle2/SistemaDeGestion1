@@ -72,14 +72,36 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         $usoCombustible->fecha_carga = $_POST['fecha_carga'];
         $usoCombustible->hora_carga = $_POST['hora_carga'];
         
-        // Procesar foto del voucher
+        // Procesar foto del voucher - NUEVA IMPLEMENTACIÓN
         $foto_voucher_base64 = null;
+        $foto_voucher_ruta = null;
+        
         if (isset($_FILES['foto_voucher']) && $_FILES['foto_voucher']['error'] === UPLOAD_ERR_OK) {
-            $foto_temp = $_FILES['foto_voucher']['tmp_name'];
-            $foto_data = file_get_contents($foto_temp);
-            $foto_voucher_base64 = base64_encode($foto_data);
+            // Crear directorio si no existe
+            $directorio = '../../img/uso_combustible/vouchers/';
+            if (!file_exists($directorio)) {
+                mkdir($directorio, 0755, true);
+            }
+            
+            // Generar nombre único para el archivo
+            $extension = pathinfo($_FILES['foto_voucher']['name'], PATHINFO_EXTENSION);
+            if (empty($extension)) {
+                $extension = 'jpg';
+            }
+            
+            $nombre_archivo = 'voucher_' . time() . '_' . uniqid() . '.' . $extension;
+            $ruta_completa = $directorio . $nombre_archivo;
+            
+            // Mover archivo subido
+            if (move_uploaded_file($_FILES['foto_voucher']['tmp_name'], $ruta_completa)) {
+                $foto_voucher_ruta = $nombre_archivo;
+            } else {
+                throw new Exception('Error al guardar la foto del voucher', 500);
+            }
         }
-        $usoCombustible->foto_voucher = $foto_voucher_base64;
+        
+        $usoCombustible->foto_voucher = $foto_voucher_base64; // Mantener null para nuevos registros
+        $usoCombustible->foto_voucher_ruta = $foto_voucher_ruta;
         
         $usoCombustible->user_id = $_SESSION['user_id'];
         $usoCombustible->usuario_id = $_SESSION['user_id']; // Agregar esta línea

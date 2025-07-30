@@ -30,23 +30,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ]);
 
     if($informe_id) {
-        // Procesar las fotos
-        $fotos = [];
-        foreach($_FILES['fotos']['tmp_name'] as $key => $tmp_name) {
-            if($_FILES['fotos']['error'][$key] == 0) {
-                $fotos[] = [
-                    'foto' => base64_encode(file_get_contents($tmp_name)),
-                    'descripcion' => $_POST['descripcion_foto'][$key],
-                    'tipo' => $_POST['tipo_foto'][$key]
-                ];
+        // Procesar las fotos - MÉTODO SIMPLIFICADO (como acuse de recibo)
+        if(isset($_FILES['fotos']) && is_array($_FILES['fotos']['tmp_name'])) {
+            foreach($_FILES['fotos']['tmp_name'] as $key => $tmp_name) {
+                if($_FILES['fotos']['error'][$key] === UPLOAD_ERR_OK && !empty($tmp_name)) {
+                
+                    // Crear directorio si no existe (igual que los otros módulos)
+                    $directorio = '../../img/informe_tecnicos/fotos/';
+                    if (!file_exists($directorio)) {
+                        mkdir($directorio, 0755, true);
+                    }
+                    
+                    // Generar nombre único (igual que los otros módulos)
+                    $extension = pathinfo($_FILES['fotos']['name'][$key], PATHINFO_EXTENSION);
+                    if (empty($extension)) {
+                        $extension = 'jpg';
+                    }
+                    
+                    $nombre_archivo = 'informe_' . $informe_id . '_' . time() . '_' . uniqid() . '.' . $extension;
+                    $ruta_completa = $directorio . $nombre_archivo;
+                    
+                    // Mover archivo (igual que los otros módulos)
+                    if (move_uploaded_file($tmp_name, $ruta_completa)) {
+                        // Insertar directamente en la base de datos - INCLUIR COLUMNA FOTO
+                        $query = "INSERT INTO fotos_informe_tecnico (informe_id, foto, foto_ruta, descripcion, tipo) VALUES (?, ?, ?, ?, ?)";
+                        $stmt = $db->prepare($query);
+                        
+                        $descripcion = $_POST['descripcion_foto'][$key] ?? '';
+                        $tipo = $_POST['tipo_foto'][$key] ?? 'antes';
+                        
+                        // Validar tipo
+                        if (!in_array($tipo, ['antes', 'despues'])) {
+                            $tipo = 'antes';
+                        }
+                        
+                        $stmt->execute([
+                            $informe_id,
+                            null,              // ← AGREGAR ESTE VALOR NULL PARA LA COLUMNA 'foto'
+                            $nombre_archivo,   // foto_ruta
+                            $descripcion,
+                            $tipo
+                        ]);
+                    }
+                }
             }
         }
         
-        // Guardar las fotos
-        if(!empty($fotos)) {
-            $informe->guardarFotos($informe_id, $fotos);
-        }
-
         // Registrar la actividad con el nuevo formato
         require_once '../../config/ActivityLogger.php';
         ActivityLogger::logAccion(

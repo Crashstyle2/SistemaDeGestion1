@@ -548,9 +548,10 @@ if ($export === 'excel') {
                                         </td>
                                         <td><?php echo htmlspecialchars($mainRecord['documento'] ?? ''); ?></td>
                                         <td class="text-center">
-                                            <?php if (!empty($mainRecord['foto_voucher'])): ?>
+                                            <?php if (!empty($mainRecord['foto_voucher_ruta']) || !empty($mainRecord['foto_voucher'])): ?>
                                                 <button type="button" class="btn btn-sm btn-info ver-foto" 
                                                         data-foto="<?php echo $mainRecord['foto_voucher']; ?>"
+                                                        data-foto-ruta="<?php echo $mainRecord['foto_voucher_ruta']; ?>"
                                                         title="Ver foto del voucher">
                                                     <i class="fas fa-eye"></i> Ver
                                                 </button>
@@ -924,13 +925,21 @@ jQuery(document).ready(function($) {
         e.preventDefault();
         e.stopPropagation();
         
+        const fotoRuta = $(this).data('foto-ruta');
         const fotoBase64 = $(this).data('foto');
-        if (!fotoBase64) {
+        
+        let imgSrc;
+        if (fotoRuta) {
+            // Nueva implementación: mostrar desde archivo
+            imgSrc = '../../img/uso_combustible/vouchers/' + fotoRuta;
+        } else if (fotoBase64) {
+            // Compatibilidad: mostrar Base64 existente
+            imgSrc = 'data:image/jpeg;base64,' + fotoBase64;
+        } else {
             alert('No hay foto disponible');
             return;
         }
         
-        const imgSrc = 'data:image/jpeg;base64,' + fotoBase64;
         $('#fotoVoucherImg').attr('src', imgSrc);
         $('#fotoVoucherModal').fadeIn(300);
         $('body').css('overflow', 'hidden'); // Prevenir scroll

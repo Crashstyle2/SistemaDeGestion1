@@ -46,9 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export'])) {
     $export = isset($_GET['export']) ? $_GET['export'] : '';
 }
 
-// Construir la consulta SQL base - MODIFICAR LÍNEAS 50-53
+// Construir la consulta SQL base - VERIFICAR que incluya fecha_registro
 $sql = "SELECT uc.*, u.nombre as nombre_usuario, 
        ucr.origen, ucr.destino, ucr.km_sucursales, ucr.comentarios_sector,
+       uc.fecha_registro, ucr.id as recorrido_id,
        s_origen.segmento as origen_segmento, s_origen.cebe as origen_cebe, 
        s_origen.local as origen_local, s_origen.m2_neto as origen_m2_neto, 
        s_origen.localidad as origen_localidad,
@@ -127,50 +128,103 @@ $registros = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Procesar exportación a Excel
 if ($export === 'excel') {
+    // APLICAR LA MISMA LÓGICA DE AGRUPACIÓN Y ORDENAMIENTO
+    $groupedRecords = [];
+    foreach ($registros as $registro) {
+        $groupKey = $registro['fecha_carga'] . '_' . 
+                   $registro['nombre_usuario'] . '_' . 
+                   $registro['nombre_conductor'] . '_' . 
+                   $registro['chapa'] . '_' . 
+                   $registro['numero_baucher'] . '_' . 
+                   $registro['litros_cargados'];
+        
+        if (!isset($groupedRecords[$groupKey])) {
+            $groupedRecords[$groupKey] = [];
+        }
+        $groupedRecords[$groupKey][] = $registro;
+    }
+    
+    // Ordenamiento por fecha_registro y ID de recorrido (IGUAL QUE EN LA WEB)
+    foreach ($groupedRecords as $groupKey => &$group) {
+        usort($group, function($a, $b) {
+            $fechaComparison = strtotime($a['fecha_registro']) - strtotime($b['fecha_registro']);
+            if ($fechaComparison === 0) {
+                return intval($a['recorrido_id']) - intval($b['recorrido_id']);
+            }
+            return $fechaComparison;
+        });
+    }
+    unset($group);
+    
+    // Crear lista ordenada para exportar
     $registrosParaExportar = [];
     
     // Si hay IDs seleccionados, filtrar solo esos registros
     if (!empty($selected_ids) && is_array($selected_ids)) {
-        foreach ($registros as $registro) {
-            if (in_array($registro['id'], $selected_ids)) {
-                $registrosParaExportar[] = $registro;
+        foreach ($groupedRecords as $group) {
+            foreach ($group as $registro) {
+                if (in_array($registro['id'], $selected_ids)) {
+                    $registrosParaExportar[] = $registro;
+                }
             }
         }
     } else {
-        // Si no hay selección específica, exportar todos los registros filtrados
-        $registrosParaExportar = $registros;
+        // Si no hay selección específica, exportar todos los registros ordenados
+        foreach ($groupedRecords as $group) {
+            foreach ($group as $registro) {
+                $registrosParaExportar[] = $registro;
+            }
+        }
     }
     
     if (!empty($registrosParaExportar)) {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         
-        // Configurar encabezados - MODIFICAR LÍNEA 128
-        $headers = ['Fecha', 'Conductor', 'Tipo Vehículo', 'Chapa', 'Nº Tarjeta', 'Nº Voucher', 'Litros Cargados', 
-                   'Origen', 'Origen Segmento', 'Origen CEBE', 'Origen Localidad', 'Origen M2 Neto',
+        // Configurar encabezados
+        $headers = ['Fecha', 'Técnico', 'Conductor', 'Tipo Vehículo', 'Chapa', 'Nº Tarjeta', 'Nº Voucher', 'Litros Cargados', 
+                   'Secuencia', 'Origen', 'Origen Segmento', 'Origen CEBE', 'Origen Localidad', 'Origen M2 Neto',
                    'Destino', 'Destino Segmento', 'Destino CEBE', 'Destino Localidad', 'Destino M2 Neto',
                    'KM entre Sucursales', 'Comentarios', 'Documento'];
         $sheet->fromArray($headers, null, 'A1');
         
-        // Estilo para encabezados - MODIFICAR LÍNEA 136
+        // Estilo para encabezados
         $headerStyle = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '4472C4']],
             'alignment' => ['horizontal' => 'center']
         ];
-        $sheet->getStyle('A1:T1')->applyFromArray($headerStyle);
+        $sheet->getStyle('A1:V1')->applyFromArray($headerStyle);
         
         // Agregar datos
         $row = 2;
+        $currentGroup = null;
+        $secuencia = 1;
+        
         foreach ($registrosParaExportar as $registro) {
+            // Detectar nuevo grupo para reiniciar secuencia
+            $groupKey = $registro['fecha_carga'] . '_' . 
+                       $registro['nombre_usuario'] . '_' . 
+                       $registro['nombre_conductor'] . '_' . 
+                       $registro['chapa'] . '_' . 
+                       $registro['numero_baucher'] . '_' . 
+                       $registro['litros_cargados'];
+            
+            if ($currentGroup !== $groupKey) {
+                $currentGroup = $groupKey;
+                $secuencia = 1;
+            }
+            
             $data = [
                 date('d/m/Y H:i', strtotime($registro['fecha_carga'] . ' ' . $registro['hora_carga'])),
+                $registro['nombre_usuario'] ?? '',
                 $registro['nombre_conductor'] ?? '',
                 ucfirst(str_replace('_', ' ', $registro['tipo_vehiculo'] ?? '')),
                 $registro['chapa'] ?? '',
                 $registro['tarjeta'] ?? '',
                 $registro['numero_baucher'] ?? '',
                 $registro['litros_cargados'] ?? 0,
+                $secuencia . '°', // NUEVA COLUMNA DE SECUENCIA
                 $registro['origen'] ?? '',
                 $registro['origen_segmento'] ?? '',
                 $registro['origen_cebe'] ?? '',
@@ -187,10 +241,11 @@ if ($export === 'excel') {
             ];
             $sheet->fromArray($data, null, 'A' . $row);
             $row++;
+            $secuencia++;
         }
         
-        // Ajustar ancho de columnas - MODIFICAR LÍNEA 160
-        foreach (range('A', 'T') as $col) {
+        // Ajustar ancho de columnas
+        foreach (range('A', 'V') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
         
@@ -235,7 +290,11 @@ if ($export === 'excel') {
     }
     .sub-record {
         display: none !important;
-        background-color: #f8f9fa;
+    }
+    
+    .sub-record td {
+        padding-left: 15px;
+        font-size: 0.95em;
     }
     .sub-record.show {
         display: table-row !important;
@@ -248,20 +307,33 @@ if ($export === 'excel') {
         padding: 2px 5px;
         margin-right: 5px;
         font-size: 14px;
-        transition: color 0.2s ease;
+        transition: all 0.2s ease;
     }
     .expand-btn:hover {
         color: #0056b3;
+        background: #f8f9fa;
+        border-radius: 3px;
         text-decoration: none;
     }
     .expand-btn:focus {
         outline: none;
         box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
     }
+    .expand-btn.expanded {
+        color: #dc3545;
+    }
+    .expand-btn.expanded i {
+        transform: rotate(90deg);
+    }
     .multiple-indicator {
-        font-size: 0.8em;
+        font-size: 0.75em;
         color: #6c757d;
         margin-left: 5px;
+        font-style: italic;
+        background: #e9ecef;
+        padding: 2px 6px;
+        border-radius: 10px;
+        white-space: nowrap;
     }
     .group-info {
         font-style: italic;
@@ -312,6 +384,56 @@ if ($export === 'excel') {
     .form-check-input:checked {
         background-color: #007bff;
         border-color: #007bff;
+    }
+    
+    /* Indicadores de secuencia */
+    .recorrido-numero {
+        display: inline-block;
+        color: white;
+        font-size: 0.75em;
+        font-weight: bold;
+        padding: 3px 8px;
+        border-radius: 50%;
+        margin-right: 8px;
+        min-width: 24px;
+        text-align: center;
+        line-height: 1.2;
+    }
+    
+    .recorrido-numero.secuencial {
+        background: #28a745; /* Verde para secuencia correcta */
+    }
+    
+    .recorrido-numero.no-secuencial {
+        background: #ffc107; /* Amarillo para advertencia */
+    }
+    
+    .main-record .recorrido-numero {
+        background: #007bff; /* Azul para el principal */
+    }
+    
+    .secuencia-indicator {
+        font-size: 0.75em;
+        color: #28a745;
+        margin-left: 8px;
+        font-style: italic;
+        background: #d4edda;
+        padding: 2px 8px;
+        border-radius: 12px;
+        white-space: nowrap;
+    }
+    
+    .origen-destino {
+        font-weight: 500;
+    }
+    
+    .sub-record {
+        background-color: #f8f9fa !important;
+        border-left: 3px solid #28a745;
+    }
+    
+    .sub-record.no-secuencial {
+        border-left-color: #ffc107;
     }
     </style>
 </head>
@@ -484,28 +606,42 @@ if ($export === 'excel') {
                                 </thead>
                                 <tbody>
                                     <?php 
-                                    // Agrupar registros por carga principal
-                                    $groupedRecords = [];
-                                    foreach ($registros as $registro) {
-                                        $groupKey = $registro['fecha_carga'] . '_' . 
-                                                   $registro['nombre_usuario'] . '_' . 
-                                                   $registro['nombre_conductor'] . '_' . 
-                                                   $registro['chapa'] . '_' . 
-                                                   $registro['numero_baucher'] . '_' . 
-                                                   $registro['litros_cargados'];
-                                        
-                                        if (!isset($groupedRecords[$groupKey])) {
-                                            $groupedRecords[$groupKey] = [];
-                                        }
-                                        $groupedRecords[$groupKey][] = $registro;
-                                    }
-                                    
-                                    $groupIndex = 0;
-                                    foreach ($groupedRecords as $groupKey => $group): 
-                                        $isMultiple = count($group) > 1;
-                                        $mainRecord = $group[0];
-                                        $groupIndex++;
-                                    ?>
+                    // Agrupar registros por carga principal
+                    $groupedRecords = [];
+                    foreach ($registros as $registro) {
+                        $groupKey = $registro['fecha_carga'] . '_' . 
+                                   $registro['nombre_usuario'] . '_' . 
+                                   $registro['nombre_conductor'] . '_' . 
+                                   $registro['chapa'] . '_' . 
+                                   $registro['numero_baucher'] . '_' . 
+                                   $registro['litros_cargados'];
+                        
+                        if (!isset($groupedRecords[$groupKey])) {
+                            $groupedRecords[$groupKey] = [];
+                        }
+                        $groupedRecords[$groupKey][] = $registro;
+                    }
+                    
+                    // NUEVO: Ordenamiento por fecha_registro y ID de recorrido
+                    foreach ($groupedRecords as $groupKey => &$group) {
+                        usort($group, function($a, $b) {
+                            // Primero por fecha_registro, luego por ID de recorrido
+                            $fechaComparison = strtotime($a['fecha_registro']) - strtotime($b['fecha_registro']);
+                            if ($fechaComparison === 0) {
+                                // Si tienen la misma fecha_registro, ordenar por recorrido_id
+                                return intval($a['recorrido_id']) - intval($b['recorrido_id']);
+                            }
+                            return $fechaComparison;
+                        });
+                    }
+                    unset($group); // Limpiar referencia
+                    
+                    $groupIndex = 0;
+                    foreach ($groupedRecords as $groupKey => $group): 
+                        $isMultiple = count($group) > 1;
+                        $mainRecord = $group[0]; // Ahora es el PRIMER recorrido registrado cronológicamente
+                        $groupIndex++;
+                    ?>
                                     <!-- Registro principal -->
                                     <tr class="main-record" data-group="<?php echo $groupIndex; ?>">
                                         <td class="text-center">
@@ -533,19 +669,21 @@ if ($export === 'excel') {
                                         <td><?php echo htmlspecialchars($mainRecord['tarjeta'] ?? ''); ?></td>
                                         <td><?php echo number_format($mainRecord['litros_cargados'] ?? 0, 2); ?></td>
                                         <td>
-                                            <?php if ($isMultiple): ?>
-                                                <span class="group-info">Múltiples destinos</span>
-                                            <?php else: ?>
-                                                <?php echo htmlspecialchars($mainRecord['origen'] ?? ''); ?>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php if ($isMultiple): ?>
-                                                <span class="group-info">Ver detalles</span>
-                                            <?php else: ?>
-                                                <?php echo htmlspecialchars($mainRecord['destino'] ?? ''); ?>
-                                            <?php endif; ?>
-                                        </td>
+                            <span class="recorrido-numero">1°</span>
+                            <span class="origen-destino"><?php echo htmlspecialchars($mainRecord['origen'] ?? ''); ?></span>
+                            <?php if ($isMultiple): ?>
+                                <span class="secuencia-indicator">→ Secuencia de <?php echo count($group); ?> recorridos</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <span class="recorrido-numero">1°</span>
+                            <span class="origen-destino"><?php echo htmlspecialchars($mainRecord['destino'] ?? ''); ?></span>
+                            <?php if ($isMultiple): ?>
+                                <button class="btn btn-sm btn-outline-info expand-btn" data-group="<?php echo $groupIndex; ?>" title="Ver secuencia completa">
+                                    <i class="fas fa-route"></i> Ver ruta
+                                </button>
+                            <?php endif; ?>
+                        </td>
                                         <td><?php echo htmlspecialchars($mainRecord['documento'] ?? ''); ?></td>
                                         <td class="text-center">
                                             <?php if (!empty($mainRecord['foto_voucher_ruta']) || !empty($mainRecord['foto_voucher'])): ?>
@@ -581,7 +719,12 @@ if ($export === 'excel') {
                                     
                                     <?php if ($isMultiple): ?>
                                         <?php for ($i = 1; $i < count($group); $i++): 
-                                            $subRecord = $group[$i]; ?>
+                                            $subRecord = $group[$i];
+                                            $recorridoNumero = $i + 1;
+                                            $origenAnterior = $group[$i-1]['destino'];
+                                            $origenActual = $subRecord['origen'];
+                                            $esSecuencial = ($origenAnterior === $origenActual);
+                                        ?>
                                         <!-- Sub-registros (aparecen DESPUÉS del principal) -->
                                         <tr class="sub-record" data-group="<?php echo $groupIndex; ?>" style="display: none;">
                                             <td class="text-center">
@@ -590,7 +733,12 @@ if ($export === 'excel') {
                                                        data-group="<?php echo $groupIndex; ?>"
                                                        data-main-id="<?php echo $mainRecord['id']; ?>">
                                             </td>
-                                            <td><?php echo date('d/m/Y H:i', strtotime($subRecord['fecha_carga'] . ' ' . $subRecord['hora_carga'])); ?></td>
+                                            <td>
+                                                <span class="recorrido-numero <?php echo $esSecuencial ? 'secuencial' : 'no-secuencial'; ?>">
+                                                    <?php echo $recorridoNumero; ?>°
+                                                </span>
+                                                <?php echo date('d/m/Y H:i', strtotime($subRecord['fecha_carga'] . ' ' . $subRecord['hora_carga'])); ?>
+                                            </td>
                                             <td><?php echo htmlspecialchars($subRecord['nombre_usuario'] ?? ''); ?></td>
                                             <td><?php echo ucfirst(str_replace('_', ' ', $subRecord['tipo_vehiculo'] ?? '')); ?></td>
                                             <td><?php echo htmlspecialchars($subRecord['nombre_conductor'] ?? ''); ?></td>
@@ -598,8 +746,21 @@ if ($export === 'excel') {
                                             <td><?php echo htmlspecialchars($subRecord['numero_baucher'] ?? ''); ?></td>
                                             <td><?php echo htmlspecialchars($subRecord['tarjeta'] ?? ''); ?></td>
                                             <td><?php echo number_format($subRecord['litros_cargados'] ?? 0, 2); ?></td>
-                                            <td><?php echo htmlspecialchars($subRecord['origen'] ?? ''); ?></td>
-                                            <td><?php echo htmlspecialchars($subRecord['destino'] ?? ''); ?></td>
+                                            <td>
+                                                <span class="recorrido-numero <?php echo $esSecuencial ? 'secuencial' : 'no-secuencial'; ?>">
+                                                    <?php echo $recorridoNumero; ?>°
+                                                </span>
+                                                <span class="origen-destino"><?php echo htmlspecialchars($subRecord['origen'] ?? ''); ?></span>
+                                                <?php if (!$esSecuencial): ?>
+                                                    <i class="fas fa-exclamation-triangle text-warning" title="No sigue secuencia del recorrido anterior"></i>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <span class="recorrido-numero <?php echo $esSecuencial ? 'secuencial' : 'no-secuencial'; ?>">
+                                                    <?php echo $recorridoNumero; ?>°
+                                                </span>
+                                                <span class="origen-destino"><?php echo htmlspecialchars($subRecord['destino'] ?? ''); ?></span>
+                                            </td>
                                             <td><?php echo htmlspecialchars($subRecord['documento'] ?? ''); ?></td>
                                             <td class="text-center">
                                                 <?php if (!empty($subRecord['foto_voucher'])): ?>
@@ -1071,19 +1232,19 @@ jQuery(document).ready(function($) {
         }
         
         try {
-            // Verificar estado actual usando visibility
-            const isVisible = $subRecords.first().is(':visible');
-            
-            if (isVisible) {
+            // Verificar estado actual usando la clase 'show'
+            if ($subRecords.hasClass('show')) {
                 // Contraer
-                $subRecords.hide().removeClass('show');
+                $subRecords.removeClass('show').hide();
                 $icon.removeClass('fa-chevron-down').addClass('fa-chevron-right');
+                $button.removeClass('expanded');
                 $button.attr('title', 'Expandir registros');
                 console.log('📥 Grupo contraído:', groupId);
             } else {
                 // Expandir
-                $subRecords.show().addClass('show');
+                $subRecords.addClass('show').show();
                 $icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
+                $button.addClass('expanded');
                 $button.attr('title', 'Contraer registros');
                 console.log('📤 Grupo expandido:', groupId);
             }

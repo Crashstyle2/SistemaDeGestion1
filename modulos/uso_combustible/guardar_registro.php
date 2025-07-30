@@ -114,23 +114,28 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Guardar recorridos con kilómetros y comentarios
+        // Líneas 115-135 - MODIFICAR:
+        // Guardar recorridos con kilómetros, comentarios y orden secuencial
         $recorridosGuardados = 0;
         $origenes = $_POST['origen'];
         $destinos = $_POST['destino'];
         $kilometros = $_POST['km_sucursales'];
         $comentarios = $_POST['comentarios_sector'] ?? [];
+        $ordenesSecuenciales = $_POST['orden_secuencial'] ?? [];
         
         for($i = 0; $i < count($origenes); $i++) {
             if(!empty(trim($origenes[$i])) && !empty(trim($destinos[$i])) && is_numeric($kilometros[$i])) {
                 $comentario = isset($comentarios[$i]) ? trim($comentarios[$i]) : null;
                 $comentario = empty($comentario) ? null : $comentario;
+                $ordenSecuencial = isset($ordenesSecuenciales[$i]) ? intval($ordenesSecuenciales[$i]) : ($i + 1);
                 
                 $resultado = $usoCombustible->agregarRecorrido(
                     $registro_id,
                     trim($origenes[$i]),
                     trim($destinos[$i]),
                     floatval($kilometros[$i]),
-                    $comentario
+                    $comentario,
+                    $ordenSecuencial  // NUEVO PARÁMETRO
                 );
                 
                 if($resultado) {

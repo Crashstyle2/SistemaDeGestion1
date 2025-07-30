@@ -293,8 +293,17 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
                             </div>
                             <div class="card-body">
                                 <div id="recorridos-container">
-                                    <div class="recorrido-item border p-3 mb-3">
-                                        <div class="form-row">
+                                <div class="recorrido-item border p-3 mb-3" data-recorrido="1">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0">
+                                            <span class="badge badge-primary recorrido-numero">1°</span>
+                                            Recorrido #<span class="numero-recorrido">1</span>
+                                        </h6>
+                                        <button type="button" class="btn btn-sm btn-outline-danger eliminar-recorrido" style="display: none;">
+                                            <i class="fas fa-trash"></i> Eliminar
+                                        </button>
+                                    </div>
+                                    <div class="form-row">
                                 <div class="form-group col-md-4">
                                     <label>Origen</label>
                                     <div class="searchable-select">
@@ -303,6 +312,7 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
                                                data-target="origen_0" 
                                                autocomplete="off" readonly>
                                         <input type="hidden" name="origen[]" id="origen_0" required>
+                                        <input type="hidden" name="orden_secuencial[]" value="1">
                                     </div>
                                 </div>
                                 <div class="form-group col-md-4">
@@ -504,6 +514,17 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
         
         // Inicializar
         initSearchableSelects();
+        
+        // Configurar eventos de eliminación
+        $(document).on('click', '.eliminar-recorrido', function() {
+            eliminarRecorrido(this);
+        });
+        
+        // Actualizar numeración inicial
+        actualizarNumeracionRecorridos();
+        
+        // Actualizar botones de eliminar inicial
+        actualizarBotonesEliminar();
     });
     
     // Función para cambiar automáticamente el campo Documento según el tipo de vehículo
@@ -523,11 +544,7 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
     // Función actualizada para agregar recorrido
     function agregarRecorrido() {
         const container = document.getElementById('recorridos-container');
-        const nuevoRecorrido = document.createElement('div');
-        nuevoRecorrido.className = 'recorrido-item border p-3 mb-3';
-        
-        const origenId = `origen_${searchableCounter}`;
-        const destinoId = `destino_${searchableCounter}`;
+        const recorridoCount = container.children.length + 1;
         
         // Obtener el último destino para usarlo como origen del nuevo recorrido
         let ultimoDestino = '';
@@ -546,64 +563,75 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
             }
         }
         
-        nuevoRecorrido.innerHTML = `
-            <div class="form-row">
-                <div class="form-group col-md-4">
-                    <label>Origen:</label>
-                    <div class="searchable-select">
-                        <input type="text" class="form-control searchable-input" 
-                               placeholder="Click para seleccionar origen..." 
-                               data-target="${origenId}" 
-                               autocomplete="off" readonly
-                               value="${ultimoDestinoTexto}">
-                        <input type="hidden" name="origen[]" id="${origenId}" required value="${ultimoDestino}">
+        const nuevoRecorrido = `
+            <div class="recorrido-item border p-3 mb-3" data-recorrido="${recorridoCount}">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">
+                        <span class="badge badge-primary recorrido-numero">${recorridoCount}°</span>
+                        Recorrido #<span class="numero-recorrido">${recorridoCount}</span>
+                    </h6>
+                    <button type="button" class="btn btn-sm btn-outline-danger eliminar-recorrido" onclick="eliminarRecorrido(this)">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                </div>
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label>Origen</label>
+                        <div class="searchable-select">
+                            <input type="text" class="form-control searchable-input" 
+                                   placeholder="Click para seleccionar origen..." 
+                                   data-target="origen_${recorridoCount - 1}" 
+                                   autocomplete="off" readonly
+                                   value="${ultimoDestinoTexto}">
+                            <input type="hidden" name="origen[]" id="origen_${recorridoCount - 1}" required value="${ultimoDestino}">
+                            <input type="hidden" name="orden_secuencial[]" value="${recorridoCount}">
+                        </div>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label>KM entre Sucursales</label>
+                        <input type="number" class="form-control" name="km_sucursales[]" 
+                               placeholder="Ingrese KM aproximados" 
+                               min="0" step="0.1" required>
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label>Destino</label>
+                        <div class="searchable-select">
+                            <input type="text" class="form-control searchable-input" 
+                                   placeholder="Click para seleccionar destino..." 
+                                   data-target="destino_${recorridoCount - 1}" 
+                                   autocomplete="off" readonly>
+                            <input type="hidden" name="destino[]" id="destino_${recorridoCount - 1}" required>
+                        </div>
                     </div>
                 </div>
-                <div class="form-group col-md-4">
-                    <label>KM entre Sucursales:</label>
-                    <input type="number" class="form-control" name="km_sucursales[]" 
-                           placeholder="Ingrese KM aproximados" 
-                           min="0" step="0.1" required>
-                </div>
-                <div class="form-group col-md-4">
-                    <label>Destino:</label>
-                    <div class="searchable-select">
-                        <input type="text" class="form-control searchable-input" 
-                               placeholder="Click para seleccionar destino..." 
-                               data-target="${destinoId}" 
-                               autocomplete="off" readonly>
-                        <input type="hidden" name="destino[]" id="${destinoId}" required>
+                <!-- Campo de comentarios condicional -->
+                <div class="form-row comentarios-sector" style="display: none;">
+                    <div class="form-group col-md-12">
+                        <label>Comentarios del Sector</label>
+                        <div class="alert alert-info mb-2">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            <strong>Si vas a retirar repuesto, ¿para qué sector es?</strong>
+                            <br><small>Indique el departamento para imputar correctamente el gasto de combustible (ej: Marketing, Cuadratura, Mantic, etc.)</small>
+                        </div>
+                        <textarea class="form-control" name="comentarios_sector[]" 
+                                  placeholder="Ejemplo: Retiro repuesto para el sector de Marketing" 
+                                  rows="3"></textarea>
                     </div>
                 </div>
             </div>
-            <!-- Campo de comentarios condicional -->
-            <div class="form-row comentarios-sector" style="display: none;">
-                <div class="form-group col-md-12">
-                    <label>Comentarios del Sector</label>
-                    <div class="alert alert-info mb-2">
-                        <i class="fas fa-info-circle mr-2"></i>
-                        <strong>Si vas a retirar repuesto, ¿para qué sector es?</strong>
-                        <br><small>Indique el departamento para imputar correctamente el gasto de combustible (ej: Marketing, Cuadratura, Mantic, etc.)</small>
-                    </div>
-                    <textarea class="form-control" name="comentarios_sector[]" 
-                              placeholder="Ejemplo: Retiro repuesto para el sector de Marketing" 
-                              rows="3"></textarea>
-                </div>
-            </div>
-            <button type="button" class="btn btn-danger btn-sm" onclick="eliminarRecorrido(this)">
-                <i class="fas fa-trash"></i> Eliminar
-            </button>
         `;
         
-        container.appendChild(nuevoRecorrido);
-        searchableCounter++;
+        container.insertAdjacentHTML('beforeend', nuevoRecorrido);
         
-        // Reinicializar los eventos para los nuevos elementos
+        // Reinicializar eventos para los nuevos elementos
         initSearchableSelects();
+        
+        // Actualizar botones de eliminar
+        actualizarBotonesEliminar();
         
         // Mostrar mensaje informativo si se auto-completó el origen
         if (ultimoDestino) {
-            // Opcional: mostrar un pequeño mensaje de confirmación
+            const ultimoRecorrido = container.lastElementChild;
             const mensaje = document.createElement('div');
             mensaje.className = 'alert alert-info alert-dismissible fade show mt-2';
             mensaje.innerHTML = `
@@ -613,7 +641,7 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
                     <span>&times;</span>
                 </button>
             `;
-            nuevoRecorrido.appendChild(mensaje);
+            ultimoRecorrido.appendChild(mensaje);
             
             // Auto-ocultar el mensaje después de 3 segundos
             setTimeout(() => {
@@ -624,8 +652,84 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
         }
     }
     
+    // Función para eliminar recorrido
     function eliminarRecorrido(button) {
-        button.closest('.recorrido-item').remove();
+        const recorridoItem = button.closest('.recorrido-item');
+        recorridoItem.remove();
+        
+        // Renumerar todos los recorridos
+        renumerarRecorridos();
+        
+        // Actualizar botones de eliminar
+        actualizarBotonesEliminar();
+    }
+    
+    function actualizarNumeracionRecorridos() {
+        const recorridos = document.querySelectorAll('.recorrido-item');
+        recorridos.forEach((recorrido, index) => {
+            const numero = index + 1;
+            recorrido.setAttribute('data-recorrido', numero);
+            
+            const badge = recorrido.querySelector('.recorrido-numero');
+            const numeroSpan = recorrido.querySelector('.numero-recorrido');
+            const eliminarBtn = recorrido.querySelector('.eliminar-recorrido');
+            
+            if (badge) badge.textContent = numero + '°';
+            if (numeroSpan) numeroSpan.textContent = numero;
+            
+            // Mostrar/ocultar botón eliminar
+            if (eliminarBtn) {
+                eliminarBtn.style.display = numero === 1 ? 'none' : 'inline-block';
+                eliminarBtn.onclick = () => eliminarRecorrido(eliminarBtn);
+            }
+        });
+    }
+    
+    // Función para renumerar recorridos
+    function renumerarRecorridos() {
+        const recorridos = document.querySelectorAll('.recorrido-item');
+        recorridos.forEach((recorrido, index) => {
+            const numero = index + 1;
+            
+            // Actualizar número visual
+            recorrido.querySelector('.recorrido-numero').textContent = numero + '°';
+            recorrido.querySelector('.numero-recorrido').textContent = numero;
+            recorrido.setAttribute('data-recorrido', numero);
+            
+            // Actualizar campo hidden de orden
+            const ordenInput = recorrido.querySelector('input[name="orden_secuencial[]"]');
+            if (ordenInput) {
+                ordenInput.value = numero;
+            }
+            
+            // Actualizar IDs de los campos
+            const origenInput = recorrido.querySelector('input[data-target^="origen_"]');
+            const destinoInput = recorrido.querySelector('input[data-target^="destino_"]');
+            const origenHidden = recorrido.querySelector('input[name="origen[]"]');
+            const destinoHidden = recorrido.querySelector('input[name="destino[]"]');
+            
+            if (origenInput && origenHidden) {
+                const newOrigenId = `origen_${index}`;
+                origenInput.setAttribute('data-target', newOrigenId);
+                origenHidden.id = newOrigenId;
+            }
+            
+            if (destinoInput && destinoHidden) {
+                const newDestinoId = `destino_${index}`;
+                destinoInput.setAttribute('data-target', newDestinoId);
+                destinoHidden.id = newDestinoId;
+            }
+        });
+    }
+    
+    // Función para actualizar botones de eliminar
+    function actualizarBotonesEliminar() {
+        const recorridos = document.querySelectorAll('.recorrido-item');
+        const botonesEliminar = document.querySelectorAll('.eliminar-recorrido');
+        
+        botonesEliminar.forEach(boton => {
+            boton.style.display = recorridos.length > 1 ? 'block' : 'none';
+        });
     }
     
     function showMessage(type, title, message, details = '') {
@@ -974,113 +1078,7 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
         }
     });
     
-    // Función actualizada para agregar recorrido
-    function agregarRecorrido() {
-        const container = document.getElementById('recorridos-container');
-        const nuevoRecorrido = document.createElement('div');
-        nuevoRecorrido.className = 'recorrido-item border p-3 mb-3';
-        
-        const origenId = `origen_${searchableCounter}`;
-        const destinoId = `destino_${searchableCounter}`;
-        
-        // Obtener el último destino para usarlo como origen del nuevo recorrido
-        let ultimoDestino = '';
-        let ultimoDestinoTexto = '';
-        
-        // Buscar el último recorrido existente
-        const recorridosExistentes = container.querySelectorAll('.recorrido-item');
-        if (recorridosExistentes.length > 0) {
-            const ultimoRecorrido = recorridosExistentes[recorridosExistentes.length - 1];
-            const ultimoDestinoInput = ultimoRecorrido.querySelector('input[name="destino[]"]');
-            const ultimoDestinoVisible = ultimoRecorrido.querySelector('.searchable-input[data-target*="destino"]');
-            
-            if (ultimoDestinoInput && ultimoDestinoInput.value) {
-                ultimoDestino = ultimoDestinoInput.value;
-                ultimoDestinoTexto = ultimoDestinoVisible ? ultimoDestinoVisible.value : ultimoDestino;
-            }
-        }
-        
-        nuevoRecorrido.innerHTML = `
-            <div class="form-row">
-                <div class="form-group col-md-4">
-                    <label>Origen:</label>
-                    <div class="searchable-select">
-                        <input type="text" class="form-control searchable-input" 
-                               placeholder="Click para seleccionar origen..." 
-                               data-target="${origenId}" 
-                               autocomplete="off" readonly
-                               value="${ultimoDestinoTexto}">
-                        <input type="hidden" name="origen[]" id="${origenId}" required value="${ultimoDestino}">
-                    </div>
-                </div>
-                <div class="form-group col-md-4">
-                    <label>KM entre Sucursales:</label>
-                    <input type="number" class="form-control" name="km_sucursales[]" 
-                           placeholder="Ingrese KM aproximados" 
-                           min="0" step="0.1" required>
-                </div>
-                <div class="form-group col-md-4">
-                    <label>Destino:</label>
-                    <div class="searchable-select">
-                        <input type="text" class="form-control searchable-input" 
-                               placeholder="Click para seleccionar destino..." 
-                               data-target="${destinoId}" 
-                               autocomplete="off" readonly>
-                        <input type="hidden" name="destino[]" id="${destinoId}" required>
-                    </div>
-                </div>
-            </div>
-            <!-- Campo de comentarios condicional -->
-            <div class="form-row comentarios-sector" style="display: none;">
-                <div class="form-group col-md-12">
-                    <label>Comentarios del Sector</label>
-                    <div class="alert alert-info mb-2">
-                        <i class="fas fa-info-circle mr-2"></i>
-                        <strong>Si vas a retirar repuesto, ¿para qué sector es?</strong>
-                        <br><small>Indique el departamento para imputar correctamente el gasto de combustible (ej: Marketing, Cuadratura, Mantic, etc.)</small>
-                    </div>
-                    <textarea class="form-control" name="comentarios_sector[]" 
-                              placeholder="Ejemplo: Retiro repuesto para el sector de Marketing" 
-                              rows="3"></textarea>
-                </div>
-            </div>
-            <button type="button" class="btn btn-danger btn-sm" onclick="eliminarRecorrido(this)">
-                <i class="fas fa-trash"></i> Eliminar
-            </button>
-        `;
-        
-        container.appendChild(nuevoRecorrido);
-        searchableCounter++;
-        
-        // Reinicializar los eventos para los nuevos elementos
-        initSearchableSelects();
-        
-        // Mostrar mensaje informativo si se auto-completó el origen
-        if (ultimoDestino) {
-            // Opcional: mostrar un pequeño mensaje de confirmación
-            const mensaje = document.createElement('div');
-            mensaje.className = 'alert alert-info alert-dismissible fade show mt-2';
-            mensaje.innerHTML = `
-                <small><i class="fas fa-info-circle mr-1"></i>
-                Se estableció automáticamente "${ultimoDestinoTexto}" como origen del nuevo recorrido.</small>
-                <button type="button" class="close" data-dismiss="alert" style="font-size: 1rem; line-height: 1;">
-                    <span>&times;</span>
-                </button>
-            `;
-            nuevoRecorrido.appendChild(mensaje);
-            
-            // Auto-ocultar el mensaje después de 3 segundos
-            setTimeout(() => {
-                if (mensaje.parentNode) {
-                    $(mensaje).alert('close');
-                }
-            }, 3000);
-        }
-    }
-    
-    function eliminarRecorrido(button) {
-        button.closest('.recorrido-item').remove();
-    }
+
     
     function showMessage(type, title, message, details = '') {
         const modal = $('#messageModal');

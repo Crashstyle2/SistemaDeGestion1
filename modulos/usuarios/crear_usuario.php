@@ -7,6 +7,7 @@ if(!isset($_SESSION['user_id']) || $_SESSION['user_rol'] !== 'administrador') {
 
 include_once '../../config/database.php';
 include_once '../../models/Usuario.php';
+include_once '../../includes/functions.php'; // AGREGAR ESTA LÍNEA
 
 $database = new Database();
 $db = $database->getConnection();

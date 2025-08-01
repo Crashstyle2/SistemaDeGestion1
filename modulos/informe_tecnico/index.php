@@ -261,6 +261,3 @@ $stmt = $informe->leerTodos($tecnico_id, $limit, $offset, $search_term);
         });
     });
     </script>
-    }
-  ]
-}

@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../../config/Database.php';
+require_once '../../config/ActivityLogger.php'; // AGREGAR ESTA LÍNEA
 
 // Verificar que sea administrador o administrativo
 if(!isset($_SESSION['user_id']) || !in_array($_SESSION['user_rol'], ['administrador', 'administrativo'])) {
@@ -32,6 +33,15 @@ try {
                 $_POST['m2_neto'],
                 $_POST['localidad']
             ]);
+            
+            // AGREGAR REGISTRO DE ACTIVIDAD
+            ActivityLogger::logAccion(
+                $_SESSION['user_id'],
+                'sucursales',
+                'crear',
+                "Nueva sucursal creada - Segmento: {$_POST['segmento']}, Local: {$_POST['local']}, CEBE: {$_POST['cebe']}"
+            );
+            
             echo json_encode(['success' => true, 'message' => 'Sucursal creada exitosamente']);
             break;
             
@@ -45,6 +55,15 @@ try {
                 $_POST['localidad'],
                 $_POST['sucursal_id']
             ]);
+            
+            // AGREGAR REGISTRO DE ACTIVIDAD
+            ActivityLogger::logAccion(
+                $_SESSION['user_id'],
+                'sucursales',
+                'editar',
+                "Sucursal actualizada - ID: {$_POST['sucursal_id']}, Segmento: {$_POST['segmento']}, Local: {$_POST['local']}"
+            );
+            
             echo json_encode(['success' => true, 'message' => 'Sucursal actualizada exitosamente']);
             break;
             
@@ -56,8 +75,24 @@ try {
             break;
             
         case 'eliminar':
+            // Obtener datos antes de eliminar para el log
+            $stmt = $db->prepare("SELECT segmento, local, cebe FROM sucursales WHERE id = ?");
+            $stmt->execute([$_POST['id']]);
+            $sucursal = $stmt->fetch(PDO::FETCH_ASSOC);
+            
             $stmt = $db->prepare("DELETE FROM sucursales WHERE id = ?");
             $stmt->execute([$_POST['id']]);
+            
+            // AGREGAR REGISTRO DE ACTIVIDAD
+            if ($sucursal) {
+                ActivityLogger::logAccion(
+                    $_SESSION['user_id'],
+                    'sucursales',
+                    'eliminar',
+                    "Sucursal eliminada - ID: {$_POST['id']}, Segmento: {$sucursal['segmento']}, Local: {$sucursal['local']}"
+                );
+            }
+            
             echo json_encode(['success' => true, 'message' => 'Sucursal eliminada exitosamente']);
             break;
             

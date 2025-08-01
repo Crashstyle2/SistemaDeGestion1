@@ -1,2 +1,0 @@
-ALTER TABLE informe_tecnico
-ADD COLUMN foto_trabajo LONGTEXT NULL;

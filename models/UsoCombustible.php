@@ -64,6 +64,47 @@ class UsoCombustible {
         return false;
     }
 
+    // Actualizar registro
+    public function actualizar() {
+        $query = "UPDATE " . $this->table_name . "
+                SET fecha = :fecha,
+                    nombre_conductor = :conductor,
+                    chapa = :chapa,
+                    numero_baucher = :numero_voucher,
+                    tarjeta = :tarjeta,
+                    litros_cargados = :litros_cargados,
+                    tipo_vehiculo = :tipo_vehiculo,
+                    documento = :documento,
+                    fecha_carga = :fecha_carga,
+                    hora_carga = :hora_carga,
+                    foto_voucher_ruta = :foto_voucher_ruta
+                WHERE id = :id";
+
+        $stmt = $this->conn->prepare($query);
+
+        // Limpiar datos
+        $this->conductor = htmlspecialchars(strip_tags($this->conductor));
+        $this->chapa = htmlspecialchars(strip_tags($this->chapa));
+        $this->numero_voucher = htmlspecialchars(strip_tags($this->numero_voucher));
+        $this->tipo_vehiculo = htmlspecialchars(strip_tags($this->tipo_vehiculo));
+        $this->documento = htmlspecialchars(strip_tags($this->documento));
+
+        $stmt->bindParam(":fecha", $this->fecha);
+        $stmt->bindParam(":conductor", $this->conductor);
+        $stmt->bindParam(":chapa", $this->chapa);
+        $stmt->bindParam(":numero_voucher", $this->numero_voucher);
+        $stmt->bindParam(":tarjeta", $this->tarjeta);
+        $stmt->bindParam(":litros_cargados", $this->litros_cargados);
+        $stmt->bindParam(":tipo_vehiculo", $this->tipo_vehiculo);
+        $stmt->bindParam(":documento", $this->documento);
+        $stmt->bindParam(":fecha_carga", $this->fecha_carga);
+        $stmt->bindParam(":hora_carga", $this->hora_carga);
+        $stmt->bindParam(":foto_voucher_ruta", $this->foto_voucher_ruta);
+        $stmt->bindParam(":id", $this->id);
+
+        return $stmt->execute();
+    }
+
     // Agregar recorrido con kilómetros y comentarios
     // Buscar el método agregarRecorrido y modificar:
     public function agregarRecorrido($uso_combustible_id, $origen, $destino, $km_sucursales, $comentarios_sector = null, $orden_secuencial = 1) {

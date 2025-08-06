@@ -273,11 +273,11 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
                                 <div class="form-group col-md-12">
                                     <label for="foto_voucher">Foto del Voucher</label>
                                     <div class="custom-file">
-                                        <input type="file" class="custom-file-input" id="foto_voucher" name="foto_voucher" accept="image/*" capture="camera">
-                                        <label class="custom-file-label" for="foto_voucher">Tomar foto del voucher...</label>
+                                        <input type="file" class="custom-file-input" id="foto_voucher" name="foto_voucher" accept="image/*">
+                                        <label class="custom-file-label" for="foto_voucher">Seleccionar foto del voucher...</label>
                                     </div>
                                     <small class="form-text text-muted">
-                                        <i class="fas fa-camera mr-1"></i>Toque para abrir la cámara y capturar la foto del voucher
+                                        <i class="fas fa-camera mr-1"></i>Puede tomar una foto o seleccionar desde la galería
                                     </small>
                                     <div id="preview_foto_voucher" class="mt-2" style="display: none;">
                                         <img id="img_preview_voucher" src="" alt="Vista previa" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">

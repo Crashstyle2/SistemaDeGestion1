@@ -135,151 +135,47 @@ if ($export === 'excel') {
     include_once '../../models/UsoCombustible.php';
     $usoCombustible = new UsoCombustible($conn);
     
-    // Verificar si hay recorridos abiertos en el rango de fechas
-    $filtros = [
-        'fecha_inicio' => $fecha_inicio,
-        'fecha_fin' => $fecha_fin
-    ];
+    $permitir_exportacion = false;
     
-    $recorridosAbiertos = $usoCombustible->verificarRecorridosAbiertos($filtros);
-    
-    if ($recorridosAbiertos['total_abiertos'] > 0) {
-        // Mostrar mensaje de error y no permitir descarga
-        $error_message = "Este recorrido aún está abierto. Solicite al usuario cerrar las mismas para descargar el Excel.";
-        ?>
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                // Crear overlay
-                var overlay = document.createElement('div');
-                overlay.id = 'errorOverlay';
-                overlay.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(0,0,0,0.5);
-                    z-index: 9999;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                `;
-                
-                // Crear modal
-                var modal = document.createElement('div');
-                modal.id = 'errorModal';
-                modal.style.cssText = `
-                    background: white;
-                    padding: 30px;
-                    border-radius: 10px;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-                    text-align: center;
-                    min-width: 400px;
-                    max-width: 500px;
-                    font-family: Arial, sans-serif;
-                `;
-                
-                modal.innerHTML = `
-                    <h4 style='color: #dc3545; margin-bottom: 20px;'>⚠️ Recorrido Abierto</h4>
-                    <p style='margin-bottom: 25px; font-size: 16px;'><?php echo addslashes($error_message); ?></p>
-                    <button onclick='cerrarModalError()' 
-                            style='background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px;'>
-                        Aceptar
-                    </button>
-                `;
-                
-                overlay.appendChild(modal);
-                document.body.appendChild(overlay);
-            });
+    // Si hay IDs seleccionados, verificar solo esos recorridos
+        if (!empty($selected_ids) && is_array($selected_ids)) {
+            // Verificar el estado de los recorridos seleccionados
+            $recorridosAbiertosSeleccionados = $usoCombustible->verificarRecorridosAbiertosPorIds($selected_ids);
             
-            function cerrarModalError() {
-                var overlay = document.getElementById('errorOverlay');
-                if (overlay && overlay.parentNode) {
-                    overlay.parentNode.removeChild(overlay);
-                }
+            if ($recorridosAbiertosSeleccionados['total_abiertos'] > 0) {
+                // Mostrar mensaje específico para recorridos seleccionados
+                $usuarios_responsables = $recorridosAbiertosSeleccionados['recorridos_abiertos'];
+                $error_message = "El recorrido se encuentra abierto, no podrás descargar el Excel. Favor solicitar a " . $usuarios_responsables . " proceder con el cierre.";
+                $mostrar_error_seleccionados = true;
+                $permitir_exportacion = false;
+            } else {
+                // Todos los recorridos seleccionados están cerrados
+                $permitir_exportacion = true;
             }
-        </script>
-        <?php
-        // No usar exit aquí, continuar con el resto de la página
-        return;
-    }
-    
-    // Si no hay recorridos abiertos, proceder con la exportación
-    // APLICAR LA MISMA LÓGICA DE AGRUPACIÓN Y ORDENAMIENTO
-    $groupedRecords = [];
-    foreach ($registros as $registro) {
-        $groupKey = $registro['fecha_carga'] . '_' . 
-                   $registro['nombre_usuario'] . '_' . 
-                   $registro['nombre_conductor'] . '_' . 
-                   $registro['chapa'] . '_' . 
-                   $registro['numero_baucher'] . '_' . 
-                   $registro['litros_cargados'];
-        
-        if (!isset($groupedRecords[$groupKey])) {
-            $groupedRecords[$groupKey] = [];
-        }
-        $groupedRecords[$groupKey][] = $registro;
-    }
-    
-    // Ordenamiento por fecha_registro y ID de recorrido (IGUAL QUE EN LA WEB)
-    foreach ($groupedRecords as $groupKey => &$group) {
-        usort($group, function($a, $b) {
-            $fechaComparison = strtotime($a['fecha_registro']) - strtotime($b['fecha_registro']);
-            if ($fechaComparison === 0) {
-                return intval($a['recorrido_id']) - intval($b['recorrido_id']);
-            }
-            return $fechaComparison;
-        });
-    }
-    unset($group);
-    
-    // Crear lista ordenada para exportar
-    $registrosParaExportar = [];
-    
-    // Si hay IDs seleccionados, filtrar solo esos registros
-    if (!empty($selected_ids) && is_array($selected_ids)) {
-        foreach ($groupedRecords as $group) {
-            foreach ($group as $registro) {
-                if (in_array($registro['id'], $selected_ids)) {
-                    $registrosParaExportar[] = $registro;
-                }
+        } else {
+            // Si no hay selección específica, verificar todos los recorridos en el rango
+            $filtros = [
+                'fecha_inicio' => $fecha_inicio,
+                'fecha_fin' => $fecha_fin
+            ];
+            
+            $recorridosAbiertos = $usoCombustible->verificarRecorridosAbiertos($filtros);
+            
+            if ($recorridosAbiertos['total_abiertos'] > 0) {
+                $error_message = "Hay recorridos abiertos en el rango de fechas que deben cerrarse antes de poder descargar el Excel completo. Solicite cerrar los recorridos abiertos o seleccione únicamente los recorridos cerrados.";
+                $mostrar_error_rango = true;
+                $permitir_exportacion = false;
+            } else {
+                // Todos los recorridos en el rango están cerrados
+                $permitir_exportacion = true;
             }
         }
-    } else {
-        // Si no hay selección específica, exportar todos los registros ordenados
-        foreach ($groupedRecords as $group) {
-            foreach ($group as $registro) {
-                $registrosParaExportar[] = $registro;
-            }
-        }
-    }
     
-    if (!empty($registrosParaExportar)) {
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        
-        // Configurar encabezados
-        $headers = ['Fecha', 'Técnico', 'Conductor', 'Tipo Vehículo', 'Chapa', 'Nº Tarjeta', 'Nº Voucher', 'Litros Cargados', 
-                   'Secuencia', 'Origen', 'Origen Segmento', 'Origen CEBE', 'Origen Localidad', 'Origen M2 Neto',
-                   'Destino', 'Destino Segmento', 'Destino CEBE', 'Destino Localidad', 'Destino M2 Neto',
-                   'KM entre Sucursales', 'Comentarios', 'Documento'];
-        $sheet->fromArray($headers, null, 'A1');
-        
-        // Estilo para encabezados
-        $headerStyle = [
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '4472C4']],
-            'alignment' => ['horizontal' => 'center']
-        ];
-        $sheet->getStyle('A1:V1')->applyFromArray($headerStyle);
-        
-        // Agregar datos
-        $row = 2;
-        $currentGroup = null;
-        $secuencia = 1;
-        
-        foreach ($registrosParaExportar as $registro) {
-            // Detectar nuevo grupo para reiniciar secuencia
+    // Solo proceder con la exportación si está permitida
+    if ($permitir_exportacion) {
+        // APLICAR LA MISMA LÓGICA DE AGRUPACIÓN Y ORDENAMIENTO
+        $groupedRecords = [];
+        foreach ($registros as $registro) {
             $groupKey = $registro['fecha_carga'] . '_' . 
                        $registro['nombre_usuario'] . '_' . 
                        $registro['nombre_conductor'] . '_' . 
@@ -287,56 +183,129 @@ if ($export === 'excel') {
                        $registro['numero_baucher'] . '_' . 
                        $registro['litros_cargados'];
             
-            if ($currentGroup !== $groupKey) {
-                $currentGroup = $groupKey;
-                $secuencia = 1;
+            if (!isset($groupedRecords[$groupKey])) {
+                $groupedRecords[$groupKey] = [];
+            }
+            $groupedRecords[$groupKey][] = $registro;
+        }
+        
+        // Ordenamiento por fecha_registro y ID de recorrido (IGUAL QUE EN LA WEB)
+        foreach ($groupedRecords as $groupKey => &$group) {
+            usort($group, function($a, $b) {
+                $fechaComparison = strtotime($a['fecha_registro']) - strtotime($b['fecha_registro']);
+                if ($fechaComparison === 0) {
+                    return intval($a['recorrido_id']) - intval($b['recorrido_id']);
+                }
+                return $fechaComparison;
+            });
+        }
+        unset($group);
+        
+        // Crear lista ordenada para exportar
+        $registrosParaExportar = [];
+        
+        // Si hay IDs seleccionados, filtrar solo esos registros
+        if (!empty($selected_ids) && is_array($selected_ids)) {
+            foreach ($groupedRecords as $group) {
+                foreach ($group as $registro) {
+                    if (in_array($registro['id'], $selected_ids)) {
+                        $registrosParaExportar[] = $registro;
+                    }
+                }
+            }
+        } else {
+            // Si no hay selección específica, exportar todos los registros ordenados
+            foreach ($groupedRecords as $group) {
+                foreach ($group as $registro) {
+                    $registrosParaExportar[] = $registro;
+                }
+            }
+        }
+        
+        if (!empty($registrosParaExportar)) {
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            
+            // Configurar encabezados
+            $headers = ['Fecha', 'Técnico', 'Conductor', 'Tipo Vehículo', 'Chapa', 'Nº Tarjeta', 'Nº Voucher', 'Litros Cargados', 
+                       'Secuencia', 'Origen', 'Origen Segmento', 'Origen CEBE', 'Origen Localidad', 'Origen M2 Neto',
+                       'Destino', 'Destino Segmento', 'Destino CEBE', 'Destino Localidad', 'Destino M2 Neto',
+                       'KM entre Sucursales', 'Comentarios', 'Documento'];
+            $sheet->fromArray($headers, null, 'A1');
+            
+            // Estilo para encabezados
+            $headerStyle = [
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '4472C4']],
+                'alignment' => ['horizontal' => 'center']
+            ];
+            $sheet->getStyle('A1:V1')->applyFromArray($headerStyle);
+            
+            // Agregar datos
+            $row = 2;
+            $currentGroup = null;
+            $secuencia = 1;
+            
+            foreach ($registrosParaExportar as $registro) {
+                // Detectar nuevo grupo para reiniciar secuencia
+                $groupKey = $registro['fecha_carga'] . '_' . 
+                           $registro['nombre_usuario'] . '_' . 
+                           $registro['nombre_conductor'] . '_' . 
+                           $registro['chapa'] . '_' . 
+                           $registro['numero_baucher'] . '_' . 
+                           $registro['litros_cargados'];
+                
+                if ($currentGroup !== $groupKey) {
+                    $currentGroup = $groupKey;
+                    $secuencia = 1;
+                }
+                
+                $data = [
+                    date('d/m/Y H:i', strtotime($registro['fecha_carga'] . ' ' . $registro['hora_carga'])),
+                    $registro['nombre_usuario'] ?? '',
+                    $registro['nombre_conductor'] ?? '',
+                    ucfirst(str_replace('_', ' ', $registro['tipo_vehiculo'] ?? '')),
+                    $registro['chapa'] ?? '',
+                    $registro['tarjeta'] ?? '',
+                    $registro['numero_baucher'] ?? '',
+                    $registro['litros_cargados'] ?? 0,
+                    $secuencia . '°', // NUEVA COLUMNA DE SECUENCIA
+                    $registro['origen'] ?? '',
+                    $registro['origen_segmento'] ?? '',
+                    $registro['origen_cebe'] ?? '',
+                    $registro['origen_localidad'] ?? '',
+                    $registro['origen_m2_neto'] ?? '',
+                    $registro['destino'] ?? '',
+                    $registro['destino_segmento'] ?? '',
+                    $registro['destino_cebe'] ?? '',
+                    $registro['destino_localidad'] ?? '',
+                    $registro['destino_m2_neto'] ?? '',
+                    $registro['km_sucursales'] ?? 0,
+                    $registro['comentarios_sector'] ?? '',
+                    $registro['documento'] ?? ''
+                ];
+                $sheet->fromArray($data, null, 'A' . $row);
+                $row++;
+                $secuencia++;
             }
             
-            $data = [
-                date('d/m/Y H:i', strtotime($registro['fecha_carga'] . ' ' . $registro['hora_carga'])),
-                $registro['nombre_usuario'] ?? '',
-                $registro['nombre_conductor'] ?? '',
-                ucfirst(str_replace('_', ' ', $registro['tipo_vehiculo'] ?? '')),
-                $registro['chapa'] ?? '',
-                $registro['tarjeta'] ?? '',
-                $registro['numero_baucher'] ?? '',
-                $registro['litros_cargados'] ?? 0,
-                $secuencia . '°', // NUEVA COLUMNA DE SECUENCIA
-                $registro['origen'] ?? '',
-                $registro['origen_segmento'] ?? '',
-                $registro['origen_cebe'] ?? '',
-                $registro['origen_localidad'] ?? '',
-                $registro['origen_m2_neto'] ?? '',
-                $registro['destino'] ?? '',
-                $registro['destino_segmento'] ?? '',
-                $registro['destino_cebe'] ?? '',
-                $registro['destino_localidad'] ?? '',
-                $registro['destino_m2_neto'] ?? '',
-                $registro['km_sucursales'] ?? 0,
-                $registro['comentarios_sector'] ?? '',
-                $registro['documento'] ?? ''
-            ];
-            $sheet->fromArray($data, null, 'A' . $row);
-            $row++;
-            $secuencia++;
+            // Ajustar ancho de columnas
+            foreach (range('A', 'V') as $col) {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
+            
+            // Configurar el archivo para descarga
+            $tipoExport = !empty($selected_ids) ? 'seleccionados' : 'filtrados';
+            $filename = 'registros_combustible_' . $tipoExport . '_' . date('Y-m-d_H-i-s') . '.xlsx';
+            
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment;filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
+            
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+            exit;
         }
-        
-        // Ajustar ancho de columnas
-        foreach (range('A', 'V') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
-        
-        // Configurar el archivo para descarga
-        $tipoExport = !empty($selected_ids) ? 'seleccionados' : 'filtrados';
-        $filename = 'registros_combustible_' . $tipoExport . '_' . date('Y-m-d_H-i-s') . '.xlsx';
-        
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
-        
-        $writer = new Xlsx($spreadsheet);
-        $writer->save('php://output');
-        exit;
     }
 }
 ?>
@@ -511,6 +480,27 @@ if ($export === 'excel') {
     
     .sub-record.no-secuencial {
         border-left-color: #ffc107;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
+    
+    @keyframes modalSlideIn {
+        from {
+            transform: scale(0.9) translateY(-20px);
+            opacity: 0;
+        }
+        to {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
     }
     </style>
 </head>
@@ -711,8 +701,9 @@ if ($export === 'excel') {
                             }
                             return $fechaComparison;
                         });
+                    
                     }
-                    unset($group); // Limpiar referencia
+        unset($group); // Limpiar referencia
                     
                     $groupIndex = 0;
                     foreach ($groupedRecords as $groupKey => $group): 
@@ -797,12 +788,22 @@ if ($export === 'excel') {
                                             <?php endif; ?>
                                         </td>
                                         <?php if ($puedeModificar): ?>
-                                        <td class="text-center">
-                                            <a href="editar_registro.php?id=<?php echo $mainRecord['id']; ?>" class="btn btn-sm btn-warning" title="Editar registro">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                        </td>
-                                        <?php endif; ?>
+                        <td class="text-center">
+                            <?php if ($mainRecord['estado_recorrido'] === 'cerrado'): ?>
+                                <button class="btn btn-sm btn-secondary" 
+                                        onclick="mostrarMensajeRecorridoCerrado()" 
+                                        title="Recorrido cerrado - No se puede editar">
+                                    <i class="fas fa-lock"></i>
+                                </button>
+                            <?php else: ?>
+                                <a href="editar_registro.php?id=<?php echo $mainRecord['id']; ?>" 
+                                   class="btn btn-sm btn-warning" 
+                                   title="Editar registro">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            <?php endif; ?>
+                        </td>
+                        <?php endif; ?>
                                         <?php if ($_SESSION['user_rol'] === 'administrador'): ?>
                                         <td class="text-center">
                                             <button class="btn btn-danger btn-sm eliminar-registro" 
@@ -895,11 +896,30 @@ if ($export === 'excel') {
                                             </td>
                                             <?php if (in_array($_SESSION['user_rol'], ['administrador', 'tecnico', 'supervisor'])): ?>
                                             <td class="text-center">
-                                                <a href="editar_registro.php?id=<?php echo $subRecord['id']; ?>" 
-                                                   class="btn btn-warning btn-sm" title="Editar">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                <?php if ($_SESSION['user_rol'] === 'administrador'): ?>
+                                                <?php if ($subRecord['estado_recorrido'] === 'cerrado'): ?>
+                                                    <button class="btn btn-sm btn-secondary" 
+                                                            onclick="mostrarMensajeRecorridoCerrado()" 
+                                                            title="Recorrido cerrado - No se puede editar">
+                                                        <i class="fas fa-lock"></i>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <a href="editar_registro.php?id=<?php echo $subRecord['id']; ?>" 
+                                                       class="btn btn-warning btn-sm" title="Editar">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                <?php endif; ?>
+                                            </td>
+                                            <?php elseif ($_SESSION['user_rol'] === 'administrativo'): ?>
+                                            <td class="text-center">
+                                                <button class="btn btn-sm btn-secondary" 
+                                                        onclick="mostrarMensajeRecorridoCerrado()" 
+                                                        title="Solo lectura - No se puede editar">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </td>
+                                            <?php endif; ?>
+                                            <?php if ($_SESSION['user_rol'] === 'administrador'): ?>
+                                            <td class="text-center">
                                                 <button class="btn btn-danger btn-sm eliminar-registro" 
                                                         data-id="<?php echo $subRecord['id']; ?>"
                                                         data-conductor="<?php echo htmlspecialchars($subRecord['nombre_conductor'] ?? ''); ?>"
@@ -907,11 +927,6 @@ if ($export === 'excel') {
                                                         title="Eliminar">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
-                                                <?php endif; ?>
-                                            </td>
-                                            <?php elseif ($_SESSION['user_rol'] === 'administrativo'): ?>
-                                            <td class="text-center">
-                                                <span class="text-muted"><i class="fas fa-eye"></i> Solo lectura</span>
                                             </td>
                                             <?php endif; ?>
                                         </tr>
@@ -1087,6 +1102,34 @@ if ($export === 'excel') {
     <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap4.min.js"></script>
 
+    <?php if (isset($mostrar_error_seleccionados) && $mostrar_error_seleccionados): ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            mostrarModalMejorado(
+                'warning',
+                'Recorridos Seleccionados Abiertos',
+                '<?php echo addslashes($error_message); ?>'
+            );
+        }, 500);
+    });
+    </script>
+    <?php endif; ?>
+
+    <?php if (isset($mostrar_error_rango) && $mostrar_error_rango): ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            mostrarModalMejorado(
+                'warning',
+                'Recorridos Abiertos en Rango',
+                '<?php echo addslashes($error_message); ?>'
+            );
+        }, 500);
+    });
+    </script>
+    <?php endif; ?>
+
     <!-- Modal personalizado para mostrar foto del voucher -->
     <div id="fotoVoucherModal" class="foto-modal" style="display: none;">
         <div class="foto-modal-overlay">
@@ -1217,7 +1260,7 @@ jQuery(document).ready(function($) {
             // Compatibilidad: mostrar Base64 existente
             imgSrc = 'data:image/jpeg;base64,' + fotoBase64;
         } else {
-            alert('No hay foto disponible');
+            mostrarModalMejorado('warning', 'Sin foto', 'No hay foto disponible para este voucher');
             return;
         }
         
@@ -1282,7 +1325,7 @@ jQuery(document).ready(function($) {
     
     $('#btnConfirmarCustom').on('click', function() {
         if (!idToDelete) {
-            alert('Error: No hay ID para eliminar');
+            mostrarModalMejorado('error', 'Error', 'No hay ID para eliminar');
             return;
         }
         
@@ -1298,23 +1341,16 @@ jQuery(document).ready(function($) {
             success: function(response) {
                 $('#customConfirmModal').fadeOut(300);
                 if (response.success) {
-                    $('body').append(`
-                        <div class="alert alert-success alert-dismissible fade show position-fixed" 
-                             style="top: 20px; right: 20px; z-index: 10000; min-width: 300px;">
-                            <i class="fas fa-check-circle"></i> Registro eliminado correctamente
-                            <button type="button" class="close" data-dismiss="alert">
-                                <span>&times;</span>
-                            </button>
-                        </div>
-                    `);
-                    setTimeout(() => location.reload(), 1500);
+                    mostrarModalMejorado('success', 'Éxito', 'Registro eliminado correctamente', function() {
+                        location.reload();
+                    });
                 } else {
-                    alert('Error: ' + (response.message || 'No se pudo eliminar'));
+                    mostrarModalMejorado('error', 'Error al eliminar', response.message || 'No se pudo eliminar el registro');
                 }
             },
             error: function() {
                 $('#customConfirmModal').fadeOut(300);
-                alert('Error de conexión al eliminar el registro');
+                mostrarModalMejorado('error', 'Error de conexión', 'No se pudo conectar con el servidor al eliminar el registro');
             },
             complete: function() {
                 $btn.html('<i class="fas fa-trash"></i> Eliminar');
@@ -1439,7 +1475,7 @@ jQuery(document).ready(function($) {
             
             if ($checkedMainBoxes.length === 0) {
                 e.preventDefault();
-                alert('Por favor, selecciona al menos un registro para descargar.');
+                mostrarModalMejorado('warning', 'Selección requerida', 'Por favor, selecciona al menos un registro para descargar.');
                 return false;
             }
             
@@ -1509,55 +1545,692 @@ jQuery(document).ready(function($) {
     console.log('🎉 Inicialización completa de ver_registros.php');
 });
 
-// Funciones para cerrar y reabrir recorridos
-function cerrarRecorrido(id) {
-    if (confirm('¿Está seguro que desea cerrar este recorrido? Una vez cerrado, no podrá modificarlo.')) {
-        fetch('cerrar_recorrido.php', {
+// Función mejorada para mostrar modales de mensaje con mejor diseño
+function mostrarModalMejorado(tipo, titulo, mensaje, callback = null) {
+    // Remover modal existente si hay uno
+    const existingOverlay = document.getElementById('messageOverlay');
+    if (existingOverlay) {
+        existingOverlay.remove();
+    }
+    
+    // Crear overlay con efecto blur
+    var overlay = document.createElement('div');
+    overlay.id = 'messageOverlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(5px);
+        z-index: 10000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transition: all 0.3s ease;
+    `;
+    
+    // Configuración según el tipo
+    const config = {
+        success: {
+            color: '#28a745',
+            bgColor: '#d4edda',
+            borderColor: '#c3e6cb',
+            icon: '✅',
+            iconBg: '#28a745'
+        },
+        error: {
+            color: '#dc3545',
+            bgColor: '#f8d7da',
+            borderColor: '#f5c6cb',
+            icon: '❌',
+            iconBg: '#dc3545'
+        },
+        warning: {
+            color: '#ffc107',
+            bgColor: '#fff3cd',
+            borderColor: '#ffeaa7',
+            icon: '⚠️',
+            iconBg: '#ffc107'
+        },
+        info: {
+            color: '#17a2b8',
+            bgColor: '#d1ecf1',
+            borderColor: '#bee5eb',
+            icon: 'ℹ️',
+            iconBg: '#17a2b8'
+        }
+    };
+    
+    const currentConfig = config[tipo] || config.info;
+    
+    // Crear modal con diseño mejorado
+    var modal = document.createElement('div');
+    modal.id = 'messageModal';
+    modal.style.cssText = `
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        text-align: center;
+        min-width: 420px;
+        max-width: 500px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        overflow: hidden;
+        transform: scale(0.7);
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        border: 3px solid ${currentConfig.borderColor};
+    `;
+    
+    modal.innerHTML = `
+        <div style='background: ${currentConfig.bgColor}; padding: 25px 30px; border-bottom: 1px solid ${currentConfig.borderColor};'>
+            <div style='display: flex; align-items: center; justify-content: center; margin-bottom: 15px;'>
+                <div style='width: 60px; height: 60px; background: ${currentConfig.iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-right: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);'>
+                    ${currentConfig.icon}
+                </div>
+                <h3 style='color: ${currentConfig.color}; margin: 0; font-size: 22px; font-weight: 600;'>${titulo}</h3>
+            </div>
+        </div>
+        <div style='padding: 30px;'>
+            <p style='margin: 0 0 30px 0; font-size: 16px; color: #333; line-height: 1.6;'>${mensaje}</p>
+            <button onclick='cerrarModalMejorado(${callback ? 'true' : 'false'})' 
+                        style='background: linear-gradient(135deg, ${currentConfig.color}, ${currentConfig.color}dd); color: ${currentConfig.color === '#ffc107' ? '#333' : 'white'}; border: none; padding: 14px 30px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-transform: uppercase; letter-spacing: 0.5px;'
+                        onmouseover='this.style.transform="translateY(-2px)"; this.style.boxShadow="0 6px 20px rgba(0,0,0,0.3)";'
+                        onmouseout='this.style.transform="translateY(0)"; this.style.boxShadow="0 4px 15px rgba(0,0,0,0.2)";'
+                        onmousedown='this.style.transform="translateY(0)";'>
+                <i class="fas fa-check" style="margin-right: 8px; color: ${currentConfig.color === '#ffc107' ? '#333' : 'white'};"></i>Aceptar
+            </button>
+        </div>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Animar entrada
+    setTimeout(() => {
+        overlay.style.opacity = '1';
+        modal.style.transform = 'scale(1)';
+    }, 10);
+    
+    // Agregar estilos de animación si no existen
+    if (!document.getElementById('modalAnimationStyleMejorado')) {
+        var style = document.createElement('style');
+        style.id = 'modalAnimationStyleMejorado';
+        style.textContent = `
+            @keyframes modalShake {
+                0%, 100% { transform: scale(1) translateX(0); }
+                25% { transform: scale(1) translateX(-5px); }
+                75% { transform: scale(1) translateX(5px); }
+            }
+            @keyframes modalPulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+                100% { transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Guardar callback
+    window.modalCallback = callback;
+    
+    // Cerrar con ESC
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            cerrarModalMejorado(false);
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+    
+    // Cerrar al hacer clic en el overlay
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            cerrarModalMejorado(false);
+        }
+    });
+}
+
+function cerrarModalMejorado(executeCallback = false) {
+    const overlay = document.getElementById('messageOverlay');
+    const modal = document.getElementById('messageModal');
+    
+    if (overlay && modal) {
+        // Animar salida
+        modal.style.transform = 'scale(0.7)';
+        overlay.style.opacity = '0';
+        
+        setTimeout(() => {
+            if (overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+            }
+        }, 300);
+    }
+    
+    if (executeCallback && window.modalCallback) {
+        window.modalCallback();
+    }
+    window.modalCallback = null;
+}
+
+// Función mejorada para confirmaciones
+function mostrarConfirmacionMejorada(titulo, mensaje, onConfirm, tipo = 'warning') {
+    // Remover modal existente
+    const existingOverlay = document.getElementById('confirmOverlay');
+    if (existingOverlay) {
+        existingOverlay.remove();
+    }
+    
+    // Crear overlay
+    var overlay = document.createElement('div');
+    overlay.id = 'confirmOverlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(5px);
+        z-index: 10000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transition: all 0.3s ease;
+    `;
+    
+    // Crear modal
+    var modal = document.createElement('div');
+    modal.id = 'confirmModal';
+    modal.style.cssText = `
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        text-align: center;
+        min-width: 480px;
+        max-width: 550px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        overflow: hidden;
+        transform: scale(0.7);
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        border: 3px solid #ffeaa7;
+    `;
+    
+    modal.innerHTML = `
+        <div style='background: #fff3cd; padding: 25px 30px; border-bottom: 1px solid #ffeaa7;'>
+            <div style='display: flex; align-items: center; justify-content: center; margin-bottom: 15px;'>
+                <div style='width: 60px; height: 60px; background: #ffc107; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-right: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);'>
+                    ⚠️
+                </div>
+                <h3 style='color: #856404; margin: 0; font-size: 22px; font-weight: 600;'>${titulo}</h3>
+            </div>
+        </div>
+        <div style='padding: 30px;'>
+            <p style='margin: 0 0 30px 0; font-size: 16px; color: #333; line-height: 1.6;'>${mensaje}</p>
+            <div style='display: flex; gap: 15px; justify-content: center;'>
+                <button onclick='cerrarConfirmacionMejorada(false)' 
+                        style='background: linear-gradient(135deg, #6c757d, #5a6268); color: white; border: none; padding: 14px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-transform: uppercase; letter-spacing: 0.5px;'
+                        onmouseover='this.style.transform="translateY(-2px)"; this.style.boxShadow="0 6px 20px rgba(0,0,0,0.3)";'
+                        onmouseout='this.style.transform="translateY(0)"; this.style.boxShadow="0 4px 15px rgba(0,0,0,0.2)";'>
+                    <i class="fas fa-times" style="margin-right: 8px;"></i>Cancelar
+                </button>
+                <button onclick='cerrarConfirmacionMejorada(true)' 
+                        style='background: linear-gradient(135deg, #dc3545, #c82333); color: white; border: none; padding: 14px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-transform: uppercase; letter-spacing: 0.5px;'
+                        onmouseover='this.style.transform="translateY(-2px)"; this.style.boxShadow="0 6px 20px rgba(0,0,0,0.3)";'
+                        onmouseout='this.style.transform="translateY(0)"; this.style.boxShadow="0 4px 15px rgba(0,0,0,0.2)";'>
+                    <i class="fas fa-check" style="margin-right: 8px;"></i>Confirmar
+                </button>
+            </div>
+        </div>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Animar entrada
+    setTimeout(() => {
+        overlay.style.opacity = '1';
+        modal.style.transform = 'scale(1)';
+    }, 10);
+    
+    // Guardar callback
+    window.confirmCallback = onConfirm;
+    
+    // Cerrar con ESC
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            cerrarConfirmacionMejorada(false);
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+}
+
+function cerrarConfirmacionMejorada(confirmed) {
+    const overlay = document.getElementById('confirmOverlay');
+    const modal = document.getElementById('confirmModal');
+    
+    if (overlay && modal) {
+        // Animar salida
+        modal.style.transform = 'scale(0.7)';
+        overlay.style.opacity = '0';
+        
+        setTimeout(() => {
+            if (overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+            }
+        }, 300);
+    }
+    
+    if (confirmed && window.confirmCallback) {
+        window.confirmCallback();
+    }
+    window.confirmCallback = null;
+}
+
+// Función para mostrar modal de confirmación personalizado (mantener compatibilidad)
+function mostrarConfirmacion(titulo, mensaje, onConfirm) {
+    mostrarConfirmacionMejorada(titulo, mensaje, onConfirm);
+}
+
+function cerrarConfirmacion(confirmed) {
+    cerrarConfirmacionMejorada(confirmed);
+}
+
+// Función para mostrar modales de mensaje (mantener compatibilidad)
+function mostrarModal(tipo, titulo, mensaje, callback = null) {
+    mostrarModalMejorado(tipo, titulo, mensaje, callback);
+}
+
+function cerrarModalMensaje(executeCallback = false) {
+    cerrarModalMejorado(executeCallback);
+}
+
+// Función para verificar el estado real de un registro
+async function verificarEstadoRegistro(id) {
+    try {
+        const response = await fetch('verificar_estado.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({id: id, action: 'cerrar'})
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Recorrido cerrado exitosamente');
-                location.reload();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error al cerrar el recorrido');
+            body: JSON.stringify({ id: id })
         });
+        
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Error verificando estado:', error);
+        return null;
     }
 }
 
-function reabrirRecorrido(id) {
-    const motivo = prompt('Ingrese el motivo de la reapertura:');
-    if (motivo && motivo.trim() !== '') {
+// Función mejorada para cerrar recorrido
+async function cerrarRecorrido(id) {
+    try {
+        const userRole = '<?php echo $_SESSION['user_rol']; ?>';
+        let mensaje;
+        
+        if (userRole === 'administrador') {
+            mensaje = '¿Está seguro que desea cerrar este recorrido?';
+        } else {
+            mensaje = '¿Está seguro que desea cerrar este recorrido? Una vez cerrado, no podrá modificarlo.';
+        }
+        
+        // Mostrar confirmación
+        const confirmacion = await new Promise(resolve => {
+            mostrarConfirmacionMejorada(
+                'Confirmar Cierre',
+                mensaje,
+                () => resolve(true)
+            );
+            // Agregar listener para cancelar
+            window.confirmCallback = () => resolve(true);
+            const originalCerrar = window.cerrarConfirmacionMejorada;
+            window.cerrarConfirmacionMejorada = function(confirmed) {
+                originalCerrar(confirmed);
+                if (!confirmed) resolve(false);
+            };
+        });
+        
+        if (!confirmacion) return;
+        
+        // Mostrar loading
+        mostrarModalMejorado(
+            'info',
+            'Procesando...',
+            'Cerrando recorrido, por favor espere...'
+        );
+        
+        // Enviar solicitud de cierre (ignoramos la respuesta)
         fetch('cerrar_recorrido.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({id: id, action: 'reabrir', motivo: motivo})
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Recorrido reabierto exitosamente');
-                location.reload();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error al reabrir el recorrido');
+            body: JSON.stringify({
+                id: id,
+                action: 'cerrar'
+            })
+        }).catch(() => {}); // Ignoramos errores de respuesta
+        
+        // Esperar un momento para que se procese
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Verificar el estado real del registro
+        const estadoActual = await verificarEstadoRegistro(id);
+        
+        if (estadoActual && estadoActual.estado === 'cerrado') {
+            // Éxito confirmado
+            mostrarModalMejorado(
+                'success',
+                'Recorrido Cerrado',
+                'El recorrido se ha cerrado exitosamente.',
+                () => location.reload()
+            );
+        } else {
+            // No se pudo confirmar el cierre
+            mostrarModalMejorado(
+                'error',
+                'Error al Cerrar',
+                'No se pudo cerrar el recorrido. Por favor, inténtelo nuevamente.',
+                () => location.reload()
+            );
+        }
+        
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarModalMejorado(
+            'error',
+            'Error',
+            'Ocurrió un error inesperado. La página se actualizará para verificar el estado.',
+            () => location.reload()
+        );
+    }
+}
+
+// Función para mostrar mensaje cuando el recorrido está cerrado
+function mostrarMensajeRecorridoCerrado() {
+    mostrarModalMejorado(
+        'warning',
+        'Recorrido Cerrado',
+        'Este recorrido está cerrado y no se puede modificar. Si necesita realizar cambios, primero debe reabrirlo desde la columna de Estado.'
+    );
+}
+
+// Función para mostrar modal de entrada de texto personalizado
+function mostrarModalInput(titulo, placeholder, callback) {
+    // Crear overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'inputModalOverlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(5px);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease;
+    `;
+    
+    // Crear modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        transform: scale(0.9);
+        animation: modalSlideIn 0.3s ease forwards;
+        position: relative;
+    `;
+    
+    modal.innerHTML = `
+        <div style="text-align: center; margin-bottom: 25px;">
+            <div style="
+                width: 60px;
+                height: 60px;
+                background: linear-gradient(135deg, #17a2b8, #138496);
+                border-radius: 50%;
+                margin: 0 auto 15px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 24px;
+            ">
+                <i class="fas fa-unlock-alt"></i>
+            </div>
+            <h4 style="color: #333; margin: 0; font-weight: 600;">${titulo}</h4>
+        </div>
+        
+        <div style="margin-bottom: 25px;">
+            <label style="display: block; margin-bottom: 8px; color: #555; font-weight: 500;">Motivo de la reapertura:</label>
+            <textarea 
+                id="motivoInput" 
+                placeholder="${placeholder}"
+                style="
+                    width: 100%;
+                    min-height: 100px;
+                    padding: 12px;
+                    border: 2px solid #e9ecef;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    resize: vertical;
+                    transition: border-color 0.3s ease;
+                    font-family: inherit;
+                "
+                maxlength="500"
+            ></textarea>
+            <small style="color: #6c757d; font-size: 12px;">Máximo 500 caracteres</small>
+        </div>
+        
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button 
+                onclick="cerrarModalInput(false)"
+                style="
+                    background: #6c757d;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                "
+                onmouseover="this.style.background='#5a6268'"
+                onmouseout="this.style.background='#6c757d'"
+            >
+                Cancelar
+            </button>
+            <button 
+                onclick="confirmarInput()"
+                style="
+                    background: linear-gradient(135deg, #17a2b8, #138496);
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
+                "
+                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(23, 162, 184, 0.4)'"
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(23, 162, 184, 0.3)'"
+            >
+                Confirmar
+            </button>
+        </div>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Enfocar el textarea
+    setTimeout(() => {
+        document.getElementById('motivoInput').focus();
+    }, 100);
+    
+    // Manejar ESC para cerrar
+    function handleEsc(e) {
+        if (e.key === 'Escape') {
+            cerrarModalInput(false);
+        }
+    }
+    document.addEventListener('keydown', handleEsc);
+    
+    // Cerrar al hacer click fuera
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            cerrarModalInput(false);
+        }
+    });
+    
+    // Funciones globales para el modal
+    window.cerrarModalInput = function(ejecutarCallback = false) {
+        const overlay = document.getElementById('inputModalOverlay');
+        if (overlay) {
+            overlay.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => {
+                if (overlay.parentNode) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+            }, 300);
+        }
+        document.removeEventListener('keydown', handleEsc);
+        
+        if (ejecutarCallback && callback) {
+            callback(null);
+        }
+    };
+    
+    window.confirmarInput = function() {
+        const input = document.getElementById('motivoInput');
+        const valor = input.value.trim();
+        
+        if (valor === '') {
+            input.style.borderColor = '#dc3545';
+            input.focus();
+            return;
+        }
+        
+        cerrarModalInput(false);
+        if (callback) {
+            callback(valor);
+        }
+    };
+    
+    // Manejar Enter en el textarea (Ctrl+Enter para confirmar)
+    document.getElementById('motivoInput').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.ctrlKey) {
+            confirmarInput();
+        }
+    });
+}
+
+// Función mejorada para reabrir recorrido
+async function reabrirRecorrido(id) {
+    try {
+        // Mostrar confirmación
+        const confirmacion = await new Promise(resolve => {
+            mostrarConfirmacionMejorada(
+                'Confirmar Reapertura',
+                '¿Está seguro que desea reabrir este recorrido? Deberá proporcionar un motivo.',
+                () => resolve(true)
+            );
+            // Agregar listener para cancelar
+            window.confirmCallback = () => resolve(true);
+            const originalCerrar = window.cerrarConfirmacionMejorada;
+            window.cerrarConfirmacionMejorada = function(confirmed) {
+                originalCerrar(confirmed);
+                if (!confirmed) resolve(false);
+            };
         });
+        
+        if (!confirmacion) return;
+        
+        // Solicitar motivo
+        const motivo = await new Promise(resolve => {
+            mostrarModalInput(
+                'Reabrir Recorrido',
+                'Describa el motivo por el cual necesita reabrir este recorrido...',
+                (valor) => resolve(valor)
+            );
+        });
+        
+        if (!motivo || motivo.trim() === '') {
+            mostrarModalMejorado(
+                'warning',
+                'Motivo Requerido',
+                'Debe proporcionar un motivo para la reapertura.'
+            );
+            return;
+        }
+        
+        // Mostrar loading
+        mostrarModalMejorado(
+            'info',
+            'Procesando...',
+            'Reabriendo recorrido, por favor espere...'
+        );
+        
+        // Enviar solicitud de reapertura (ignoramos la respuesta)
+        fetch('cerrar_recorrido.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                id: id,
+                action: 'reabrir',
+                motivo: motivo
+            })
+        }).catch(() => {}); // Ignoramos errores de respuesta
+        
+        // Esperar un momento para que se procese
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Verificar el estado real del registro
+        const estadoActual = await verificarEstadoRegistro(id);
+        
+        if (estadoActual && estadoActual.estado === 'abierto') {
+            // Éxito confirmado
+            mostrarModalMejorado(
+                'success',
+                'Recorrido Reabierto',
+                'El recorrido se ha reabierto exitosamente.',
+                () => location.reload()
+            );
+        } else {
+            // No se pudo confirmar la reapertura
+            mostrarModalMejorado(
+                'error',
+                'Error al Reabrir',
+                'No se pudo reabrir el recorrido. Por favor, inténtelo nuevamente.',
+                () => location.reload()
+            );
+        }
+        
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarModalMejorado(
+            'error',
+            'Error',
+            'Ocurrió un error inesperado. La página se actualizará para verificar el estado.',
+            () => location.reload()
+        );
     }
 }
 </script>

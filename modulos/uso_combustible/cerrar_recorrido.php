@@ -1,96 +1,153 @@
 <?php
-session_start();
-if(!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'No autorizado']);
+// Iniciar output buffering para capturar cualquier output no deseado
+ob_start();
+
+// Configurar manejo de errores para evitar output HTML
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+error_reporting(E_ALL);
+
+// Función para enviar respuesta JSON limpia
+function sendJsonResponse($data) {
+    // Limpiar cualquier output previo
+    if (ob_get_length()) {
+        ob_clean();
+    }
+    
+    // Establecer headers correctos
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-cache, must-revalidate');
+    
+    // Enviar respuesta y terminar
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-include_once '../../config/database.php';
-include_once '../../models/UsoCombustible.php';
-include_once '../../models/RegistroActividad.php';
+// Manejador de errores personalizado
+set_error_handler(function($severity, $message, $file, $line) {
+    error_log("PHP Error: $message in $file on line $line");
+    sendJsonResponse([
+        'success' => false, 
+        'message' => 'Error interno del servidor'
+    ]);
+});
 
-$db = new Database();
-$conn = $db->getConnection();
-$usoCombustible = new UsoCombustible($conn);
-$registroActividad = new RegistroActividad($conn);
+// Manejador de excepciones
+set_exception_handler(function($exception) {
+    error_log("PHP Exception: " . $exception->getMessage());
+    sendJsonResponse([
+        'success' => false, 
+        'message' => 'Error interno del servidor'
+    ]);
+});
 
-$input = json_decode(file_get_contents('php://input'), true);
-$action = $input['action'] ?? '';
-$id = $input['id'] ?? 0;
-$motivo = $input['motivo'] ?? '';
+try {
+    session_start();
+    require_once '../../config/Database.php';
+    require_once '../../models/UsoCombustible.php';
+    require_once '../../config/ActivityLogger.php';
 
-header('Content-Type: application/json');
+    // Verificar que el usuario esté logueado
+    if (!isset($_SESSION['user_id'])) {
+        sendJsonResponse(['success' => false, 'message' => 'Usuario no autenticado']);
+    }
 
-if ($action === 'cerrar') {
-    // Solo técnicos pueden cerrar sus propios recorridos
-    if ($_SESSION['user_rol'] !== 'tecnico') {
-        echo json_encode(['success' => false, 'message' => 'Solo los técnicos pueden cerrar recorridos']);
-        exit;
+    // Obtener datos del POST
+    $input = json_decode(file_get_contents('php://input'), true);
+    
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        sendJsonResponse(['success' => false, 'message' => 'Datos JSON inválidos']);
     }
     
-    // Verificar que el recorrido pertenece al técnico
-    $query = "SELECT user_id, estado_recorrido FROM uso_combustible WHERE id = ?";
-    $stmt = $conn->prepare($query);
-    $stmt->execute([$id]);
-    $registro = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if (!$registro) {
-        echo json_encode(['success' => false, 'message' => 'Recorrido no encontrado']);
-        exit;
+    $id = $input['id'] ?? null;
+    $action = $input['action'] ?? null;
+    $motivo = $input['motivo'] ?? null;
+
+    if (!$id || !$action) {
+        sendJsonResponse(['success' => false, 'message' => 'Datos incompletos']);
     }
-    
-    if ($registro['user_id'] != $_SESSION['user_id']) {
-        echo json_encode(['success' => false, 'message' => 'No puede cerrar recorridos de otros técnicos']);
-        exit;
-    }
-    
-    if ($registro['estado_recorrido'] === 'cerrado') {
-        echo json_encode(['success' => false, 'message' => 'El recorrido ya está cerrado']);
-        exit;
-    }
-    
-    if ($usoCombustible->cerrarRecorrido($id, $_SESSION['user_id'])) {
-        // Registrar actividad
-        $registroActividad->registrar(
-            $_SESSION['user_id'],
-            'uso_combustible',
-            'cerrar_recorrido',
-            "Recorrido ID: {$id} cerrado por técnico"
-        );
+
+    // Crear conexión a la base de datos
+    $database = new Database();
+    $conn = $database->getConnection();
+
+    // Crear instancias de los modelos
+    $usoCombustible = new UsoCombustible($conn);
+    $registroActividad = new ActivityLogger($conn);
+
+    if ($action === 'cerrar') {
+        // Técnicos pueden cerrar sus propios recorridos, administradores pueden cerrar cualquiera
+        if ($_SESSION['user_rol'] !== 'tecnico' && $_SESSION['user_rol'] !== 'administrador') {
+            sendJsonResponse(['success' => false, 'message' => 'Solo los técnicos y administradores pueden cerrar recorridos']);
+        }
         
-        echo json_encode(['success' => true, 'message' => 'Recorrido cerrado exitosamente']);
-    } else {
-        echo json_encode(['success' => false, 'message' => 'Error al cerrar el recorrido']);
-    }
-    
-} elseif ($action === 'reabrir') {
-    // Solo administradores pueden reabrir recorridos
-    if ($_SESSION['user_rol'] !== 'administrador') {
-        echo json_encode(['success' => false, 'message' => 'Solo los administradores pueden reabrir recorridos']);
-        exit;
-    }
-    
-    if (empty($motivo)) {
-        echo json_encode(['success' => false, 'message' => 'Debe proporcionar un motivo para la reapertura']);
-        exit;
-    }
-    
-    if ($usoCombustible->reabrirRecorrido($id, $_SESSION['user_id'], $motivo)) {
-        // Registrar actividad
-        $registroActividad->registrar(
-            $_SESSION['user_id'],
-            'uso_combustible',
-            'reabrir_recorrido',
-            "Recorrido ID: {$id} reabierto por administrador. Motivo: {$motivo}"
-        );
+        // Verificar que el recorrido pertenece al técnico (solo para técnicos)
+        $query = "SELECT user_id, estado_recorrido FROM uso_combustible WHERE id = ?";
+        $stmt = $conn->prepare($query);
+        $stmt->execute([$id]);
+        $registro = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        echo json_encode(['success' => true, 'message' => 'Recorrido reabierto exitosamente']);
+        if (!$registro) {
+            sendJsonResponse(['success' => false, 'message' => 'Recorrido no encontrado']);
+        }
+        
+        // Solo los técnicos deben verificar que el recorrido les pertenece
+        if ($_SESSION['user_rol'] === 'tecnico' && $registro['user_id'] != $_SESSION['user_id']) {
+            sendJsonResponse(['success' => false, 'message' => 'No puede cerrar recorridos de otros técnicos']);
+        }
+        
+        if ($registro['estado_recorrido'] === 'cerrado') {
+            sendJsonResponse(['success' => false, 'message' => 'El recorrido ya está cerrado']);
+        }
+        
+        $resultado = $usoCombustible->cerrarRecorrido($id, $_SESSION['user_id']);
+        
+        if ($resultado['success']) {
+            // Registrar actividad
+            $tipo_usuario = $_SESSION['user_rol'] === 'administrador' ? 'administrador' : 'técnico';
+            $registroActividad->registrar(
+                $_SESSION['user_id'],
+                'uso_combustible',
+                'cerrar_recorrido',
+                "Recorrido ID: {$id} cerrado por {$tipo_usuario}"
+            );
+        }
+        
+        sendJsonResponse($resultado);
+        
+    } elseif ($action === 'reabrir') {
+        // Solo administradores pueden reabrir recorridos
+        if ($_SESSION['user_rol'] !== 'administrador') {
+            sendJsonResponse(['success' => false, 'message' => 'Solo los administradores pueden reabrir recorridos']);
+        }
+        
+        if (empty($motivo)) {
+            sendJsonResponse(['success' => false, 'message' => 'Debe proporcionar un motivo para la reapertura']);
+        }
+        
+        $resultado = $usoCombustible->reabrirRecorrido($id, $_SESSION['user_id'], $motivo);
+        
+        if ($resultado['success']) {
+            // Registrar actividad
+            $registroActividad->registrar(
+                $_SESSION['user_id'],
+                'uso_combustible',
+                'reabrir_recorrido',
+                "Recorrido ID: {$id} reabierto por administrador. Motivo: {$motivo}"
+            );
+        }
+        
+        sendJsonResponse($resultado);
+        
     } else {
-        echo json_encode(['success' => false, 'message' => 'Error al reabrir el recorrido']);
+        sendJsonResponse(['success' => false, 'message' => 'Acción no válida']);
     }
     
-} else {
-    echo json_encode(['success' => false, 'message' => 'Acción no válida']);
+} catch (Exception $e) {
+    error_log("Error en cerrar_recorrido.php: " . $e->getMessage());
+    sendJsonResponse([
+        'success' => false, 
+        'message' => 'Error interno del servidor'
+    ]);
 }
 ?>

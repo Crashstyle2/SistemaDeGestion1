@@ -906,14 +906,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         });
     });
+    // Evento para manejar la selección de opciones en el modal
+    $(document).on('click', '.option-item[data-value]', function() {
+        const selectedValue = $(this).data('value');
+        const selectedText = $(this).text().trim();
+        
+        if (currentInput && currentHiddenInput) {
+            currentInput.val(selectedText);
+            currentHiddenInput.val(selectedValue);
+            
+            // Verificar si es un destino y contiene "depósito" para mostrar comentarios
+            if (currentHiddenInput.attr('name') === 'destino[]') {
+                const recorridoItem = currentInput.closest('.recorrido-item');
+                const comentariosSector = recorridoItem.find('.comentarios-sector');
+                
+                if (selectedValue && (selectedValue.toLowerCase().includes('deposito') || selectedValue.toLowerCase().includes('depósito'))) {
+                    comentariosSector.show();
+                    comentariosSector.find('textarea').prop('required', true);
+                } else {
+                    comentariosSector.hide();
+                    comentariosSector.find('textarea').prop('required', false).val('');
+                }
+            }
+            
+            // Llamar a verificarSucursalesEspeciales si existe
+            if (typeof verificarSucursalesEspeciales === 'function') {
+                setTimeout(verificarSucursalesEspeciales, 100);
+            }
+        }
+        
+        $('#selectionModal').modal('hide');
+    });
     </script>
 </body>
 </html>
-// ELIMINAR ESTAS LÍNEAS (913-919):
-// Cambiar esta línea que causa el error:
-$query_cerrados = "SELECT COUNT(*) as total_cerrados FROM uso_combustible_recorridos 
-                   WHERE uso_combustible_id = :id AND estado = 'cerrado'";
-
-// Por esta línea corregida:
-$query_cerrados = "SELECT COUNT(*) as total_cerrados FROM uso_combustible 
-                   WHERE id = :id AND estado_recorrido = 'cerrado'";

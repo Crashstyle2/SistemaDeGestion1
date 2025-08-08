@@ -219,36 +219,90 @@ class UsoCombustible {
         return false;
     }
 
-    // Método para cerrar recorrido
+    // Método para cerrar recorrido - CORREGIDO
     public function cerrarRecorrido($id, $usuario_id) {
-        $query = "UPDATE " . $this->table_name . " 
-                 SET estado_recorrido = 'cerrado', 
-                     fecha_cierre = NOW(), 
-                     cerrado_por = :usuario_id 
-                 WHERE id = :id AND estado_recorrido = 'abierto'";
-        
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':id', $id);
-        $stmt->bindParam(':usuario_id', $usuario_id);
-        
-        return $stmt->execute();
+        try {
+            // Primero verificar que el registro existe y está abierto
+            $checkQuery = "SELECT id, estado_recorrido FROM " . $this->table_name . " WHERE id = :id";
+            $checkStmt = $this->conn->prepare($checkQuery);
+            $checkStmt->bindParam(':id', $id);
+            $checkStmt->execute();
+            
+            $registro = $checkStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$registro) {
+                return ['success' => false, 'message' => 'Recorrido no encontrado'];
+            }
+            
+            if ($registro['estado_recorrido'] === 'cerrado') {
+                return ['success' => false, 'message' => 'El recorrido ya está cerrado'];
+            }
+            
+            // Realizar el cierre
+            $query = "UPDATE " . $this->table_name . " 
+                     SET estado_recorrido = 'cerrado', 
+                         fecha_cierre = NOW(), 
+                         cerrado_por = :usuario_id 
+                     WHERE id = :id";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':id', $id);
+            $stmt->bindParam(':usuario_id', $usuario_id);
+            
+            if ($stmt->execute() && $stmt->rowCount() > 0) {
+                return ['success' => true, 'message' => 'Recorrido cerrado exitosamente'];
+            } else {
+                return ['success' => false, 'message' => 'Error al cerrar el recorrido'];
+            }
+            
+        } catch (Exception $e) {
+            error_log("Error en cerrarRecorrido: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Error interno del servidor'];
+        }
     }
-
-    // Método para reabrir recorrido (solo administradores)
+    
+    // Método para reabrir recorrido - CORREGIDO
     public function reabrirRecorrido($id, $usuario_id, $motivo) {
-        $query = "UPDATE " . $this->table_name . " 
-                 SET estado_recorrido = 'abierto', 
-                     reabierto_por = :usuario_id, 
-                     fecha_reapertura = NOW(), 
-                     motivo_reapertura = :motivo 
-                 WHERE id = :id AND estado_recorrido = 'cerrado'";
-        
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':id', $id);
-        $stmt->bindParam(':usuario_id', $usuario_id);
-        $stmt->bindParam(':motivo', $motivo);
-        
-        return $stmt->execute();
+        try {
+            // Primero verificar que el registro existe y está cerrado
+            $checkQuery = "SELECT id, estado_recorrido FROM " . $this->table_name . " WHERE id = :id";
+            $checkStmt = $this->conn->prepare($checkQuery);
+            $checkStmt->bindParam(':id', $id);
+            $checkStmt->execute();
+            
+            $registro = $checkStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$registro) {
+                return ['success' => false, 'message' => 'Recorrido no encontrado'];
+            }
+            
+            if ($registro['estado_recorrido'] === 'abierto') {
+                return ['success' => false, 'message' => 'El recorrido ya está abierto'];
+            }
+            
+            // Realizar la reapertura
+            $query = "UPDATE " . $this->table_name . " 
+                     SET estado_recorrido = 'abierto', 
+                         reabierto_por = :usuario_id, 
+                         fecha_reapertura = NOW(), 
+                         motivo_reapertura = :motivo 
+                     WHERE id = :id";
+            
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(':id', $id);
+            $stmt->bindParam(':usuario_id', $usuario_id);
+            $stmt->bindParam(':motivo', $motivo);
+            
+            if ($stmt->execute() && $stmt->rowCount() > 0) {
+                return ['success' => true, 'message' => 'Recorrido reabierto exitosamente'];
+            } else {
+                return ['success' => false, 'message' => 'Error al reabrir el recorrido'];
+            }
+            
+        } catch (Exception $e) {
+            error_log("Error en reabrirRecorrido: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Error interno del servidor'];
+        }
     }
 
     // Verificar si hay recorridos abiertos para exportación
@@ -276,6 +330,37 @@ class UsoCombustible {
         $stmt->execute($params);
         
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    
+    public function verificarRecorridosAbiertosPorIds($ids) {
+        try {
+            if (empty($ids) || !is_array($ids)) {
+                return ['total_abiertos' => 0, 'recorridos_abiertos' => []];
+            }
+            
+            // Crear placeholders para la consulta
+            $placeholders = str_repeat('?,', count($ids) - 1) . '?';
+            
+            $sql = "SELECT COUNT(*) as total_abiertos,
+                           GROUP_CONCAT(DISTINCT u.nombre SEPARATOR ', ') as usuarios_abiertos
+                    FROM uso_combustible uc
+                    LEFT JOIN usuarios u ON uc.user_id = u.id
+                    WHERE uc.id IN ($placeholders) 
+                    AND uc.estado_recorrido = 'abierto'";
+            
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute($ids);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            return [
+                'total_abiertos' => (int)$result['total_abiertos'],
+                'recorridos_abiertos' => $result['usuarios_abiertos'] ?? ''
+            ];
+            
+        } catch (Exception $e) {
+            error_log("Error verificando recorridos abiertos por IDs: " . $e->getMessage());
+            return ['total_abiertos' => 0, 'recorridos_abiertos' => []];
+        }
     }
 }
 ?>

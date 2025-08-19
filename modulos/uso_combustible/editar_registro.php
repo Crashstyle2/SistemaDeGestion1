@@ -7,6 +7,7 @@ if(!isset($_SESSION['user_id'])) {
 
 require_once '../../config/Database.php';
 require_once '../../models/UsoCombustible.php';
+require_once '../../config/ActivityLogger.php'; // AGREGAR ESTA LÍNEA
 
 // Verificar el rol del usuario
 $rol = $_SESSION['user_rol'];
@@ -177,6 +178,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $db->commit();
         error_log("DEBUG: Transacción confirmada exitosamente");
+        
+        // Registrar actividad de edición
+        ActivityLogger::logAccion(
+            $_SESSION['user_id'],
+            'uso_combustible',
+            'editar',
+            "Registro de combustible editado - ID: {$registro_id}, Conductor: {$_POST['conductor']}, Chapa: {$_POST['chapa']}"
+        );
+        
         echo json_encode(['success' => true, 'message' => 'Registro actualizado correctamente']);
         exit;
         

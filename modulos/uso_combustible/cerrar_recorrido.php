@@ -5,7 +5,8 @@ ob_start();
 // Configurar manejo de errores para evitar output HTML
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
-error_reporting(E_ALL);
+// Cambiar para solo reportar errores críticos, no warnings
+error_reporting(E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR);
 
 // Función para enviar respuesta JSON limpia
 function sendJsonResponse($data) {
@@ -23,13 +24,19 @@ function sendJsonResponse($data) {
     exit;
 }
 
-// Manejador de errores personalizado
+// Manejador de errores personalizado - solo para errores críticos
 set_error_handler(function($severity, $message, $file, $line) {
-    error_log("PHP Error: $message in $file on line $line");
-    sendJsonResponse([
-        'success' => false, 
-        'message' => 'Error interno del servidor'
-    ]);
+    // Solo manejar errores críticos, ignorar warnings y notices
+    if ($severity & (E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR)) {
+        error_log("PHP Critical Error: $message in $file on line $line");
+        sendJsonResponse([
+            'success' => false, 
+            'message' => 'Error interno del servidor'
+        ]);
+    }
+    // Para warnings y notices, solo registrar en log pero continuar
+    error_log("PHP Warning/Notice: $message in $file on line $line");
+    return true; // Continuar ejecución normal
 });
 
 // Manejador de excepciones

@@ -43,7 +43,7 @@ if (isset($_SESSION['last_activity'])) {
     if ($inactive_time >= INACTIVE_TIME) {
         if (isset($_SESSION['user_id'])) {
             require_once __DIR__ . '/ActivityLogger.php';
-            ActivityLogger::logLogin($_SESSION['user_id'], 'Cierre');
+            ActivityLogger::logAccion($_SESSION['user_id'], 'Sistema', 'Cierre de sesión', 'Sesión cerrada por inactividad');
         }
         session_unset();
         session_destroy();

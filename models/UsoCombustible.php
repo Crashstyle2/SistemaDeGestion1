@@ -219,90 +219,96 @@ class UsoCombustible {
         return false;
     }
 
-    // Método para cerrar recorrido - CORREGIDO
+    // Método para cerrar recorrido - SOLUCIÓN DEFINITIVA
     public function cerrarRecorrido($id, $usuario_id) {
-        try {
-            // Primero verificar que el registro existe y está abierto
-            $checkQuery = "SELECT id, estado_recorrido FROM " . $this->table_name . " WHERE id = :id";
-            $checkStmt = $this->conn->prepare($checkQuery);
-            $checkStmt->bindParam(':id', $id);
-            $checkStmt->execute();
-            
-            $registro = $checkStmt->fetch(PDO::FETCH_ASSOC);
-            
-            if (!$registro) {
-                return ['success' => false, 'message' => 'Recorrido no encontrado'];
-            }
-            
-            if ($registro['estado_recorrido'] === 'cerrado') {
-                return ['success' => false, 'message' => 'El recorrido ya está cerrado'];
-            }
-            
-            // Realizar el cierre
-            $query = "UPDATE " . $this->table_name . " 
-                     SET estado_recorrido = 'cerrado', 
-                         fecha_cierre = NOW(), 
-                         cerrado_por = :usuario_id 
-                     WHERE id = :id";
-            
-            $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(':id', $id);
-            $stmt->bindParam(':usuario_id', $usuario_id);
-            
-            if ($stmt->execute() && $stmt->rowCount() > 0) {
-                return ['success' => true, 'message' => 'Recorrido cerrado exitosamente'];
-            } else {
-                return ['success' => false, 'message' => 'Error al cerrar el recorrido'];
-            }
-            
-        } catch (Exception $e) {
-            error_log("Error en cerrarRecorrido: " . $e->getMessage());
-            return ['success' => false, 'message' => 'Error interno del servidor'];
+        // Verificar que el registro existe y está abierto
+        $checkQuery = "SELECT id, estado_recorrido FROM " . $this->table_name . " WHERE id = :id";
+        $checkStmt = $this->conn->prepare($checkQuery);
+        $checkStmt->bindParam(':id', $id);
+        $checkStmt->execute();
+        
+        $registro = $checkStmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$registro) {
+            return ['success' => false, 'message' => 'Recorrido no encontrado'];
         }
+        
+        if ($registro['estado_recorrido'] === 'cerrado') {
+            return ['success' => false, 'message' => 'El recorrido ya está cerrado'];
+        }
+        
+        // Realizar el cierre
+        $query = "UPDATE " . $this->table_name . " 
+                 SET estado_recorrido = 'cerrado', 
+                     fecha_cierre = NOW(), 
+                     cerrado_por = :usuario_id 
+                 WHERE id = :id";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id);
+        $stmt->bindParam(':usuario_id', $usuario_id);
+        
+        if ($stmt->execute()) {
+            // Verificar que el cambio se aplicó correctamente
+            $verifyQuery = "SELECT estado_recorrido FROM " . $this->table_name . " WHERE id = :id";
+            $verifyStmt = $this->conn->prepare($verifyQuery);
+            $verifyStmt->bindParam(':id', $id);
+            $verifyStmt->execute();
+            $result = $verifyStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($result && $result['estado_recorrido'] === 'cerrado') {
+                return ['success' => true, 'message' => 'Recorrido cerrado exitosamente'];
+            }
+        }
+        
+        return ['success' => false, 'message' => 'Error al cerrar el recorrido'];
     }
     
-    // Método para reabrir recorrido - CORREGIDO
+    // Método para reabrir recorrido - SOLUCIÓN DEFINITIVA
     public function reabrirRecorrido($id, $usuario_id, $motivo) {
-        try {
-            // Primero verificar que el registro existe y está cerrado
-            $checkQuery = "SELECT id, estado_recorrido FROM " . $this->table_name . " WHERE id = :id";
-            $checkStmt = $this->conn->prepare($checkQuery);
-            $checkStmt->bindParam(':id', $id);
-            $checkStmt->execute();
-            
-            $registro = $checkStmt->fetch(PDO::FETCH_ASSOC);
-            
-            if (!$registro) {
-                return ['success' => false, 'message' => 'Recorrido no encontrado'];
-            }
-            
-            if ($registro['estado_recorrido'] === 'abierto') {
-                return ['success' => false, 'message' => 'El recorrido ya está abierto'];
-            }
-            
-            // Realizar la reapertura
-            $query = "UPDATE " . $this->table_name . " 
-                     SET estado_recorrido = 'abierto', 
-                         reabierto_por = :usuario_id, 
-                         fecha_reapertura = NOW(), 
-                         motivo_reapertura = :motivo 
-                     WHERE id = :id";
-            
-            $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(':id', $id);
-            $stmt->bindParam(':usuario_id', $usuario_id);
-            $stmt->bindParam(':motivo', $motivo);
-            
-            if ($stmt->execute() && $stmt->rowCount() > 0) {
-                return ['success' => true, 'message' => 'Recorrido reabierto exitosamente'];
-            } else {
-                return ['success' => false, 'message' => 'Error al reabrir el recorrido'];
-            }
-            
-        } catch (Exception $e) {
-            error_log("Error en reabrirRecorrido: " . $e->getMessage());
-            return ['success' => false, 'message' => 'Error interno del servidor'];
+        // Verificar que el registro existe y está cerrado
+        $checkQuery = "SELECT id, estado_recorrido FROM " . $this->table_name . " WHERE id = :id";
+        $checkStmt = $this->conn->prepare($checkQuery);
+        $checkStmt->bindParam(':id', $id);
+        $checkStmt->execute();
+        
+        $registro = $checkStmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$registro) {
+            return ['success' => false, 'message' => 'Recorrido no encontrado'];
         }
+        
+        if ($registro['estado_recorrido'] === 'abierto') {
+            return ['success' => false, 'message' => 'El recorrido ya está abierto'];
+        }
+        
+        // Realizar la reapertura
+        $query = "UPDATE " . $this->table_name . " 
+                 SET estado_recorrido = 'abierto', 
+                 reabierto_por = :usuario_id, 
+                 fecha_reapertura = NOW(), 
+                 motivo_reapertura = :motivo 
+                 WHERE id = :id";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id);
+        $stmt->bindParam(':usuario_id', $usuario_id);
+        $stmt->bindParam(':motivo', $motivo);
+        
+        if ($stmt->execute()) {
+            // Verificar que el cambio se aplicó correctamente
+            $verifyQuery = "SELECT estado_recorrido FROM " . $this->table_name . " WHERE id = :id";
+            $verifyStmt = $this->conn->prepare($verifyQuery);
+            $verifyStmt->bindParam(':id', $id);
+            $verifyStmt->execute();
+            $result = $verifyStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($result && $result['estado_recorrido'] === 'abierto') {
+                return ['success' => true, 'message' => 'Recorrido reabierto exitosamente'];
+            }
+        }
+        
+        return ['success' => false, 'message' => 'Error al reabrir el recorrido'];
     }
 
     // Verificar si hay recorridos abiertos para exportación

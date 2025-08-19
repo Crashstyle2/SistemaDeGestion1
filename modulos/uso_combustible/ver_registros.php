@@ -6,6 +6,7 @@ if(!isset($_SESSION['user_id'])) {
 }
 
 include_once '../../config/database.php';
+require_once '../../config/ActivityLogger.php';
 require_once '../../vendor/autoload.php';
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -302,6 +303,15 @@ if ($export === 'excel') {
             header('Content-Disposition: attachment;filename="' . $filename . '"');
             header('Cache-Control: max-age=0');
             
+            // Registrar actividad de exportación
+            $tipoRegistros = !empty($selected_ids) ? count($selected_ids) . ' registros seleccionados' : 'todos los registros filtrados';
+            ActivityLogger::logAccion(
+                $_SESSION['user_id'],
+                'uso_combustible',
+                'exportar_excel_interfaz',
+                "Exportación Excel desde interfaz - {$tipoRegistros}, Fecha: {$fecha_inicio} a {$fecha_fin}"
+            );
+            
             $writer = new Xlsx($spreadsheet);
             $writer->save('php://output');
             exit;
@@ -420,8 +430,15 @@ if ($export === 'excel') {
         display: none;
     }
     .checkbox-column {
-        width: 40px;
-        text-align: center;
+        width: 50px !important;
+        text-align: center !important;
+    }
+    
+    .main-checkbox, .sub-checkbox, #select-all-header {
+        cursor: pointer !important;
+        pointer-events: auto !important;
+        position: relative !important;
+        z-index: 1 !important;
     }
     .form-check-label {
         color: #495057;
@@ -534,9 +551,22 @@ if ($export === 'excel') {
                         </div>
                     </div>
                     <div class="card-body">
-                        <!-- Búsqueda simplificada -->
+                        <!--<!-- Logging de búsqueda -->
+        <?php if (!empty($search) || !empty($fecha_inicio) || !empty($fecha_fin)): ?>
+        <script>
+        // Logging de búsqueda realizada
+        $.post('../../config/log_activity.php', {
+            action: 'log',
+            modulo: 'uso_combustible',
+            accion: 'busqueda_registros',
+            detalle: 'Búsqueda realizada - Términos: "<?php echo addslashes($search); ?>", Fecha inicio: <?php echo $fecha_inicio; ?>, Fecha fin: <?php echo $fecha_fin; ?>'
+        });
+        </script>
+        <?php endif; ?>
+        
+        <!-- Búsqueda simplificada -->
                         <div class="search-container">
-                            <form method="GET" class="mb-0">
+                            <form method="GET" class="mb-0" onsubmit="logBusqueda()">
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group mb-3">
@@ -691,18 +721,17 @@ if ($export === 'excel') {
                     }
                     
                     // NUEVO: Ordenamiento por fecha_registro y ID de recorrido
-                    foreach ($groupedRecords as $groupKey => &$group) {
-                        usort($group, function($a, $b) {
-                            // Primero por fecha_registro, luego por ID de recorrido
-                            $fechaComparison = strtotime($a['fecha_registro']) - strtotime($b['fecha_registro']);
-                            if ($fechaComparison === 0) {
-                                // Si tienen la misma fecha_registro, ordenar por recorrido_id
-                                return intval($a['recorrido_id']) - intval($b['recorrido_id']);
-                            }
-                            return $fechaComparison;
-                        });
-                    
-                    }
+        foreach ($groupedRecords as $groupKey => &$group) {
+            usort($group, function($a, $b) {
+                // Primero por fecha_registro, luego por ID de recorrido
+                $fechaComparison = strtotime($a['fecha_registro']) - strtotime($b['fecha_registro']);
+                if ($fechaComparison === 0) {
+                    // Si tienen la misma fecha_registro, ordenar por recorrido_id
+                    return intval($a['recorrido_id']) - intval($b['recorrido_id']);
+                }
+                return $fechaComparison;
+            });
+        }
         unset($group); // Limpiar referencia
                     
                     $groupIndex = 0;
@@ -894,7 +923,7 @@ if ($export === 'excel') {
                                                 <?php endif; ?>
                                             <?php endif; ?>
                                             </td>
-                                            <?php if (in_array($_SESSION['user_rol'], ['administrador', 'tecnico', 'supervisor'])): ?>
+                                            <?php if ($puedeModificar): ?>
                                             <td class="text-center">
                                                 <?php if ($subRecord['estado_recorrido'] === 'cerrado'): ?>
                                                     <button class="btn btn-sm btn-secondary" 
@@ -908,14 +937,6 @@ if ($export === 'excel') {
                                                         <i class="fas fa-edit"></i>
                                                     </a>
                                                 <?php endif; ?>
-                                            </td>
-                                            <?php elseif ($_SESSION['user_rol'] === 'administrativo'): ?>
-                                            <td class="text-center">
-                                                <button class="btn btn-sm btn-secondary" 
-                                                        onclick="mostrarMensajeRecorridoCerrado()" 
-                                                        title="Solo lectura - No se puede editar">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
                                             </td>
                                             <?php endif; ?>
                                             <?php if ($_SESSION['user_rol'] === 'administrador'): ?>
@@ -1251,6 +1272,15 @@ jQuery(document).ready(function($) {
         
         const fotoRuta = $(this).data('foto-ruta');
         const fotoBase64 = $(this).data('foto');
+        const registroId = $(this).closest('tr').find('input[type="checkbox"]').val();
+        
+        // Registrar visualización de foto
+        $.post('../../config/log_activity.php', {
+            action: 'log',
+            modulo: 'uso_combustible',
+            accion: 'ver_foto_interfaz',
+            detalle: `Visualización de foto voucher desde interfaz - Registro ID: ${registroId}`
+        });
         
         let imgSrc;
         if (fotoRuta) {
@@ -1341,6 +1371,14 @@ jQuery(document).ready(function($) {
             success: function(response) {
                 $('#customConfirmModal').fadeOut(300);
                 if (response.success) {
+                    // Logging adicional desde frontend
+                    $.post('../../config/log_activity.php', {
+                        action: 'log',
+                        modulo: 'uso_combustible',
+                        accion: 'eliminar_registro_interfaz',
+                        detalle: `Registro eliminado desde interfaz - ID: ${idToDelete}`
+                    });
+                    
                     mostrarModalMejorado('success', 'Éxito', 'Registro eliminado correctamente', function() {
                         location.reload();
                     });
@@ -1396,6 +1434,14 @@ jQuery(document).ready(function($) {
                 $button.removeClass('expanded');
                 $button.attr('title', 'Expandir registros');
                 console.log('📥 Grupo contraído:', groupId);
+                
+                // Logging de contracción
+                $.post('../../config/log_activity.php', {
+                    action: 'log',
+                    modulo: 'uso_combustible',
+                    accion: 'contraer_grupo_interfaz',
+                    detalle: `Grupo de recorridos contraído - Grupo ID: ${groupId}`
+                });
             } else {
                 // Expandir
                 $subRecords.addClass('show').show();
@@ -1403,68 +1449,214 @@ jQuery(document).ready(function($) {
                 $button.addClass('expanded');
                 $button.attr('title', 'Contraer registros');
                 console.log('📤 Grupo expandido:', groupId);
+                
+                // Logging de expansión
+                $.post('../../config/log_activity.php', {
+                    action: 'log',
+                    modulo: 'uso_combustible',
+                    accion: 'expandir_grupo_interfaz',
+                    detalle: `Grupo de recorridos expandido - Grupo ID: ${groupId}, Sub-registros: ${$subRecords.length}`
+                });
             }
         } catch (error) {
             console.error('❌ Error al expandir/contraer:', error);
         }
     });
     
-    // 5. Función para actualizar información de selección
+    // Función para actualizar información de selección
     function updateSelectionInfo() {
-        const selectedCount = $('.main-checkbox:checked').length;
-        $('#selected-count').text(selectedCount);
-        $('#selection-text').text('Has seleccionado ' + selectedCount + ' registros de combustible');
-        
-        if (selectedCount > 0) {
-            $('#export_selected').prop('disabled', false);
-            $('#selection-info').show();
-        } else {
-            $('#export_selected').prop('disabled', true);
-            $('#export_all').prop('checked', true);
-            $('#selection-info').hide();
+        try {
+            const selectedCount = $('.main-checkbox:checked').length;
+            $('#selected-count').text(selectedCount);
+            $('#selection-text').text('Has seleccionado ' + selectedCount + ' registros de combustible');
+            
+            if (selectedCount > 0) {
+                $('#export_selected').prop('disabled', false);
+                $('#selection-info').show();
+            } else {
+                $('#export_selected').prop('disabled', true);
+                $('#export_all').prop('checked', true);
+                $('#selection-info').hide();
+            }
+            
+            console.log('✅ Selección actualizada: ' + selectedCount + ' registros');
+        } catch (error) {
+            console.error('❌ Error al actualizar selección:', error);
         }
     }
     
-    // 6. Manejar checkboxes principales
-    $(document).on('change', '.main-checkbox', function() {
-        const groupId = $(this).data('group');
-        const isChecked = $(this).is(':checked');
-        $('.sub-checkbox[data-group="' + groupId + '"]').prop('checked', isChecked);
-        updateSelectionInfo();
-    });
-    
-    // 7. Manejar checkboxes secundarios
-    $(document).on('change', '.sub-checkbox', function() {
-        const groupId = $(this).data('group');
-        const $mainCheckbox = $('.main-checkbox[data-group="' + groupId + '"]');
-        const $subCheckboxes = $('.sub-checkbox[data-group="' + groupId + '"]');
-        const $checkedSubs = $('.sub-checkbox[data-group="' + groupId + '"]:checked');
-        
-        if ($checkedSubs.length === $subCheckboxes.length && $subCheckboxes.length > 0) {
-            $mainCheckbox.prop('checked', true);
-        } else {
-            $mainCheckbox.prop('checked', false);
+    // Función para manejar checkbox principal
+    function handleMainCheckbox(element) {
+        try {
+            const $checkbox = $(element);
+            const groupId = $checkbox.data('group');
+            const isChecked = $checkbox.is(':checked');
+            
+            console.log('📋 Checkbox principal grupo ' + groupId + ': ' + (isChecked ? 'seleccionado' : 'deseleccionado'));
+            
+            // Actualizar sub-checkboxes del mismo grupo
+            $('.sub-checkbox[data-group="' + groupId + '"]').prop('checked', isChecked);
+            
+            updateSelectionInfo();
+            
+            // Log de la acción
+            $.post('../../config/log_activity.php', {
+                action: 'log',
+                modulo: 'uso_combustible',
+                accion: isChecked ? 'seleccionar_registro_principal' : 'deseleccionar_registro_principal',
+                detalle: 'Registro principal grupo ' + groupId + ' ' + (isChecked ? 'seleccionado' : 'deseleccionado')
+            }).fail(function() {
+                console.warn('⚠️ Error al registrar log de selección');
+            });
+            
+        } catch (error) {
+            console.error('❌ Error en checkbox principal:', error);
         }
-        updateSelectionInfo();
-    });
+    }
     
-    // 8. Checkbox del header
-    $('#select-all-header').on('change', function() {
-        const isChecked = $(this).is(':checked');
-        $('.main-checkbox, .sub-checkbox').prop('checked', isChecked);
-        updateSelectionInfo();
-    });
+    // Función para manejar checkbox secundario
+    function handleSubCheckbox(element) {
+        try {
+            const $checkbox = $(element);
+            const groupId = $checkbox.data('group');
+            const $mainCheckbox = $('.main-checkbox[data-group="' + groupId + '"]');
+            const $subCheckboxes = $('.sub-checkbox[data-group="' + groupId + '"]');
+            const $checkedSubs = $('.sub-checkbox[data-group="' + groupId + '"]:checked');
+            
+            console.log('📋 Checkbox secundario grupo ' + groupId + ': ' + $checkedSubs.length + '/' + $subCheckboxes.length);
+            
+            // Si todos los sub-checkboxes están marcados, marcar el principal
+            if ($checkedSubs.length === $subCheckboxes.length && $subCheckboxes.length > 0) {
+                $mainCheckbox.prop('checked', true);
+            } else {
+                $mainCheckbox.prop('checked', false);
+            }
+            
+            updateSelectionInfo();
+            
+        } catch (error) {
+            console.error('❌ Error en checkbox secundario:', error);
+        }
+    }
     
-    // 9. Botones de selección
-    $('#select-all-btn').on('click', function() {
-        $('.main-checkbox, .sub-checkbox, #select-all-header').prop('checked', true);
-        updateSelectionInfo();
-    });
+    // Inicialización mejorada de eventos
+    function initializeCheckboxEvents() {
+        console.log('🔄 Inicializando eventos de checkboxes...');
+        
+        // Remover eventos existentes para evitar duplicados
+        $(document).off('change', '.main-checkbox');
+        $(document).off('change', '.sub-checkbox');
+        $(document).off('change', '#select-all-header');
+        $('#select-all-btn').off('click');
+        $('#clear-selection-btn').off('click');
+        
+        // Eventos de checkboxes principales
+        $(document).on('change', '.main-checkbox', function(e) {
+            e.preventDefault();
+            handleMainCheckbox(this);
+        });
+        
+        // Eventos de checkboxes secundarios
+        $(document).on('change', '.sub-checkbox', function(e) {
+            e.preventDefault();
+            handleSubCheckbox(this);
+        });
+        
+        // Checkbox del header
+        $('#select-all-header').on('change', function() {
+            try {
+                const isChecked = $(this).is(':checked');
+                console.log('📋 Seleccionar todos desde header: ' + isChecked);
+                
+                $('.main-checkbox, .sub-checkbox').prop('checked', isChecked);
+                updateSelectionInfo();
+                
+                // Logging
+                $.post('../../config/log_activity.php', {
+                    action: 'log',
+                    modulo: 'uso_combustible',
+                    accion: isChecked ? 'seleccionar_todos_header' : 'deseleccionar_todos_header',
+                    detalle: (isChecked ? 'Seleccionados' : 'Deseleccionados') + ' todos los registros desde header'
+                });
+            } catch (error) {
+                console.error('❌ Error en select-all-header:', error);
+            }
+        });
+        
+        // Botón seleccionar todos
+        $('#select-all-btn').on('click', function() {
+            try {
+                console.log('📋 Seleccionar todos desde botón');
+                $('.main-checkbox, .sub-checkbox, #select-all-header').prop('checked', true);
+                updateSelectionInfo();
+                
+                $.post('../../config/log_activity.php', {
+                    action: 'log',
+                    modulo: 'uso_combustible',
+                    accion: 'seleccionar_todos_boton',
+                    detalle: 'Seleccionados todos los registros usando botón'
+                });
+            } catch (error) {
+                console.error('❌ Error en select-all-btn:', error);
+            }
+        });
+        
+        // Botón limpiar selección
+        $('#clear-selection-btn').on('click', function() {
+            try {
+                console.log('📋 Limpiar selección desde botón');
+                $('.main-checkbox, .sub-checkbox, #select-all-header').prop('checked', false);
+                updateSelectionInfo();
+                
+                $.post('../../config/log_activity.php', {
+                    action: 'log',
+                    modulo: 'uso_combustible',
+                    accion: 'limpiar_seleccion_boton',
+                    detalle: 'Limpiada la selección usando botón'
+                });
+            } catch (error) {
+                console.error('❌ Error en clear-selection-btn:', error);
+            }
+        });
+        
+        console.log('✅ Eventos de checkboxes inicializados correctamente');
+    }
     
-    $('#clear-selection-btn').on('click', function() {
-        $('.main-checkbox, .sub-checkbox, #select-all-header').prop('checked', false);
-        updateSelectionInfo();
-    });
+    // Verificación de elementos
+    function verifyElements() {
+        setTimeout(function() {
+            const mainCheckboxes = $('.main-checkbox').length;
+            const subCheckboxes = $('.sub-checkbox').length;
+            const headerCheckbox = $('#select-all-header').length;
+            const selectAllBtn = $('#select-all-btn').length;
+            const clearBtn = $('#clear-selection-btn').length;
+            
+            console.log('🔍 Verificación de elementos:');
+            console.log('- Checkboxes principales:', mainCheckboxes);
+            console.log('- Checkboxes secundarios:', subCheckboxes);
+            console.log('- Checkbox header:', headerCheckbox);
+            console.log('- Botón seleccionar todos:', selectAllBtn);
+            console.log('- Botón limpiar:', clearBtn);
+            
+            if (mainCheckboxes === 0) {
+                console.error('❌ No se encontraron checkboxes principales');
+            }
+            if (headerCheckbox === 0) {
+                console.error('❌ No se encontró checkbox del header');
+            }
+            if (selectAllBtn === 0) {
+                console.error('❌ No se encontró botón seleccionar todos');
+            }
+            
+            // Verificar que jQuery está funcionando
+            try {
+                $('.main-checkbox').first().prop('checked', false);
+                console.log('✅ jQuery funcionando correctamente');
+            } catch (error) {
+                console.error('❌ Error con jQuery:', error);
+            }
+        }, 1000);
+    }
     
     // 10. Manejar formulario de exportación
     $('#exportForm').on('submit', function(e) {
@@ -1501,17 +1693,42 @@ jQuery(document).ready(function($) {
                     })
                 );
             });
+            
+            // Logging de exportación seleccionada
+            $.post('../../config/log_activity.php', {
+                action: 'log',
+                modulo: 'uso_combustible',
+                accion: 'exportar_seleccionados_interfaz',
+                detalle: `Iniciando exportación de ${selectedIds.length} registros seleccionados desde interfaz`
+            });
         } else {
             $('#selected-ids-container').empty();
+            
+            // Logging de exportación completa
+            $.post('../../config/log_activity.php', {
+                action: 'log',
+                modulo: 'uso_combustible',
+                accion: 'exportar_todos_interfaz',
+                detalle: 'Iniciando exportación de todos los registros filtrados desde interfaz'
+            });
         }
         
         return true;
     });
     
-    // 11. Inicializar estado
-    updateSelectionInfo();
+    // Inicialización principal
+    console.log('🚀 Inicializando sistema de checkboxes mejorado...');
     
-    // 12. Verificación de elementos al cargar
+    // Esperar un poco más para asegurar que todo esté cargado
+    setTimeout(function() {
+        initializeCheckboxEvents();
+        updateSelectionInfo();
+        verifyElements();
+        
+        console.log('🎉 Sistema de checkboxes inicializado completamente');
+    }, 500);
+    
+    // Verificación de elementos al cargar
     setTimeout(function() {
         const expandButtons = $('.expand-btn').length;
         const subRecords = $('.sub-record').length;
@@ -1540,10 +1757,32 @@ jQuery(document).ready(function($) {
             const subCount = $('.sub-record[data-group="' + groupId + '"]').length;
             console.log('📊 Grupo ' + groupId + ': ' + subCount + ' sub-registros');
         });
-    }, 500);
+    }, 1000);
     
     console.log('🎉 Inicialización completa de ver_registros.php');
+    
+    // Logging de carga de página
+    $.post('../../config/log_activity.php', {
+        action: 'log',
+        modulo: 'uso_combustible',
+        accion: 'cargar_ver_registros',
+        detalle: 'Página de ver registros cargada exitosamente'
+    });
 });
+
+// Función para logging de búsqueda
+function logBusqueda() {
+    const search = document.getElementById('search').value;
+    const fechaInicio = document.getElementById('fecha_inicio').value;
+    const fechaFin = document.getElementById('fecha_fin').value;
+    
+    $.post('../../config/log_activity.php', {
+        action: 'log',
+        modulo: 'uso_combustible',
+        accion: 'realizar_busqueda_interfaz',
+        detalle: `Búsqueda iniciada desde interfaz - Términos: "${search}", Fecha inicio: ${fechaInicio}, Fecha fin: ${fechaFin}`
+    });
+}
 
 // Función mejorada para mostrar modales de mensaje con mejor diseño
 function mostrarModalMejorado(tipo, titulo, mensaje, callback = null) {
@@ -1904,8 +2143,8 @@ async function cerrarRecorrido(id) {
             'Cerrando recorrido, por favor espere...'
         );
         
-        // Enviar solicitud de cierre (ignoramos la respuesta)
-        fetch('cerrar_recorrido.php', {
+        // Enviar solicitud de cierre
+        const response = await fetch('cerrar_recorrido.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1914,15 +2153,19 @@ async function cerrarRecorrido(id) {
                 id: id,
                 action: 'cerrar'
             })
-        }).catch(() => {}); // Ignoramos errores de respuesta
+        });
         
-        // Esperar un momento para que se procese
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const result = await response.json();
         
-        // Verificar el estado real del registro
-        const estadoActual = await verificarEstadoRegistro(id);
-        
-        if (estadoActual && estadoActual.estado === 'cerrado') {
+        if (result.success) {
+            // Logging adicional desde frontend
+            $.post('../../config/log_activity.php', {
+                action: 'log',
+                modulo: 'uso_combustible',
+                accion: 'cerrar_recorrido_interfaz',
+                detalle: `Recorrido cerrado desde interfaz - ID: ${id}`
+            });
+            
             // Éxito confirmado
             mostrarModalMejorado(
                 'success',
@@ -1931,11 +2174,11 @@ async function cerrarRecorrido(id) {
                 () => location.reload()
             );
         } else {
-            // No se pudo confirmar el cierre
+            // Error en el cierre
             mostrarModalMejorado(
                 'error',
                 'Error al Cerrar',
-                'No se pudo cerrar el recorrido. Por favor, inténtelo nuevamente.',
+                result.message || 'No se pudo cerrar el recorrido. Por favor, inténtelo nuevamente.',
                 () => location.reload()
             );
         }
@@ -2138,6 +2381,40 @@ function mostrarModalInput(titulo, placeholder, callback) {
             confirmarInput();
         }
     });
+    
+    // Limpiar borde rojo cuando el usuario empiece a escribir
+    document.getElementById('motivoInput').addEventListener('input', function(e) {
+        if (e.target.value.trim() !== '') {
+            e.target.style.borderColor = '#e9ecef';
+        }
+    });
+    
+    // Contador de caracteres
+    document.getElementById('motivoInput').addEventListener('input', function(e) {
+        const maxLength = 500;
+        const currentLength = e.target.value.length;
+        const remaining = maxLength - currentLength;
+        
+        // Buscar o crear el elemento contador
+        let counter = document.getElementById('charCounter');
+        if (!counter) {
+            counter = document.createElement('small');
+            counter.id = 'charCounter';
+            counter.style.cssText = 'color: #6c757d; font-size: 12px; float: right;';
+            e.target.parentNode.appendChild(counter);
+        }
+        
+        counter.textContent = `${currentLength}/${maxLength} caracteres`;
+        
+        // Cambiar color si se acerca al límite
+        if (remaining < 50) {
+            counter.style.color = '#dc3545';
+        } else if (remaining < 100) {
+            counter.style.color = '#ffc107';
+        } else {
+            counter.style.color = '#6c757d';
+        }
+    });
 }
 
 // Función mejorada para reabrir recorrido
@@ -2186,8 +2463,8 @@ async function reabrirRecorrido(id) {
             'Reabriendo recorrido, por favor espere...'
         );
         
-        // Enviar solicitud de reapertura (ignoramos la respuesta)
-        fetch('cerrar_recorrido.php', {
+        // Enviar solicitud de reapertura
+        const response = await fetch('cerrar_recorrido.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -2197,15 +2474,19 @@ async function reabrirRecorrido(id) {
                 action: 'reabrir',
                 motivo: motivo
             })
-        }).catch(() => {}); // Ignoramos errores de respuesta
+        });
         
-        // Esperar un momento para que se procese
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const result = await response.json();
         
-        // Verificar el estado real del registro
-        const estadoActual = await verificarEstadoRegistro(id);
-        
-        if (estadoActual && estadoActual.estado === 'abierto') {
+        if (result.success) {
+            // Logging adicional desde frontend
+            $.post('../../config/log_activity.php', {
+                action: 'log',
+                modulo: 'uso_combustible',
+                accion: 'reabrir_recorrido_interfaz',
+                detalle: `Recorrido reabierto desde interfaz - ID: ${id}, Motivo: ${motivo}`
+            });
+            
             // Éxito confirmado
             mostrarModalMejorado(
                 'success',
@@ -2214,11 +2495,11 @@ async function reabrirRecorrido(id) {
                 () => location.reload()
             );
         } else {
-            // No se pudo confirmar la reapertura
+            // Error en la reapertura
             mostrarModalMejorado(
                 'error',
                 'Error al Reabrir',
-                'No se pudo reabrir el recorrido. Por favor, inténtelo nuevamente.',
+                result.message || 'No se pudo reabrir el recorrido. Por favor, inténtelo nuevamente.',
                 () => location.reload()
             );
         }

@@ -219,6 +219,7 @@ class UsoCombustible {
         return false;
     }
 
+
     // Método para cerrar recorrido - SOLUCIÓN DEFINITIVA
     public function cerrarRecorrido($id, $usuario_id) {
         // Verificar que el registro existe y está abierto

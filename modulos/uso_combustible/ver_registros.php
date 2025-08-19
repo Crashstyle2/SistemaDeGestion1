@@ -6,7 +6,10 @@ if(!isset($_SESSION['user_id'])) {
 }
 
 include_once '../../config/database.php';
+<<<<<<< HEAD
 require_once '../../config/ActivityLogger.php';
+=======
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
 require_once '../../vendor/autoload.php';
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -50,9 +53,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export'])) {
 // Construir la consulta SQL base - VERIFICAR que incluya fecha_registro
 $sql = "SELECT uc.*, u.nombre as nombre_usuario, 
        ucr.origen, ucr.destino, ucr.km_sucursales, ucr.comentarios_sector,
+<<<<<<< HEAD
        uc.fecha_registro, ucr.id as recorrido_id, uc.estado_recorrido,
        uc.fecha_cierre, uc.cerrado_por, uc.reabierto_por, uc.fecha_reapertura,
        cerrador.nombre as nombre_cerrador, reabridor.nombre as nombre_reabridor,
+=======
+       uc.fecha_registro, ucr.id as recorrido_id,
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
        s_origen.segmento as origen_segmento, s_origen.cebe as origen_cebe, 
        s_origen.local as origen_local, s_origen.m2_neto as origen_m2_neto, 
        s_origen.localidad as origen_localidad,
@@ -61,8 +68,11 @@ $sql = "SELECT uc.*, u.nombre as nombre_usuario,
        s_destino.localidad as destino_localidad
        FROM uso_combustible uc 
        LEFT JOIN usuarios u ON uc.user_id = u.id 
+<<<<<<< HEAD
        LEFT JOIN usuarios cerrador ON uc.cerrado_por = cerrador.id
        LEFT JOIN usuarios reabridor ON uc.reabierto_por = reabridor.id
+=======
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
        LEFT JOIN uso_combustible_recorridos ucr ON uc.id = ucr.uso_combustible_id 
        LEFT JOIN sucursales s_origen ON ucr.origen = s_origen.local
        LEFT JOIN sucursales s_destino ON ucr.destino = s_destino.local
@@ -131,6 +141,7 @@ $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 $registros = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+<<<<<<< HEAD
 // Verificar recorridos abiertos antes de exportar
 if ($export === 'excel') {
     include_once '../../models/UsoCombustible.php';
@@ -177,6 +188,85 @@ if ($export === 'excel') {
         // APLICAR LA MISMA LÓGICA DE AGRUPACIÓN Y ORDENAMIENTO
         $groupedRecords = [];
         foreach ($registros as $registro) {
+=======
+// Procesar exportación a Excel
+if ($export === 'excel') {
+    // APLICAR LA MISMA LÓGICA DE AGRUPACIÓN Y ORDENAMIENTO
+    $groupedRecords = [];
+    foreach ($registros as $registro) {
+        $groupKey = $registro['fecha_carga'] . '_' . 
+                   $registro['nombre_usuario'] . '_' . 
+                   $registro['nombre_conductor'] . '_' . 
+                   $registro['chapa'] . '_' . 
+                   $registro['numero_baucher'] . '_' . 
+                   $registro['litros_cargados'];
+        
+        if (!isset($groupedRecords[$groupKey])) {
+            $groupedRecords[$groupKey] = [];
+        }
+        $groupedRecords[$groupKey][] = $registro;
+    }
+    
+    // Ordenamiento por fecha_registro y ID de recorrido (IGUAL QUE EN LA WEB)
+    foreach ($groupedRecords as $groupKey => &$group) {
+        usort($group, function($a, $b) {
+            $fechaComparison = strtotime($a['fecha_registro']) - strtotime($b['fecha_registro']);
+            if ($fechaComparison === 0) {
+                return intval($a['recorrido_id']) - intval($b['recorrido_id']);
+            }
+            return $fechaComparison;
+        });
+    }
+    unset($group);
+    
+    // Crear lista ordenada para exportar
+    $registrosParaExportar = [];
+    
+    // Si hay IDs seleccionados, filtrar solo esos registros
+    if (!empty($selected_ids) && is_array($selected_ids)) {
+        foreach ($groupedRecords as $group) {
+            foreach ($group as $registro) {
+                if (in_array($registro['id'], $selected_ids)) {
+                    $registrosParaExportar[] = $registro;
+                }
+            }
+        }
+    } else {
+        // Si no hay selección específica, exportar todos los registros ordenados
+        foreach ($groupedRecords as $group) {
+            foreach ($group as $registro) {
+                $registrosParaExportar[] = $registro;
+            }
+        }
+    }
+    
+    if (!empty($registrosParaExportar)) {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        // Configurar encabezados
+        $headers = ['Fecha', 'Técnico', 'Conductor', 'Tipo Vehículo', 'Chapa', 'Nº Tarjeta', 'Nº Voucher', 'Litros Cargados', 
+                   'Secuencia', 'Origen', 'Origen Segmento', 'Origen CEBE', 'Origen Localidad', 'Origen M2 Neto',
+                   'Destino', 'Destino Segmento', 'Destino CEBE', 'Destino Localidad', 'Destino M2 Neto',
+                   'KM entre Sucursales', 'Comentarios', 'Documento'];
+        $sheet->fromArray($headers, null, 'A1');
+        
+        // Estilo para encabezados
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '4472C4']],
+            'alignment' => ['horizontal' => 'center']
+        ];
+        $sheet->getStyle('A1:V1')->applyFromArray($headerStyle);
+        
+        // Agregar datos
+        $row = 2;
+        $currentGroup = null;
+        $secuencia = 1;
+        
+        foreach ($registrosParaExportar as $registro) {
+            // Detectar nuevo grupo para reiniciar secuencia
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
             $groupKey = $registro['fecha_carga'] . '_' . 
                        $registro['nombre_usuario'] . '_' . 
                        $registro['nombre_conductor'] . '_' . 
@@ -184,6 +274,7 @@ if ($export === 'excel') {
                        $registro['numero_baucher'] . '_' . 
                        $registro['litros_cargados'];
             
+<<<<<<< HEAD
             if (!isset($groupedRecords[$groupKey])) {
                 $groupedRecords[$groupKey] = [];
             }
@@ -316,6 +407,58 @@ if ($export === 'excel') {
             $writer->save('php://output');
             exit;
         }
+=======
+            if ($currentGroup !== $groupKey) {
+                $currentGroup = $groupKey;
+                $secuencia = 1;
+            }
+            
+            $data = [
+                date('d/m/Y H:i', strtotime($registro['fecha_carga'] . ' ' . $registro['hora_carga'])),
+                $registro['nombre_usuario'] ?? '',
+                $registro['nombre_conductor'] ?? '',
+                ucfirst(str_replace('_', ' ', $registro['tipo_vehiculo'] ?? '')),
+                $registro['chapa'] ?? '',
+                $registro['tarjeta'] ?? '',
+                $registro['numero_baucher'] ?? '',
+                $registro['litros_cargados'] ?? 0,
+                $secuencia . '°', // NUEVA COLUMNA DE SECUENCIA
+                $registro['origen'] ?? '',
+                $registro['origen_segmento'] ?? '',
+                $registro['origen_cebe'] ?? '',
+                $registro['origen_localidad'] ?? '',
+                $registro['origen_m2_neto'] ?? '',
+                $registro['destino'] ?? '',
+                $registro['destino_segmento'] ?? '',
+                $registro['destino_cebe'] ?? '',
+                $registro['destino_localidad'] ?? '',
+                $registro['destino_m2_neto'] ?? '',
+                $registro['km_sucursales'] ?? 0,
+                $registro['comentarios_sector'] ?? '',
+                $registro['documento'] ?? ''
+            ];
+            $sheet->fromArray($data, null, 'A' . $row);
+            $row++;
+            $secuencia++;
+        }
+        
+        // Ajustar ancho de columnas
+        foreach (range('A', 'V') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+        
+        // Configurar el archivo para descarga
+        $tipoExport = !empty($selected_ids) ? 'seleccionados' : 'filtrados';
+        $filename = 'registros_combustible_' . $tipoExport . '_' . date('Y-m-d_H-i-s') . '.xlsx';
+        
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        
+        $writer = new Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
     }
 }
 ?>
@@ -430,6 +573,7 @@ if ($export === 'excel') {
         display: none;
     }
     .checkbox-column {
+<<<<<<< HEAD
         width: 50px !important;
         text-align: center !important;
     }
@@ -439,6 +583,10 @@ if ($export === 'excel') {
         pointer-events: auto !important;
         position: relative !important;
         z-index: 1 !important;
+=======
+        width: 40px;
+        text-align: center;
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
     }
     .form-check-label {
         color: #495057;
@@ -498,6 +646,7 @@ if ($export === 'excel') {
     .sub-record.no-secuencial {
         border-left-color: #ffc107;
     }
+<<<<<<< HEAD
     
     @keyframes fadeIn {
         from { opacity: 0; }
@@ -519,6 +668,8 @@ if ($export === 'excel') {
             opacity: 1;
         }
     }
+=======
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
     </style>
 </head>
 <body>
@@ -551,6 +702,7 @@ if ($export === 'excel') {
                         </div>
                     </div>
                     <div class="card-body">
+<<<<<<< HEAD
                         <!--<!-- Logging de búsqueda -->
         <?php if (!empty($search) || !empty($fecha_inicio) || !empty($fecha_fin)): ?>
         <script>
@@ -567,6 +719,11 @@ if ($export === 'excel') {
         <!-- Búsqueda simplificada -->
                         <div class="search-container">
                             <form method="GET" class="mb-0" onsubmit="logBusqueda()">
+=======
+                        <!-- Búsqueda simplificada -->
+                        <div class="search-container">
+                            <form method="GET" class="mb-0">
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group mb-3">
@@ -693,7 +850,10 @@ if ($export === 'excel') {
                                         <th>Destino</th>
                                         <th>Documento</th>
                                         <th>Foto Voucher</th>
+<<<<<<< HEAD
                                         <th>Estado</th>
+=======
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
                                         <?php if ($puedeModificar): ?>
                                         <th>Editar</th>
                                         <?php endif; ?>
@@ -721,6 +881,7 @@ if ($export === 'excel') {
                     }
                     
                     // NUEVO: Ordenamiento por fecha_registro y ID de recorrido
+<<<<<<< HEAD
         foreach ($groupedRecords as $groupKey => &$group) {
             usort($group, function($a, $b) {
                 // Primero por fecha_registro, luego por ID de recorrido
@@ -733,6 +894,20 @@ if ($export === 'excel') {
             });
         }
         unset($group); // Limpiar referencia
+=======
+                    foreach ($groupedRecords as $groupKey => &$group) {
+                        usort($group, function($a, $b) {
+                            // Primero por fecha_registro, luego por ID de recorrido
+                            $fechaComparison = strtotime($a['fecha_registro']) - strtotime($b['fecha_registro']);
+                            if ($fechaComparison === 0) {
+                                // Si tienen la misma fecha_registro, ordenar por recorrido_id
+                                return intval($a['recorrido_id']) - intval($b['recorrido_id']);
+                            }
+                            return $fechaComparison;
+                        });
+                    }
+                    unset($group); // Limpiar referencia
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
                     
                     $groupIndex = 0;
                     foreach ($groupedRecords as $groupKey => $group): 
@@ -795,6 +970,7 @@ if ($export === 'excel') {
                                                 <span class="text-muted">Sin foto</span>
                                             <?php endif; ?>
                                         </td>
+<<<<<<< HEAD
                                         <td class="text-center">
                                             <?php if ($mainRecord['estado_recorrido'] === 'abierto'): ?>
                                                 <span class="badge badge-success">Abierto</span>
@@ -833,6 +1009,15 @@ if ($export === 'excel') {
                             <?php endif; ?>
                         </td>
                         <?php endif; ?>
+=======
+                                        <?php if ($puedeModificar): ?>
+                                        <td class="text-center">
+                                            <a href="editar_registro.php?id=<?php echo $mainRecord['id']; ?>" class="btn btn-sm btn-warning" title="Editar registro">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </td>
+                                        <?php endif; ?>
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
                                         <?php if ($_SESSION['user_rol'] === 'administrador'): ?>
                                         <td class="text-center">
                                             <button class="btn btn-danger btn-sm eliminar-registro" 
@@ -902,6 +1087,7 @@ if ($export === 'excel') {
                                                     <span class="text-muted">Sin foto</span>
                                                 <?php endif; ?>
                                             </td>
+<<<<<<< HEAD
                                             <td class="text-center">
                                                 <?php if ($subRecord['estado_recorrido'] === 'abierto'): ?>
                                                 <span class="badge badge-success">Abierto</span>
@@ -941,6 +1127,15 @@ if ($export === 'excel') {
                                             <?php endif; ?>
                                             <?php if ($_SESSION['user_rol'] === 'administrador'): ?>
                                             <td class="text-center">
+=======
+                                            <?php if (in_array($_SESSION['user_rol'], ['administrador', 'tecnico', 'supervisor'])): ?>
+                                            <td class="text-center">
+                                                <a href="editar_registro.php?id=<?php echo $subRecord['id']; ?>" 
+                                                   class="btn btn-warning btn-sm" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <?php if ($_SESSION['user_rol'] === 'administrador'): ?>
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
                                                 <button class="btn btn-danger btn-sm eliminar-registro" 
                                                         data-id="<?php echo $subRecord['id']; ?>"
                                                         data-conductor="<?php echo htmlspecialchars($subRecord['nombre_conductor'] ?? ''); ?>"
@@ -948,6 +1143,14 @@ if ($export === 'excel') {
                                                         title="Eliminar">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
+<<<<<<< HEAD
+=======
+                                                <?php endif; ?>
+                                            </td>
+                                            <?php elseif ($_SESSION['user_rol'] === 'administrativo'): ?>
+                                            <td class="text-center">
+                                                <span class="text-muted"><i class="fas fa-eye"></i> Solo lectura</span>
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
                                             </td>
                                             <?php endif; ?>
                                         </tr>
@@ -1123,6 +1326,7 @@ if ($export === 'excel') {
     <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap4.min.js"></script>
 
+<<<<<<< HEAD
     <?php if (isset($mostrar_error_seleccionados) && $mostrar_error_seleccionados): ?>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -1151,6 +1355,8 @@ if ($export === 'excel') {
     </script>
     <?php endif; ?>
 
+=======
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
     <!-- Modal personalizado para mostrar foto del voucher -->
     <div id="fotoVoucherModal" class="foto-modal" style="display: none;">
         <div class="foto-modal-overlay">
@@ -1272,6 +1478,7 @@ jQuery(document).ready(function($) {
         
         const fotoRuta = $(this).data('foto-ruta');
         const fotoBase64 = $(this).data('foto');
+<<<<<<< HEAD
         const registroId = $(this).closest('tr').find('input[type="checkbox"]').val();
         
         // Registrar visualización de foto
@@ -1281,6 +1488,8 @@ jQuery(document).ready(function($) {
             accion: 'ver_foto_interfaz',
             detalle: `Visualización de foto voucher desde interfaz - Registro ID: ${registroId}`
         });
+=======
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
         
         let imgSrc;
         if (fotoRuta) {
@@ -1290,7 +1499,11 @@ jQuery(document).ready(function($) {
             // Compatibilidad: mostrar Base64 existente
             imgSrc = 'data:image/jpeg;base64,' + fotoBase64;
         } else {
+<<<<<<< HEAD
             mostrarModalMejorado('warning', 'Sin foto', 'No hay foto disponible para este voucher');
+=======
+            alert('No hay foto disponible');
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
             return;
         }
         
@@ -1355,7 +1568,11 @@ jQuery(document).ready(function($) {
     
     $('#btnConfirmarCustom').on('click', function() {
         if (!idToDelete) {
+<<<<<<< HEAD
             mostrarModalMejorado('error', 'Error', 'No hay ID para eliminar');
+=======
+            alert('Error: No hay ID para eliminar');
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
             return;
         }
         
@@ -1371,6 +1588,7 @@ jQuery(document).ready(function($) {
             success: function(response) {
                 $('#customConfirmModal').fadeOut(300);
                 if (response.success) {
+<<<<<<< HEAD
                     // Logging adicional desde frontend
                     $.post('../../config/log_activity.php', {
                         action: 'log',
@@ -1384,11 +1602,29 @@ jQuery(document).ready(function($) {
                     });
                 } else {
                     mostrarModalMejorado('error', 'Error al eliminar', response.message || 'No se pudo eliminar el registro');
+=======
+                    $('body').append(`
+                        <div class="alert alert-success alert-dismissible fade show position-fixed" 
+                             style="top: 20px; right: 20px; z-index: 10000; min-width: 300px;">
+                            <i class="fas fa-check-circle"></i> Registro eliminado correctamente
+                            <button type="button" class="close" data-dismiss="alert">
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                    `);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    alert('Error: ' + (response.message || 'No se pudo eliminar'));
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
                 }
             },
             error: function() {
                 $('#customConfirmModal').fadeOut(300);
+<<<<<<< HEAD
                 mostrarModalMejorado('error', 'Error de conexión', 'No se pudo conectar con el servidor al eliminar el registro');
+=======
+                alert('Error de conexión al eliminar el registro');
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
             },
             complete: function() {
                 $btn.html('<i class="fas fa-trash"></i> Eliminar');
@@ -1434,6 +1670,7 @@ jQuery(document).ready(function($) {
                 $button.removeClass('expanded');
                 $button.attr('title', 'Expandir registros');
                 console.log('📥 Grupo contraído:', groupId);
+<<<<<<< HEAD
                 
                 // Logging de contracción
                 $.post('../../config/log_activity.php', {
@@ -1442,6 +1679,8 @@ jQuery(document).ready(function($) {
                     accion: 'contraer_grupo_interfaz',
                     detalle: `Grupo de recorridos contraído - Grupo ID: ${groupId}`
                 });
+=======
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
             } else {
                 // Expandir
                 $subRecords.addClass('show').show();
@@ -1449,6 +1688,7 @@ jQuery(document).ready(function($) {
                 $button.addClass('expanded');
                 $button.attr('title', 'Contraer registros');
                 console.log('📤 Grupo expandido:', groupId);
+<<<<<<< HEAD
                 
                 // Logging de expansión
                 $.post('../../config/log_activity.php', {
@@ -1457,12 +1697,15 @@ jQuery(document).ready(function($) {
                     accion: 'expandir_grupo_interfaz',
                     detalle: `Grupo de recorridos expandido - Grupo ID: ${groupId}, Sub-registros: ${$subRecords.length}`
                 });
+=======
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
             }
         } catch (error) {
             console.error('❌ Error al expandir/contraer:', error);
         }
     });
     
+<<<<<<< HEAD
     // Función para actualizar información de selección
     function updateSelectionInfo() {
         try {
@@ -1657,6 +1900,64 @@ jQuery(document).ready(function($) {
             }
         }, 1000);
     }
+=======
+    // 5. Función para actualizar información de selección
+    function updateSelectionInfo() {
+        const selectedCount = $('.main-checkbox:checked').length;
+        $('#selected-count').text(selectedCount);
+        $('#selection-text').text('Has seleccionado ' + selectedCount + ' registros de combustible');
+        
+        if (selectedCount > 0) {
+            $('#export_selected').prop('disabled', false);
+            $('#selection-info').show();
+        } else {
+            $('#export_selected').prop('disabled', true);
+            $('#export_all').prop('checked', true);
+            $('#selection-info').hide();
+        }
+    }
+    
+    // 6. Manejar checkboxes principales
+    $(document).on('change', '.main-checkbox', function() {
+        const groupId = $(this).data('group');
+        const isChecked = $(this).is(':checked');
+        $('.sub-checkbox[data-group="' + groupId + '"]').prop('checked', isChecked);
+        updateSelectionInfo();
+    });
+    
+    // 7. Manejar checkboxes secundarios
+    $(document).on('change', '.sub-checkbox', function() {
+        const groupId = $(this).data('group');
+        const $mainCheckbox = $('.main-checkbox[data-group="' + groupId + '"]');
+        const $subCheckboxes = $('.sub-checkbox[data-group="' + groupId + '"]');
+        const $checkedSubs = $('.sub-checkbox[data-group="' + groupId + '"]:checked');
+        
+        if ($checkedSubs.length === $subCheckboxes.length && $subCheckboxes.length > 0) {
+            $mainCheckbox.prop('checked', true);
+        } else {
+            $mainCheckbox.prop('checked', false);
+        }
+        updateSelectionInfo();
+    });
+    
+    // 8. Checkbox del header
+    $('#select-all-header').on('change', function() {
+        const isChecked = $(this).is(':checked');
+        $('.main-checkbox, .sub-checkbox').prop('checked', isChecked);
+        updateSelectionInfo();
+    });
+    
+    // 9. Botones de selección
+    $('#select-all-btn').on('click', function() {
+        $('.main-checkbox, .sub-checkbox, #select-all-header').prop('checked', true);
+        updateSelectionInfo();
+    });
+    
+    $('#clear-selection-btn').on('click', function() {
+        $('.main-checkbox, .sub-checkbox, #select-all-header').prop('checked', false);
+        updateSelectionInfo();
+    });
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
     
     // 10. Manejar formulario de exportación
     $('#exportForm').on('submit', function(e) {
@@ -1667,7 +1968,11 @@ jQuery(document).ready(function($) {
             
             if ($checkedMainBoxes.length === 0) {
                 e.preventDefault();
+<<<<<<< HEAD
                 mostrarModalMejorado('warning', 'Selección requerida', 'Por favor, selecciona al menos un registro para descargar.');
+=======
+                alert('Por favor, selecciona al menos un registro para descargar.');
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
                 return false;
             }
             
@@ -1693,6 +1998,7 @@ jQuery(document).ready(function($) {
                     })
                 );
             });
+<<<<<<< HEAD
             
             // Logging de exportación seleccionada
             $.post('../../config/log_activity.php', {
@@ -1711,11 +2017,16 @@ jQuery(document).ready(function($) {
                 accion: 'exportar_todos_interfaz',
                 detalle: 'Iniciando exportación de todos los registros filtrados desde interfaz'
             });
+=======
+        } else {
+            $('#selected-ids-container').empty();
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
         }
         
         return true;
     });
     
+<<<<<<< HEAD
     // Inicialización principal
     console.log('🚀 Inicializando sistema de checkboxes mejorado...');
     
@@ -1729,6 +2040,12 @@ jQuery(document).ready(function($) {
     }, 500);
     
     // Verificación de elementos al cargar
+=======
+    // 11. Inicializar estado
+    updateSelectionInfo();
+    
+    // 12. Verificación de elementos al cargar
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
     setTimeout(function() {
         const expandButtons = $('.expand-btn').length;
         const subRecords = $('.sub-record').length;
@@ -1757,6 +2074,7 @@ jQuery(document).ready(function($) {
             const subCount = $('.sub-record[data-group="' + groupId + '"]').length;
             console.log('📊 Grupo ' + groupId + ': ' + subCount + ' sub-registros');
         });
+<<<<<<< HEAD
     }, 1000);
     
     console.log('🎉 Inicialización completa de ver_registros.php');
@@ -2514,6 +2832,12 @@ async function reabrirRecorrido(id) {
         );
     }
 }
+=======
+    }, 500);
+    
+    console.log('🎉 Inicialización completa de ver_registros.php');
+});
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
 </script>
             </body>
             </html>

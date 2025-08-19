@@ -61,16 +61,24 @@ foreach ($registros as $reg) {
     if (!empty($reg['origen']) && !empty($reg['destino'])) {
         $recorridos[] = [
             'origen' => $reg['origen'],
+<<<<<<< HEAD
             'destino' => $reg['destino'],
             'km_sucursales' => $reg['km_sucursales'],
             'comentarios_sector' => $reg['comentarios_sector']
+=======
+            'destino' => $reg['destino']
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
         ];
     }
 }
 
 // Si no hay recorridos, agregar uno vacío
 if (empty($recorridos)) {
+<<<<<<< HEAD
     $recorridos[] = ['origen' => '', 'destino' => '', 'km_sucursales' => '', 'comentarios_sector' => ''];
+=======
+    $recorridos[] = ['origen' => '', 'destino' => ''];
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
 }
 
 // Procesar actualización si es POST
@@ -158,12 +166,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         
         // Insertar nuevos recorridos
+<<<<<<< HEAD
         if (isset($_POST['origen']) && isset($_POST['destino']) && isset($_POST['km_sucursales'])) {
             $insertRecorridoQuery = "INSERT INTO uso_combustible_recorridos (uso_combustible_id, origen, destino, km_sucursales, comentarios_sector) VALUES (:uso_combustible_id, :origen, :destino, :km_sucursales, :comentarios_sector)";
+=======
+        if (isset($_POST['origen']) && isset($_POST['destino'])) {
+            $insertRecorridoQuery = "INSERT INTO uso_combustible_recorridos (uso_combustible_id, origen, destino) VALUES (:uso_combustible_id, :origen, :destino)";
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
             $stmt = $db->prepare($insertRecorridoQuery);
             
             for ($i = 0; $i < count($_POST['origen']); $i++) {
                 if (!empty($_POST['origen'][$i]) && !empty($_POST['destino'][$i])) {
+<<<<<<< HEAD
                     $comentarios_sector = isset($_POST['comentarios_sector'][$i]) ? $_POST['comentarios_sector'][$i] : '';
                     
                     $stmt->bindParam(':uso_combustible_id', $registro_id);
@@ -171,6 +185,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt->bindParam(':destino', $_POST['destino'][$i]);
                     $stmt->bindParam(':km_sucursales', $_POST['km_sucursales'][$i]);
                     $stmt->bindParam(':comentarios_sector', $comentarios_sector);
+=======
+                    $stmt->bindParam(':uso_combustible_id', $registro_id);
+                    $stmt->bindParam(':origen', $_POST['origen'][$i]);
+                    $stmt->bindParam(':destino', $_POST['destino'][$i]);
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
                     $stmt->execute();
                 }
             }
@@ -178,6 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $db->commit();
         error_log("DEBUG: Transacción confirmada exitosamente");
+<<<<<<< HEAD
         
         // Registrar actividad de edición
         ActivityLogger::logAccion(
@@ -187,6 +207,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "Registro de combustible editado - ID: {$registro_id}, Conductor: {$_POST['conductor']}, Chapa: {$_POST['chapa']}"
         );
         
+=======
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
         echo json_encode(['success' => true, 'message' => 'Registro actualizado correctamente']);
         exit;
         
@@ -503,6 +525,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div id="recorridos-container">
                                 <?php foreach ($recorridos as $index => $recorrido): ?>
                                 <div class="recorrido-item border p-3 mb-3">
+<<<<<<< HEAD
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <h6 class="mb-0">
                                             <span class="badge badge-primary recorrido-numero"><?php echo $index + 1; ?>°</span>
@@ -516,6 +539,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </div>
                                     <div class="form-row">
                                         <div class="form-group col-md-4">
+=======
+                                    <div class="form-row">
+                                        <div class="form-group col-md-6">
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
                                             <label>Origen</label>
                                             <div class="searchable-select">
                                                 <input type="text" class="form-control searchable-input" 
@@ -525,6 +552,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                        value="<?php echo htmlspecialchars($recorrido['origen']); ?>">
                                                 <input type="hidden" name="origen[]" id="origen_<?php echo $index; ?>" 
                                                        value="<?php echo htmlspecialchars($recorrido['origen']); ?>" required>
+<<<<<<< HEAD
                                                 <input type="hidden" name="orden_secuencial[]" value="<?php echo $index + 1; ?>">
                                             </div>
                                         </div>
@@ -536,6 +564,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                    value="<?php echo htmlspecialchars($recorrido['km_sucursales'] ?? ''); ?>">
                                         </div>
                                         <div class="form-group col-md-4">
+=======
+                                            </div>
+                                        </div>
+                                        <div class="form-group col-md-6">
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
                                             <label>Destino</label>
                                             <div class="searchable-select">
                                                 <input type="text" class="form-control searchable-input" 
@@ -548,6 +581,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             </div>
                                         </div>
                                     </div>
+<<<<<<< HEAD
                                     <!-- Campo de comentarios condicional -->
                                     <div class="form-row comentarios-sector" style="display: none;">
                                         <div class="form-group col-md-12">
@@ -562,6 +596,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                       rows="3"><?php echo isset($recorrido['comentarios_sector']) ? htmlspecialchars($recorrido['comentarios_sector']) : ''; ?></textarea>
                                         </div>
                                     </div>
+=======
+                                    <?php if ($index > 0): ?>
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="eliminarRecorrido(this)">
+                                        <i class="fas fa-trash"></i> Eliminar
+                                    </button>
+                                    <?php endif; ?>
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
                                 </div>
                                 <?php endforeach; ?>
                             </div>
@@ -658,6 +699,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $(document).ready(function() {
         initSearchableSelects();
         
+<<<<<<< HEAD
         // Verificar comentarios existentes al cargar la página
         $('.recorrido-item').each(function() {
             const recorridoItem = $(this);
@@ -670,11 +712,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         });
         
+=======
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
         $('#modalSearchInput').on('input', function() {
             const searchTerm = $(this).val();
             loadModalOptions(searchTerm);
         });
         
+<<<<<<< HEAD
+=======
+        $(document).on('click', '.option-item', function() {
+            const value = $(this).data('value');
+            const text = $(this).text().trim();
+            
+            if (currentInput && currentHiddenInput) {
+                if (value === '') {
+                    currentInput.val('');
+                    currentHiddenInput.val('');
+                } else {
+                    currentInput.val(text.replace(/^[^\s]*\s/, ''));
+                    currentHiddenInput.val(value);
+                }
+            }
+            
+            $('#selectionModal').modal('hide');
+        });
+        
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
         $('#selectionModal').on('hidden.bs.modal', function() {
             $('#modalSearchInput').val('');
             currentInput = null;
@@ -699,6 +763,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
     });
     
+<<<<<<< HEAD
     // Actualizar función agregarRecorrido para incluir KM y comentarios
     function agregarRecorrido() {
         const container = document.getElementById('recorridos-container');
@@ -735,11 +800,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="form-row">
                 <div class="form-group col-md-4">
+=======
+    // Actualizar función agregarRecorrido para usar dropdowns
+    function agregarRecorrido() {
+        const container = document.getElementById('recorridos-container');
+        const recorridoCount = container.children.length;
+        const nuevoRecorrido = document.createElement('div');
+        nuevoRecorrido.className = 'recorrido-item border p-3 mb-3';
+        nuevoRecorrido.innerHTML = `
+            <div class="form-row">
+                <div class="form-group col-md-6">
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
                     <label>Origen</label>
                     <div class="searchable-select">
                         <input type="text" class="form-control searchable-input" 
                                placeholder="Click para seleccionar origen..." 
                                data-target="origen_${recorridoCount}" 
+<<<<<<< HEAD
                                autocomplete="off" readonly
                                value="${ultimoDestinoTexto}">
                         <input type="hidden" name="origen[]" id="origen_${recorridoCount}" required value="${ultimoDestino}">
@@ -753,6 +830,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            min="0" step="0.1" required>
                 </div>
                 <div class="form-group col-md-4">
+=======
+                               autocomplete="off" readonly>
+                        <input type="hidden" name="origen[]" id="origen_${recorridoCount}" required>
+                    </div>
+                </div>
+                <div class="form-group col-md-6">
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
                     <label>Destino</label>
                     <div class="searchable-select">
                         <input type="text" class="form-control searchable-input" 
@@ -763,6 +847,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
             </div>
+<<<<<<< HEAD
             <!-- Campo de comentarios condicional -->
             <div class="form-row comentarios-sector" style="display: none;">
                 <div class="form-group col-md-12">
@@ -779,11 +864,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         `;
         
+=======
+            <button type="button" class="btn btn-danger btn-sm" onclick="eliminarRecorrido(this)">
+                <i class="fas fa-trash"></i> Eliminar
+            </button>
+        `;
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
         container.appendChild(nuevoRecorrido);
         initSearchableSelects();
     }
     
     function eliminarRecorrido(button) {
+<<<<<<< HEAD
         const recorridoItem = button.closest('.recorrido-item');
         recorridoItem.remove();
         
@@ -793,6 +885,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $(this).find('.recorrido-numero').text(nuevoNumero + '°');
             $(this).find('.numero-recorrido').text(nuevoNumero);
         });
+=======
+        button.closest('.recorrido-item').remove();
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
     }
     
     function showMessage(type, title, message, details = '') {
@@ -916,6 +1011,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         });
     });
+<<<<<<< HEAD
     // Evento para manejar la selección de opciones en el modal
     $(document).on('click', '.option-item[data-value]', function() {
         const selectedValue = $(this).data('value');
@@ -947,6 +1043,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $('#selectionModal').modal('hide');
     });
+=======
+>>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
     </script>
 </body>
 </html>

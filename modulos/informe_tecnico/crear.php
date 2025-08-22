@@ -1,5 +1,5 @@
 <?php
-session_start();  // Agregar session_start()
+session_start();
 if(!isset($_SESSION['user_id'])) {
     header("Location: ../../login.php");
     exit;
@@ -7,87 +7,54 @@ if(!isset($_SESSION['user_id'])) {
 
 require_once '../../config/database.php';
 require_once '../../models/InformeTecnico.php';
-require_once '../../models/RegistroActividad.php';  // Agregamos el modelo faltante
+require_once '../../models/RegistroActividad.php';
 
-// Modificar la sección de procesamiento POST
+// Procesar el formulario de datos (sin firma)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $database = new Database();
-    $db = $database->getConnection();
-    $informe = new InformeTecnico($db);
-    $registro = new RegistroActividad($db);
-
-    // Crear el informe primero
-    $informe_id = $informe->crear([
+    // Guardar los datos en la sesión para el siguiente paso
+    $_SESSION['informe_temp'] = [
         'local' => $_POST['local'],
         'sector' => $_POST['sector'],
         'equipo_asistido' => $_POST['equipo_asistido'],
         'orden_trabajo' => $_POST['orden_trabajo'],
         'patrimonio' => $_POST['patrimonio'],
         'jefe_turno' => $_POST['jefe_turno'],
-        'observaciones' => $_POST['observaciones'],
-        'firma_digital' => $_POST['firma_digital'],
-        'tecnico_id' => $_SESSION['user_id']
-    ]);
-
-    if($informe_id) {
-        // Procesar las fotos - MÉTODO SIMPLIFICADO (como acuse de recibo)
-        if(isset($_FILES['fotos']) && is_array($_FILES['fotos']['tmp_name'])) {
-            foreach($_FILES['fotos']['tmp_name'] as $key => $tmp_name) {
-                if($_FILES['fotos']['error'][$key] === UPLOAD_ERR_OK && !empty($tmp_name)) {
+        'observaciones' => $_POST['observaciones']
+    ];
+    
+    // Procesar las fotos temporalmente
+    if(isset($_FILES['fotos']) && is_array($_FILES['fotos']['tmp_name'])) {
+        $_SESSION['fotos_temp'] = [];
+        foreach($_FILES['fotos']['tmp_name'] as $key => $tmp_name) {
+            if($_FILES['fotos']['error'][$key] === UPLOAD_ERR_OK && !empty($tmp_name)) {
+                // Crear directorio temporal
+                $directorio_temp = '../../img/temp/';
+                if (!file_exists($directorio_temp)) {
+                    mkdir($directorio_temp, 0755, true);
+                }
                 
-                    // Crear directorio si no existe (igual que los otros módulos)
-                    $directorio = '../../img/informe_tecnicos/fotos/';
-                    if (!file_exists($directorio)) {
-                        mkdir($directorio, 0755, true);
-                    }
-                    
-                    // Generar nombre único (igual que los otros módulos)
-                    $extension = pathinfo($_FILES['fotos']['name'][$key], PATHINFO_EXTENSION);
-                    if (empty($extension)) {
-                        $extension = 'jpg';
-                    }
-                    
-                    $nombre_archivo = 'informe_' . $informe_id . '_' . time() . '_' . uniqid() . '.' . $extension;
-                    $ruta_completa = $directorio . $nombre_archivo;
-                    
-                    // Mover archivo (igual que los otros módulos)
-                    if (move_uploaded_file($tmp_name, $ruta_completa)) {
-                        // Insertar directamente en la base de datos - INCLUIR COLUMNA FOTO
-                        $query = "INSERT INTO fotos_informe_tecnico (informe_id, foto, foto_ruta, descripcion, tipo) VALUES (?, ?, ?, ?, ?)";
-                        $stmt = $db->prepare($query);
-                        
-                        $descripcion = $_POST['descripcion_foto'][$key] ?? '';
-                        $tipo = $_POST['tipo_foto'][$key] ?? 'antes';
-                        
-                        // Validar tipo
-                        if (!in_array($tipo, ['antes', 'despues'])) {
-                            $tipo = 'antes';
-                        }
-                        
-                        $stmt->execute([
-                            $informe_id,
-                            null,              // ← AGREGAR ESTE VALOR NULL PARA LA COLUMNA 'foto'
-                            $nombre_archivo,   // foto_ruta
-                            $descripcion,
-                            $tipo
-                        ]);
-                    }
+                $extension = pathinfo($_FILES['fotos']['name'][$key], PATHINFO_EXTENSION);
+                if (empty($extension)) {
+                    $extension = 'jpg';
+                }
+                
+                $nombre_temp = 'temp_' . time() . '_' . uniqid() . '.' . $extension;
+                $ruta_temp = $directorio_temp . $nombre_temp;
+                
+                if (move_uploaded_file($tmp_name, $ruta_temp)) {
+                    $_SESSION['fotos_temp'][] = [
+                        'archivo_temp' => $nombre_temp,
+                        'descripcion' => $_POST['descripcion_foto'][$key] ?? '',
+                        'tipo' => $_POST['tipo_foto'][$key] ?? 'antes'
+                    ];
                 }
             }
         }
-        
-        // Registrar la actividad con el nuevo formato
-        require_once '../../config/ActivityLogger.php';
-        ActivityLogger::logAccion(
-            $_SESSION['user_id'],
-            'informe_tecnico',
-            'crear',
-            "Nuevo informe técnico creado - Local: {$_POST['local']}, Patrimonio: {$_POST['patrimonio']}"
-        );
-        
-        header("Location: index.php?mensaje=Informe creado exitosamente");
-        exit;
     }
+    
+    // Redirigir a la página de firma
+    header("Location: firmar.php");
+    exit;
 }
 ?>
 
@@ -151,246 +118,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <textarea name="observaciones" class="form-control" rows="4" required></textarea>
             </div>
             
-            <!-- Componente de Firma Digital -->
-            <div class="form-group">
-                <label>Firma Digital:</label>
-                <div class="signature-container">
-                    <div class="signature-controls">
-                        <button type="button" class="btn btn-sm btn-info expand-canvas" title="Expandir área de firma">
-                            <i class="fas fa-expand-arrows-alt"></i>
-                        </button>
-                        <button type="button" class="btn btn-sm btn-danger" id="limpiarFirma">
-                            <i class="fas fa-eraser"></i> Limpiar
-                        </button>
-                    </div>
-                    <canvas id="signatureCanvas" class="signature-pad"></canvas>
-                </div>
-                <input type="hidden" name="firma_digital" id="firma_digital">
-                <div id="firmaConfirmacion" class="text-success mt-2" style="display: none;">
-                    <i class="fas fa-check-circle"></i> Firma guardada
-                </div>
-            </div>
 
-            <style>
-                .signature-container {
-                    position: relative;
-                    margin: 20px 0;
-                }
-                .signature-controls {
-                    position: absolute;
-                    top: -30px;
-                    right: 0;
-                    z-index: 100;
-                }
-                .signature-pad {
-                    border: 1px solid #ccc;
-                    border-radius: 4px;
-                    background-color: #fff;
-                    width: 100%;
-                    height: 200px;
-                    cursor: crosshair;
-                }
-                .signature-pad.expanded {
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    width: 80vw;
-                    height: 60vh;
-                    z-index: 1000;
-                    box-shadow: 0 0 20px rgba(0,0,0,0.2);
-                }
-                .modal-backdrop.show {
-                    opacity: 0.5;
-                    display: block;
-                }
-            </style>
 
-            <script>
-            $(document).ready(function() {
-                const canvas = document.getElementById('signatureCanvas');
-                const ctx = canvas.getContext('2d');
-                let isDrawing = false;
-                let lastX = 0;
-                let lastY = 0;
-
-                function initCanvas() {
-                    const rect = canvas.getBoundingClientRect();
-                    canvas.width = rect.width;
-                    canvas.height = rect.height;
-                    ctx.strokeStyle = '#000000';
-                    ctx.lineWidth = 2;
-                    ctx.lineCap = 'round';
-                    ctx.lineJoin = 'round';
-                }
-
-                $('.expand-canvas').click(function() {
-                    $('#signatureCanvas').toggleClass('expanded');
-                    if($('#signatureCanvas').hasClass('expanded')) {
-                        $('body').append('<div class="modal-backdrop show"></div>');
-                    } else {
-                        $('.modal-backdrop').remove();
-                    }
-                    initCanvas();
-                });
-
-                function getMousePos(e) {
-                    const rect = canvas.getBoundingClientRect();
-                    const scaleX = canvas.width / rect.width;
-                    const scaleY = canvas.height / rect.height;
-                    
-                    if (e.type.includes('touch')) {
-                        return {
-                            x: (e.touches[0].clientX - rect.left) * scaleX,
-                            y: (e.touches[0].clientY - rect.top) * scaleY
-                        };
-                    }
-                    return {
-                        x: (e.clientX - rect.left) * scaleX,
-                        y: (e.clientY - rect.top) * scaleY
-                    };
-                }
-
-                function startDrawing(e) {
-                    e.preventDefault();
-                    isDrawing = true;
-                    const pos = getMousePos(e);
-                    [lastX, lastY] = [pos.x, pos.y];
-                }
-
-                function draw(e) {
-                    if (!isDrawing) return;
-                    e.preventDefault();
-                    
-                    const pos = getMousePos(e);
-                    ctx.beginPath();
-                    ctx.moveTo(lastX, lastY);
-                    ctx.lineTo(pos.x, pos.y);
-                    ctx.stroke();
-                    [lastX, lastY] = [pos.x, pos.y];
-                }
-
-                function stopDrawing() {
-                    isDrawing = false;
-                }
-
-                // Mouse Events
-                canvas.addEventListener('mousedown', startDrawing);
-                canvas.addEventListener('mousemove', draw);
-                canvas.addEventListener('mouseup', stopDrawing);
-                canvas.addEventListener('mouseout', stopDrawing);
-
-                // Touch Events
-                canvas.addEventListener('touchstart', startDrawing);
-                canvas.addEventListener('touchmove', draw);
-                canvas.addEventListener('touchend', stopDrawing);
-
-                $('#modalFirma').on('shown.bs.modal', function() {
-                    initCanvas();
-                    // Ajustar tamaño del canvas al modal
-                    canvas.width = canvas.offsetWidth;
-                    canvas.height = canvas.offsetHeight;
-                });
-
-                $('#limpiarFirma').click(function() {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                });
-
-                $('#guardarFirma').click(function() {
-                    const firma = canvas.toDataURL('image/png');
-                    $('#firma_digital').val(firma);
-                    $('#firmaConfirmacion').show();
-                    $('#modalFirma').modal('hide');
-                });
-            });
-            </script>
-            <script>
-            $(document).ready(function() {
-                const canvas = document.getElementById('signatureCanvas');
-                const ctx = canvas.getContext('2d');
-                let isDrawing = false;
-                let lastX = 0;
-                let lastY = 0;
-
-                function initCanvas() {
-                    const rect = canvas.getBoundingClientRect();
-                    canvas.width = rect.width;
-                    canvas.height = rect.height;
-                    ctx.strokeStyle = '#000000';
-                    ctx.lineWidth = 2;
-                    ctx.lineCap = 'round';
-                    ctx.lineJoin = 'round';
-                }
-
-                $('.expand-canvas').click(function() {
-                    $('#signatureCanvas').toggleClass('expanded');
-                    if($('#signatureCanvas').hasClass('expanded')) {
-                        $('body').append('<div class="modal-backdrop show"></div>');
-                    } else {
-                        $('.modal-backdrop').remove();
-                    }
-                    initCanvas();
-                });
-
-                function getMousePos(e) {
-                    const rect = canvas.getBoundingClientRect();
-                    const scaleX = canvas.width / rect.width;
-                    const scaleY = canvas.height / rect.height;
-                    
-                    if (e.type.includes('touch')) {
-                        return {
-                            x: (e.touches[0].clientX - rect.left) * scaleX,
-                            y: (e.touches[0].clientY - rect.top) * scaleY
-                        };
-                    }
-                    return {
-                        x: (e.clientX - rect.left) * scaleX,
-                        y: (e.clientY - rect.top) * scaleY
-                    };
-                }
-
-                function startDrawing(e) {
-                    e.preventDefault();
-                    isDrawing = true;
-                    const pos = getMousePos(e);
-                    [lastX, lastY] = [pos.x, pos.y];
-                }
-
-                function draw(e) {
-                    if (!isDrawing) return;
-                    e.preventDefault();
-                    
-                    const pos = getMousePos(e);
-                    ctx.beginPath();
-                    ctx.moveTo(lastX, lastY);
-                    ctx.lineTo(pos.x, pos.y);
-                    ctx.stroke();
-                    [lastX, lastY] = [pos.x, pos.y];
-                }
-
-                function stopDrawing() {
-                    isDrawing = false;
-                }
-
-                // Mouse Events y Modificar el evento submit del formulario
-                $('#informeForm').on('submit', function(e) {
-                    e.preventDefault();
-                    const firma = canvas.toDataURL('image/png');
-                    $('#firma_digital').val(firma);
-                    this.submit();
-                });
-
-                // Agregar eventos de redimensionamiento y inicialización
-                $(window).on('resize', function() {
-                    if(!$('#signatureCanvas').hasClass('expanded')) {
-                        initCanvas();
-                    }
-                });
-
-                // Inicializar el canvas
-                initCanvas();
-            });
-            </script>
 
             <!-- Reemplazar la sección de foto única con esto -->
             <div class="form-group">
@@ -429,9 +158,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
             </script>
 
-            <!-- Remove old single photo upload section -->
+            <div class="form-group">
                 <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i> Guardar Informe
+                    <i class="fas fa-arrow-right"></i> Siguiente - Firmar
                 </button>
                 <a href="index.php" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Volver

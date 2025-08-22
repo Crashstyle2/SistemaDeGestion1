@@ -91,8 +91,10 @@ class Parser
 
     /**
      * The parse tree to be generated.
+     *
+     * @var array|string
      */
-    public array|string $parseTree;
+    public $parseTree;
 
     /**
      * Array of external sheets.
@@ -566,7 +568,7 @@ class Parser
      *
      * @param float|int|string $num an integer or double for conversion to its ptg value
      */
-    private function convertNumber(mixed $num): string
+    private function convertNumber($num): string
     {
         // Integer in the range 0..2**16-1
         if ((Preg::isMatch('/^\d+$/', (string) $num)) && ($num <= 65535)) {
@@ -671,7 +673,7 @@ class Parser
     private function convertRange3d(string $token): string
     {
         // Split the ref at the ! symbol
-        [$ext_ref, $range] = PhpspreadsheetWorksheet::extractSheetTitle($token, true, true);
+        [$ext_ref, $range] = PhpspreadsheetWorksheet::extractSheetTitle($token, true);
 
         // Convert the external reference part (different for BIFF8)
         $ext_ref = $this->getRefIndex($ext_ref ?? '');
@@ -723,7 +725,7 @@ class Parser
     private function convertRef3d(string $cell): string
     {
         // Split the ref at the ! symbol
-        [$ext_ref, $cell] = PhpspreadsheetWorksheet::extractSheetTitle($cell, true, true);
+        [$ext_ref, $cell] = PhpspreadsheetWorksheet::extractSheetTitle($cell, true);
 
         // Convert the external reference part (different for BIFF8)
         $ext_ref = $this->getRefIndex($ext_ref ?? '');
@@ -744,18 +746,26 @@ class Parser
      *
      * @return string The error code ptgErr
      */
-    private function convertError(string $errorCode): string
+    private function convertError($errorCode)
     {
-        return match ($errorCode) {
-            '#NULL!' => pack('C', 0x00),
-            '#DIV/0!' => pack('C', 0x07),
-            '#VALUE!' => pack('C', 0x0F),
-            '#REF!' => pack('C', 0x17),
-            '#NAME?' => pack('C', 0x1D),
-            '#NUM!' => pack('C', 0x24),
-            '#N/A' => pack('C', 0x2A),
-            default => pack('C', 0xFF),
-        };
+        switch ($errorCode) {
+            case '#NULL!':
+                return pack('C', 0x00);
+            case '#DIV/0!':
+                return pack('C', 0x07);
+            case '#VALUE!':
+                return pack('C', 0x0F);
+            case '#REF!':
+                return pack('C', 0x17);
+            case '#NAME?':
+                return pack('C', 0x1D);
+            case '#NUM!':
+                return pack('C', 0x24);
+            case '#N/A':
+                return pack('C', 0x2A);
+        }
+
+        return pack('C', 0xFF);
     }
 
     private bool $tryDefinedName = false;
@@ -1181,7 +1191,7 @@ class Parser
         ) {
             return $token;
         }
-        if (str_ends_with($token, ')')) {
+        if (substr($token, -1) === ')') {
             //    It's an argument of some description (e.g. a named range),
             //        precise nature yet to be determined
             return $token;
@@ -1552,7 +1562,7 @@ class Parser
      *
      * @return array A tree
      */
-    private function createTree(mixed $value, mixed $left, mixed $right): array
+    private function createTree($value, $left, $right): array
     {
         return ['value' => $value, 'left' => $left, 'right' => $right];
     }
@@ -1598,7 +1608,7 @@ class Parser
             $converted_tree = $this->toReversePolish($tree['left']);
             $polish .= $converted_tree;
         } elseif ($tree['left'] != '') { // It's a final node
-            $converted_tree = $this->convert($tree['left']); //* @phpstan-ignore-line
+            $converted_tree = $this->convert($tree['left']);
             $polish .= $converted_tree;
         }
         if (is_array($tree['right'])) {
@@ -1621,7 +1631,7 @@ class Parser
         ) {
             // left subtree for a function is always an array.
             if ($tree['left'] != '') {
-                $left_tree = $this->toReversePolish($tree['left']); //* @phpstan-ignore-line
+                $left_tree = $this->toReversePolish($tree['left']);
             } else {
                 $left_tree = '';
             }

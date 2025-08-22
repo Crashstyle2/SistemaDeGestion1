@@ -1,0 +1,83 @@
+=== LOG DE DEBUG PARA CERRAR/REABRIR RECORRIDOS ===
+Creado: <?php echo date('Y-m-d H:i:s'); ?>[2025-08-22 11:54:46] === INICIO PETICIÓN === - Data: {"method":"POST","user_id":1,"user_rol":"administrador"}
+[2025-08-22 11:54:46] Raw input recibido - Data: "{\"id\":79,\"action\":\"cerrar\"}"
+[2025-08-22 11:54:46] Input decodificado - Data: {"id":79,"action":"cerrar"}
+[2025-08-22 11:54:46] Parámetros extraídos - Data: {"id":79,"action":"cerrar"}
+[2025-08-22 11:54:46] Iniciando conexión a base de datos
+[2025-08-22 11:54:46] Conexión establecida, creando objetos
+[2025-08-22 11:54:46] Objetos creados exitosamente
+[2025-08-22 11:54:46] === PROCESANDO ACCIÓN CERRAR ===
+[2025-08-22 11:54:46] Verificando permisos - Data: {"rol":"administrador"}
+[2025-08-22 11:54:46] Intentando cerrar recorrido - Data: {"id":79,"user_id":1}
+[2025-08-22 11:54:46] Resultado de cerrar recorrido - Data: {"resultado":{"success":true,"message":"Recorrido cerrado exitosamente"}}
+[2025-08-22 11:54:57] === INICIO PETICIÓN === - Data: {"method":"POST","user_id":1,"user_rol":"administrador"}
+[2025-08-22 11:54:57] Raw input recibido - Data: "{\"id\":79,\"action\":\"reabrir\",\"motivo\":\"fdfd\"}"
+[2025-08-22 11:54:57] Input decodificado - Data: {"id":79,"action":"reabrir","motivo":"fdfd"}
+[2025-08-22 11:54:57] Parámetros extraídos - Data: {"id":79,"action":"reabrir"}
+[2025-08-22 11:54:57] Iniciando conexión a base de datos
+[2025-08-22 11:54:57] Conexión establecida, creando objetos
+[2025-08-22 11:54:57] Objetos creados exitosamente
+[2025-08-22 11:54:57] === PROCESANDO ACCIÓN REABRIR ===
+[2025-08-22 11:54:57] Verificando permisos de administrador - Data: {"rol":"administrador"}
+[2025-08-22 11:54:57] Motivo recibido - Data: {"motivo":"fdfd"}
+[2025-08-22 11:54:57] Intentando reabrir recorrido - Data: {"id":79,"user_id":1,"motivo":"fdfd"}
+[2025-08-22 11:54:57] Resultado de reabrir recorrido - Data: {"resultado":{"success":true,"message":"Recorrido reabierto exitosamente"}}
+[2025-08-22 11:55:45] === INICIO PETICIÓN === - Data: {"method":"POST","user_id":1,"user_rol":"administrador"}
+[2025-08-22 11:55:45] Raw input recibido - Data: "{\"id\":79,\"action\":\"cerrar\"}"
+[2025-08-22 11:55:45] Input decodificado - Data: {"id":79,"action":"cerrar"}
+[2025-08-22 11:55:45] Parámetros extraídos - Data: {"id":79,"action":"cerrar"}
+[2025-08-22 11:55:45] Iniciando conexión a base de datos
+[2025-08-22 11:55:45] Conexión establecida, creando objetos
+[2025-08-22 11:55:45] Objetos creados exitosamente
+[2025-08-22 11:55:45] === PROCESANDO ACCIÓN CERRAR ===
+[2025-08-22 11:55:45] Verificando permisos - Data: {"rol":"administrador"}
+[2025-08-22 11:55:45] Intentando cerrar recorrido - Data: {"id":79,"user_id":1}
+[2025-08-22 11:55:45] Resultado de cerrar recorrido - Data: {"resultado":{"success":true,"message":"Recorrido cerrado exitosamente"}}
+[2025-08-22 11:57:57] === INICIO PETICIÓN === - Data: {"method":"POST","user_id":1,"user_rol":"administrador"}
+[2025-08-22 11:57:57] Raw input recibido - Data: "{\"id\":79,\"action\":\"reabrir\",\"motivo\":\"ffd\"}"
+[2025-08-22 11:57:57] Input decodificado - Data: {"id":79,"action":"reabrir","motivo":"ffd"}
+[2025-08-22 11:57:57] Parámetros extraídos - Data: {"id":79,"action":"reabrir"}
+[2025-08-22 11:57:57] Iniciando conexión a base de datos
+[2025-08-22 11:57:57] Conexión establecida, creando objetos
+[2025-08-22 11:57:57] Objetos creados exitosamente
+[2025-08-22 11:57:57] === PROCESANDO ACCIÓN REABRIR ===
+[2025-08-22 11:57:57] Verificando permisos de administrador - Data: {"rol":"administrador"}
+[2025-08-22 11:57:57] Motivo recibido - Data: {"motivo":"ffd"}
+[2025-08-22 11:57:57] Intentando reabrir recorrido - Data: {"id":79,"user_id":1,"motivo":"ffd"}
+[2025-08-22 11:57:57] Resultado de reabrir recorrido - Data: {"resultado":{"success":true,"message":"Recorrido reabierto exitosamente"}}
+[2025-08-22 11:58:03] === INICIO PETICIÓN === - Data: {"method":"POST","user_id":1,"user_rol":"administrador"}
+[2025-08-22 11:58:03] Raw input recibido - Data: "{\"id\":79,\"action\":\"cerrar\"}"
+[2025-08-22 11:58:03] Input decodificado - Data: {"id":79,"action":"cerrar"}
+[2025-08-22 11:58:03] Parámetros extraídos - Data: {"id":79,"action":"cerrar"}
+[2025-08-22 11:58:03] Iniciando conexión a base de datos
+[2025-08-22 11:58:03] Conexión establecida, creando objetos
+[2025-08-22 11:58:03] Objetos creados exitosamente
+[2025-08-22 11:58:03] === PROCESANDO ACCIÓN CERRAR ===
+[2025-08-22 11:58:03] Verificando permisos - Data: {"rol":"administrador"}
+[2025-08-22 11:58:03] Intentando cerrar recorrido - Data: {"id":79,"user_id":1}
+[2025-08-22 11:58:03] Resultado de cerrar recorrido - Data: {"resultado":{"success":true,"message":"Recorrido cerrado exitosamente"}}
+[2025-08-22 11:58:03] Recorrido cerrado exitosamente - Data: {"id":79}
+[2025-08-22 11:59:28] === INICIO PETICIÓN === - Data: {"method":"POST","user_id":1,"user_rol":"administrador"}
+[2025-08-22 11:59:28] Raw input recibido - Data: "{\"id\":80,\"action\":\"cerrar\"}"
+[2025-08-22 11:59:28] Input decodificado - Data: {"id":80,"action":"cerrar"}
+[2025-08-22 11:59:28] Parámetros extraídos - Data: {"id":80,"action":"cerrar"}
+[2025-08-22 11:59:28] Iniciando conexión a base de datos
+[2025-08-22 11:59:28] Conexión establecida, creando objetos
+[2025-08-22 11:59:28] Objetos creados exitosamente
+[2025-08-22 11:59:28] === PROCESANDO ACCIÓN CERRAR ===
+[2025-08-22 11:59:28] Verificando permisos - Data: {"rol":"administrador"}
+[2025-08-22 11:59:28] Intentando cerrar recorrido - Data: {"id":80,"user_id":1}
+[2025-08-22 11:59:28] Resultado de cerrar recorrido - Data: {"resultado":{"success":true,"message":"Recorrido cerrado exitosamente"}}
+[2025-08-22 11:59:28] Recorrido cerrado exitosamente - Data: {"id":80}
+[2025-08-22 12:06:58] === INICIO PETICIÓN === - Data: {"method":"POST","user_id":1,"user_rol":"administrador"}
+[2025-08-22 12:06:58] Raw input recibido - Data: "{\"id\":80,\"action\":\"reabrir\",\"motivo\":\"fgfg\"}"
+[2025-08-22 12:06:58] Input decodificado - Data: {"id":80,"action":"reabrir","motivo":"fgfg"}
+[2025-08-22 12:06:58] Parámetros extraídos - Data: {"id":80,"action":"reabrir"}
+[2025-08-22 12:06:58] Iniciando conexión a base de datos
+[2025-08-22 12:06:58] Conexión establecida, creando objetos
+[2025-08-22 12:06:58] Objetos creados exitosamente
+[2025-08-22 12:06:58] === PROCESANDO ACCIÓN REABRIR ===
+[2025-08-22 12:06:58] Verificando permisos de administrador - Data: {"rol":"administrador"}
+[2025-08-22 12:06:58] Motivo recibido - Data: {"motivo":"fgfg"}
+[2025-08-22 12:06:58] Intentando reabrir recorrido - Data: {"id":80,"user_id":1,"motivo":"fgfg"}
+[2025-08-22 12:06:58] Resultado de reabrir recorrido - Data: {"resultado":{"success":true,"message":"Recorrido reabierto exitosamente"}}

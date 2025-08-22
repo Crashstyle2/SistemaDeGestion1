@@ -6,10 +6,9 @@ if(!isset($_SESSION['user_id'])) {
 }
 
 include_once '../../config/database.php';
-<<<<<<< HEAD
+
 require_once '../../config/ActivityLogger.php';
-=======
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
+
 require_once '../../vendor/autoload.php';
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -53,13 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export'])) {
 // Construir la consulta SQL base - VERIFICAR que incluya fecha_registro
 $sql = "SELECT uc.*, u.nombre as nombre_usuario, 
        ucr.origen, ucr.destino, ucr.km_sucursales, ucr.comentarios_sector,
-<<<<<<< HEAD
+
        uc.fecha_registro, ucr.id as recorrido_id, uc.estado_recorrido,
        uc.fecha_cierre, uc.cerrado_por, uc.reabierto_por, uc.fecha_reapertura,
        cerrador.nombre as nombre_cerrador, reabridor.nombre as nombre_reabridor,
-=======
        uc.fecha_registro, ucr.id as recorrido_id,
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
+
        s_origen.segmento as origen_segmento, s_origen.cebe as origen_cebe, 
        s_origen.local as origen_local, s_origen.m2_neto as origen_m2_neto, 
        s_origen.localidad as origen_localidad,
@@ -68,11 +66,11 @@ $sql = "SELECT uc.*, u.nombre as nombre_usuario,
        s_destino.localidad as destino_localidad
        FROM uso_combustible uc 
        LEFT JOIN usuarios u ON uc.user_id = u.id 
-<<<<<<< HEAD
+
        LEFT JOIN usuarios cerrador ON uc.cerrado_por = cerrador.id
        LEFT JOIN usuarios reabridor ON uc.reabierto_por = reabridor.id
-=======
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
+
+
        LEFT JOIN uso_combustible_recorridos ucr ON uc.id = ucr.uso_combustible_id 
        LEFT JOIN sucursales s_origen ON ucr.origen = s_origen.local
        LEFT JOIN sucursales s_destino ON ucr.destino = s_destino.local
@@ -141,7 +139,7 @@ $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 $registros = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-<<<<<<< HEAD
+
 // Verificar recorridos abiertos antes de exportar
 if ($export === 'excel') {
     include_once '../../models/UsoCombustible.php';
@@ -188,36 +186,35 @@ if ($export === 'excel') {
         // APLICAR LA MISMA LÓGICA DE AGRUPACIÓN Y ORDENAMIENTO
         $groupedRecords = [];
         foreach ($registros as $registro) {
-=======
-// Procesar exportación a Excel
-if ($export === 'excel') {
-    // APLICAR LA MISMA LÓGICA DE AGRUPACIÓN Y ORDENAMIENTO
-    $groupedRecords = [];
-    foreach ($registros as $registro) {
-        $groupKey = $registro['fecha_carga'] . '_' . 
-                   $registro['nombre_usuario'] . '_' . 
-                   $registro['nombre_conductor'] . '_' . 
-                   $registro['chapa'] . '_' . 
-                   $registro['numero_baucher'] . '_' . 
-                   $registro['litros_cargados'];
-        
-        if (!isset($groupedRecords[$groupKey])) {
-            $groupedRecords[$groupKey] = [];
-        }
-        $groupedRecords[$groupKey][] = $registro;
-    }
-    
-    // Ordenamiento por fecha_registro y ID de recorrido (IGUAL QUE EN LA WEB)
-    foreach ($groupedRecords as $groupKey => &$group) {
-        usort($group, function($a, $b) {
-            $fechaComparison = strtotime($a['fecha_registro']) - strtotime($b['fecha_registro']);
-            if ($fechaComparison === 0) {
-                return intval($a['recorrido_id']) - intval($b['recorrido_id']);
+            $groupKey = $registro['fecha_carga'] . '_' . 
+                       $registro['nombre_usuario'] . '_' . 
+                       $registro['nombre_conductor'] . '_' . 
+                       $registro['chapa'] . '_' . 
+                       $registro['numero_baucher'] . '_' . 
+                       $registro['litros_cargados'];
+            
+            if (!isset($groupedRecords[$groupKey])) {
+                $groupedRecords[$groupKey] = [];
             }
-            return $fechaComparison;
-        });
+            $groupedRecords[$groupKey][] = $registro;
+        }
+        
+        // Ordenamiento por fecha_registro y ID de recorrido
+        foreach ($groupedRecords as $groupKey => &$group) {
+            usort($group, function($a, $b) {
+                $fechaComparison = strtotime($a['fecha_registro']) - strtotime($b['fecha_registro']);
+                if ($fechaComparison === 0) {
+                    return intval($a['recorrido_id']) - intval($b['recorrido_id']);
+                }
+                return $fechaComparison;
+            });
+        }
+        unset($group);
     }
-    unset($group);
+}
+
+// Procesar exportación a Excel
+if ($export === 'excel' && $permitir_exportacion) {
     
     // Crear lista ordenada para exportar
     $registrosParaExportar = [];
@@ -266,7 +263,7 @@ if ($export === 'excel') {
         
         foreach ($registrosParaExportar as $registro) {
             // Detectar nuevo grupo para reiniciar secuencia
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
+
             $groupKey = $registro['fecha_carga'] . '_' . 
                        $registro['nombre_usuario'] . '_' . 
                        $registro['nombre_conductor'] . '_' . 
@@ -274,7 +271,7 @@ if ($export === 'excel') {
                        $registro['numero_baucher'] . '_' . 
                        $registro['litros_cargados'];
             
-<<<<<<< HEAD
+
             if (!isset($groupedRecords[$groupKey])) {
                 $groupedRecords[$groupKey] = [];
             }
@@ -407,58 +404,6 @@ if ($export === 'excel') {
             $writer->save('php://output');
             exit;
         }
-=======
-            if ($currentGroup !== $groupKey) {
-                $currentGroup = $groupKey;
-                $secuencia = 1;
-            }
-            
-            $data = [
-                date('d/m/Y H:i', strtotime($registro['fecha_carga'] . ' ' . $registro['hora_carga'])),
-                $registro['nombre_usuario'] ?? '',
-                $registro['nombre_conductor'] ?? '',
-                ucfirst(str_replace('_', ' ', $registro['tipo_vehiculo'] ?? '')),
-                $registro['chapa'] ?? '',
-                $registro['tarjeta'] ?? '',
-                $registro['numero_baucher'] ?? '',
-                $registro['litros_cargados'] ?? 0,
-                $secuencia . '°', // NUEVA COLUMNA DE SECUENCIA
-                $registro['origen'] ?? '',
-                $registro['origen_segmento'] ?? '',
-                $registro['origen_cebe'] ?? '',
-                $registro['origen_localidad'] ?? '',
-                $registro['origen_m2_neto'] ?? '',
-                $registro['destino'] ?? '',
-                $registro['destino_segmento'] ?? '',
-                $registro['destino_cebe'] ?? '',
-                $registro['destino_localidad'] ?? '',
-                $registro['destino_m2_neto'] ?? '',
-                $registro['km_sucursales'] ?? 0,
-                $registro['comentarios_sector'] ?? '',
-                $registro['documento'] ?? ''
-            ];
-            $sheet->fromArray($data, null, 'A' . $row);
-            $row++;
-            $secuencia++;
-        }
-        
-        // Ajustar ancho de columnas
-        foreach (range('A', 'V') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
-        
-        // Configurar el archivo para descarga
-        $tipoExport = !empty($selected_ids) ? 'seleccionados' : 'filtrados';
-        $filename = 'registros_combustible_' . $tipoExport . '_' . date('Y-m-d_H-i-s') . '.xlsx';
-        
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="' . $filename . '"');
-        header('Cache-Control: max-age=0');
-        
-        $writer = new Xlsx($spreadsheet);
-        $writer->save('php://output');
-        exit;
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
     }
 }
 ?>
@@ -489,38 +434,106 @@ if ($export === 'excel') {
     }
     .sub-record {
         display: none !important;
+        background: linear-gradient(90deg, #f8f9fa 0%, #ffffff 100%) !important;
+        border-left: 4px solid #28a745;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        position: relative;
     }
     
     .sub-record td {
-        padding-left: 15px;
-        font-size: 0.95em;
+        padding: 12px 8px;
+        font-size: 0.92em;
+        position: relative;
+        vertical-align: top;
     }
+    
+    .sub-record td:first-child {
+        padding-left: 50px;
+    }
+    
+    .sub-record td:first-child::before {
+        content: "";
+        position: absolute;
+        left: 25px;
+        top: 50%;
+        width: 12px;
+        height: 2px;
+        background: #28a745;
+        transform: translateY(-50%);
+    }
+    
     .sub-record.show {
         display: table-row !important;
     }
-    .expand-btn {
-        background: none;
-        border: none;
-        color: #007bff;
-        cursor: pointer;
-        padding: 2px 5px;
-        margin-right: 5px;
-        font-size: 14px;
-        transition: all 0.2s ease;
+    
+    .sub-record:hover {
+        background: linear-gradient(90deg, #e9ecef 0%, #f8f9fa 100%) !important;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.05);
     }
+    
+    .sub-record.no-secuencial {
+        border-left-color: #ffc107;
+        background: linear-gradient(90deg, #fff3cd 0%, #ffffff 100%) !important;
+    }
+    
+    .sub-record.no-secuencial:hover {
+        background: linear-gradient(90deg, #ffeaa7 0%, #fff3cd 100%) !important;
+    }
+    
+    @keyframes slideInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .expand-btn {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 6px 10px;
+        margin-right: 8px;
+        font-size: 12px;
+        border-radius: 20px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,123,255,0.2);
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
     .expand-btn:hover {
-        color: #0056b3;
-        background: #f8f9fa;
-        border-radius: 3px;
+        background: linear-gradient(135deg, #0056b3, #004085);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0,123,255,0.3);
         text-decoration: none;
     }
+    
     .expand-btn:focus {
         outline: none;
-        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
     }
+    
     .expand-btn.expanded {
-        color: #dc3545;
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        box-shadow: 0 2px 4px rgba(220,53,69,0.2);
     }
+    
+    .expand-btn.expanded:hover {
+        background: linear-gradient(135deg, #c82333, #a71e2a);
+        box-shadow: 0 4px 8px rgba(220,53,69,0.3);
+    }
+    
+    .expand-btn i {
+        transition: transform 0.3s ease;
+        font-size: 10px;
+    }
+    
     .expand-btn.expanded i {
         transform: rotate(90deg);
     }
@@ -573,7 +586,7 @@ if ($export === 'excel') {
         display: none;
     }
     .checkbox-column {
-<<<<<<< HEAD
+
         width: 50px !important;
         text-align: center !important;
     }
@@ -583,15 +596,23 @@ if ($export === 'excel') {
         pointer-events: auto !important;
         position: relative !important;
         z-index: 1 !important;
-=======
-        width: 40px;
-        text-align: center;
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
+        width: 18px;
+        height: 18px;
+        margin: 0 auto;
+        display: block;
     }
+    
+    .main-checkbox:checked, .sub-checkbox:checked, #select-all-header:checked {
+        background-color: #007bff !important;
+        border-color: #007bff !important;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+    }
+    
     .form-check-label {
         color: #495057;
         font-weight: 500;
     }
+    
     .form-check-input:checked {
         background-color: #007bff;
         border-color: #007bff;
@@ -638,15 +659,8 @@ if ($export === 'excel') {
         font-weight: 500;
     }
     
-    .sub-record {
-        background-color: #f8f9fa !important;
-        border-left: 3px solid #28a745;
-    }
-    
-    .sub-record.no-secuencial {
-        border-left-color: #ffc107;
-    }
-<<<<<<< HEAD
+    /* Estilos duplicados eliminados - ya están definidos arriba */
+
     
     @keyframes fadeIn {
         from { opacity: 0; }
@@ -668,8 +682,150 @@ if ($export === 'excel') {
             opacity: 1;
         }
     }
-=======
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
+    
+    /* Mejoras adicionales para la tabla */
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .table thead th {
+        background: linear-gradient(135deg, #343a40 0%, #495057 100%);
+        color: white;
+        border: none;
+        padding: 15px 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85em;
+        letter-spacing: 0.5px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .table tbody tr {
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .table tbody tr:hover:not(.sub-record) {
+        background: linear-gradient(90deg, #f1f3f4 0%, #ffffff 100%) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .table tbody td {
+        padding: 12px;
+        vertical-align: middle;
+        border-top: none;
+        border-bottom: 1px solid #f1f3f4;
+    }
+    
+    /* Indicador visual para registros con sub-registros */
+    .has-subrecords {
+        position: relative;
+    }
+    
+    .has-subrecords::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: linear-gradient(180deg, #007bff 0%, #0056b3 100%);
+    }
+    
+    /* Mejora del contenedor de la tabla */
+    .table-responsive {
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    
+    /* Animación para el contenido expandido */
+    .expand-content {
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+    }
+    
+    /* Estilos para contenedor de sub-registros */
+    .sub-records-container {
+        background: #f8f9fa;
+    }
+    
+    .sub-records-wrapper {
+        padding: 15px;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        margin: 5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        width: 100%;
+        min-width: 100%;
+        overflow: visible;
+    }
+    
+    .sub-records-header {
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .sub-records-header h6 {
+        color: #495057;
+        font-weight: 600;
+        margin: 0;
+    }
+    
+    .sub-records-table {
+        font-size: 0.9em;
+        width: 100%;
+        table-layout: auto;
+        min-width: max-content;
+    }
+    
+    /* Asegurar que el contenedor principal permita el desbordamiento horizontal */
+    .card-body {
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+    
+    .sub-records-wrapper .table-responsive {
+        overflow: visible;
+        width: 100%;
+    }
+    
+    .sub-records-table thead th {
+        background: #f8f9fa;
+        border-top: none;
+        font-weight: 600;
+        color: #495057;
+        padding: 10px 8px;
+        vertical-align: middle;
+    }
+    
+    .sub-record-row {
+        transition: background-color 0.2s ease;
+    }
+    
+    .sub-record-row:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .sub-record-row td {
+        padding: 8px;
+        vertical-align: middle;
+        border-top: 1px solid #dee2e6;
+    }
+    
+    .sub-select-all {
+        transform: scale(1.1);
+    }
+
     </style>
 </head>
 <body>
@@ -702,7 +858,7 @@ if ($export === 'excel') {
                         </div>
                     </div>
                     <div class="card-body">
-<<<<<<< HEAD
+
                         <!--<!-- Logging de búsqueda -->
         <?php if (!empty($search) || !empty($fecha_inicio) || !empty($fecha_fin)): ?>
         <script>
@@ -711,7 +867,7 @@ if ($export === 'excel') {
             action: 'log',
             modulo: 'uso_combustible',
             accion: 'busqueda_registros',
-            detalle: 'Búsqueda realizada - Términos: "<?php echo addslashes($search); ?>", Fecha inicio: <?php echo $fecha_inicio; ?>, Fecha fin: <?php echo $fecha_fin; ?>'
+            detalle: 'Búsqueda realizada - Términos: ' + <?php echo json_encode($search); ?> + ', Fecha inicio: ' + <?php echo json_encode($fecha_inicio); ?> + ', Fecha fin: ' + <?php echo json_encode($fecha_fin); ?>
         });
         </script>
         <?php endif; ?>
@@ -719,11 +875,11 @@ if ($export === 'excel') {
         <!-- Búsqueda simplificada -->
                         <div class="search-container">
                             <form method="GET" class="mb-0" onsubmit="logBusqueda()">
-=======
+
                         <!-- Búsqueda simplificada -->
                         <div class="search-container">
                             <form method="GET" class="mb-0">
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
+
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group mb-3">
@@ -836,30 +992,23 @@ if ($export === 'excel') {
                                 <thead class="thead-dark">
                                     <tr>
                                         <th class="checkbox-column">
-                                            <input type="checkbox" id="select-all-header" title="Seleccionar/Deseleccionar todos">
+                                            <input type="checkbox" class="form-check-input" id="select-all-header" title="Seleccionar/Deseleccionar todos">
                                         </th>
                                         <th>Fecha</th>
-                                        <th>Técnico</th>
+                                        <!-- <th>Técnico</th> OCULTO PARA AHORRAR ESPACIO -->
                                         <th>Tipo Vehículo</th>
                                         <th>Conductor</th>
                                         <th>Chapa</th>
                                         <th>Nº Voucher</th>
                                         <th>Nº Tarjeta</th>
                                         <th>Litros</th>
-                                        <th>Origen</th>
-                                        <th>Destino</th>
-                                        <th>Documento</th>
+                                        <!-- Origen y Destino se mostrarán solo al expandir -->
+                                        <!-- <th>Origen</th> -->
+                                        <!-- <th>Destino</th> -->
+                                        <!-- <th>Documento</th> OCULTO PARA AHORRAR ESPACIO -->
                                         <th>Foto Voucher</th>
-<<<<<<< HEAD
-                                        <th>Estado</th>
-=======
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
-                                        <?php if ($puedeModificar): ?>
-                                        <th>Editar</th>
-                                        <?php endif; ?>
-                                        <?php if ($_SESSION['user_rol'] === 'administrador'): ?>
-                                        <th>Eliminar</th>
-                                        <?php endif; ?>
+                                        <!-- Columnas de acción combinadas en una sola -->
+                                        <th>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -881,7 +1030,7 @@ if ($export === 'excel') {
                     }
                     
                     // NUEVO: Ordenamiento por fecha_registro y ID de recorrido
-<<<<<<< HEAD
+
         foreach ($groupedRecords as $groupKey => &$group) {
             usort($group, function($a, $b) {
                 // Primero por fecha_registro, luego por ID de recorrido
@@ -894,7 +1043,7 @@ if ($export === 'excel') {
             });
         }
         unset($group); // Limpiar referencia
-=======
+
                     foreach ($groupedRecords as $groupKey => &$group) {
                         usort($group, function($a, $b) {
                             // Primero por fecha_registro, luego por ID de recorrido
@@ -907,7 +1056,7 @@ if ($export === 'excel') {
                         });
                     }
                     unset($group); // Limpiar referencia
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
+
                     
                     $groupIndex = 0;
                     foreach ($groupedRecords as $groupKey => $group): 
@@ -916,12 +1065,13 @@ if ($export === 'excel') {
                         $groupIndex++;
                     ?>
                                     <!-- Registro principal -->
-                                    <tr class="main-record" data-group="<?php echo $groupIndex; ?>">
+                                    <tr class="main-record <?php echo $isMultiple ? 'has-subrecords' : ''; ?>" data-group="<?php echo $groupIndex; ?>">
                                         <td class="text-center">
-                                            <input type="checkbox" class="record-checkbox main-checkbox" 
+                                            <input type="checkbox" class="form-check-input record-checkbox main-checkbox" 
                                                    value="<?php echo $mainRecord['id']; ?>" 
                                                    data-group="<?php echo $groupIndex; ?>"
-                                                   data-main-id="<?php echo $mainRecord['id']; ?>">
+                                                   data-main-id="<?php echo $mainRecord['id']; ?>"
+                                                   id="main-checkbox-<?php echo $groupIndex; ?>">
                                         </td>
                                         <td>
                                             <?php if ($isMultiple): ?>
@@ -934,227 +1084,219 @@ if ($export === 'excel') {
                                                 <span class="multiple-indicator"><?php echo count($group); ?> recorridos</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><?php echo htmlspecialchars($mainRecord['nombre_usuario'] ?? ''); ?></td>
+                                        <!-- Técnico oculto -->
+                                        <!-- <td><?php echo htmlspecialchars($mainRecord['nombre_usuario'] ?? ''); ?></td> -->
                                         <td><?php echo ucfirst(str_replace('_', ' ', $mainRecord['tipo_vehiculo'] ?? '')); ?></td>
                                         <td><?php echo htmlspecialchars($mainRecord['nombre_conductor'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($mainRecord['chapa'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($mainRecord['numero_baucher'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($mainRecord['tarjeta'] ?? ''); ?></td>
                                         <td><?php echo number_format($mainRecord['litros_cargados'] ?? 0, 2); ?></td>
+                                        <!-- Origen/Destino y Documento ocultos; se verán en expansión -->
+                                        <!--
                                         <td>
-                            <span class="recorrido-numero">1°</span>
-                            <span class="origen-destino"><?php echo htmlspecialchars($mainRecord['origen'] ?? ''); ?></span>
-                            <?php if ($isMultiple): ?>
-                                <span class="secuencia-indicator">→ Secuencia de <?php echo count($group); ?> recorridos</span>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <span class="recorrido-numero">1°</span>
-                            <span class="origen-destino"><?php echo htmlspecialchars($mainRecord['destino'] ?? ''); ?></span>
-                            <?php if ($isMultiple): ?>
-                                <button class="btn btn-sm btn-outline-info expand-btn" data-group="<?php echo $groupIndex; ?>" title="Ver secuencia completa">
-                                    <i class="fas fa-route"></i> Ver ruta
-                                </button>
-                            <?php endif; ?>
-                        </td>
+                                            <span class="recorrido-numero">1°</span>
+                                            <span class="origen-destino"><?php echo htmlspecialchars($mainRecord['origen'] ?? ''); ?></span>
+                                            <?php if ($isMultiple): ?>
+                                                <span class="secuencia-indicator">→ Secuencia de <?php echo count($group); ?> recorridos</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <span class="recorrido-numero">1°</span>
+                                            <span class="origen-destino"><?php echo htmlspecialchars($mainRecord['destino'] ?? ''); ?></span>
+                                            <?php if ($isMultiple): ?>
+                                                <button class="btn btn-sm btn-outline-info expand-btn" data-group="<?php echo $groupIndex; ?>" title="Ver secuencia completa">
+                                                    <i class="fas fa-route"></i> Ver ruta
+                                                </button>
+                                            <?php endif; ?>
+                                        </td>
                                         <td><?php echo htmlspecialchars($mainRecord['documento'] ?? ''); ?></td>
+                                        -->
                                         <td class="text-center">
                                             <?php if (!empty($mainRecord['foto_voucher_ruta']) || !empty($mainRecord['foto_voucher'])): ?>
-                                                <button type="button" class="btn btn-sm btn-info ver-foto" 
-                                                        data-foto="<?php echo $mainRecord['foto_voucher']; ?>"
-                                                        data-foto-ruta="<?php echo $mainRecord['foto_voucher_ruta']; ?>"
+                                                <button type="button" class="btn btn-sm btn-info ver-foto-inline" 
+                                                        data-foto="<?php echo htmlspecialchars($mainRecord['foto_voucher']); ?>"
+                                                        data-foto-ruta="<?php echo htmlspecialchars($mainRecord['foto_voucher_ruta']); ?>"
                                                         title="Ver foto del voucher">
-                                                    <i class="fas fa-eye"></i> Ver
+                                                    <i class="fas fa-image"></i> Ver
                                                 </button>
+                                                <div class="voucher-preview" style="display:none;">
+                                                    <img src="" alt="Foto voucher">
+                                                </div>
                                             <?php else: ?>
                                                 <span class="text-muted">Sin foto</span>
                                             <?php endif; ?>
                                         </td>
-<<<<<<< HEAD
+
                                         <td class="text-center">
-                                            <?php if ($mainRecord['estado_recorrido'] === 'abierto'): ?>
-                                                <span class="badge badge-success">Abierto</span>
-                                                <?php if (in_array($rol, ['tecnico', 'supervisor', 'administrador']) && $mainRecord['user_id'] == $_SESSION['user_id']): ?>
-                                                    <button class="btn btn-warning btn-sm" onclick="cerrarRecorrido(<?php echo $mainRecord['id']; ?>)" title="Cerrar Recorrido">
-                                                        <i class="fas fa-lock"></i> Cerrar
-                                                    </button>
-                                                <?php endif; ?>
-                                            <?php else: ?>
-                                                <span class="badge badge-danger">Cerrado</span>
-                                                <?php if ($mainRecord['fecha_cierre']): ?>
-                                                    <small class="text-muted d-block">Cerrado: <?php echo date('d/m/Y H:i', strtotime($mainRecord['fecha_cierre'])); ?></small>
-                                                    <small class="text-muted d-block">Por: <?php echo htmlspecialchars($mainRecord['nombre_cerrador']); ?></small>
-                                                <?php endif; ?>
-                                                <?php if ($rol === 'administrador'): ?>
-                                                    <button class="btn btn-info btn-sm" onclick="reabrirRecorrido(<?php echo $mainRecord['id']; ?>)" title="Reabrir Recorrido">
-                                                        <i class="fas fa-unlock"></i> Reabrir
-                                                    </button>
-                                                <?php endif; ?>
-                                            <?php endif; ?>
+                                            <div class="dropdown d-inline-block">
+                                                <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    <i class="fas fa-ellipsis-h"></i> Acciones
+                                                </button>
+                                                <div class="dropdown-menu dropdown-menu-right">
+                                                    <div class="px-3 py-2 text-muted">
+                                                        Estado: 
+                                                        <?php if ($mainRecord['estado_recorrido'] === 'abierto'): ?>
+                                                            <span class="badge badge-success">Abierto</span>
+                                                        <?php else: ?>
+                                                            <span class="badge badge-danger">Cerrado</span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <?php if ($mainRecord['estado_recorrido'] === 'abierto' && in_array($rol, ['tecnico', 'supervisor', 'administrador']) && $mainRecord['user_id'] == $_SESSION['user_id']): ?>
+                                                        <a class="dropdown-item" href="#" onclick="cerrarRecorrido(<?php echo $mainRecord['id']; ?>)"><i class="fas fa-lock mr-2"></i>Cerrar Recorrido</a>
+                                                    <?php endif; ?>
+                                                    <?php if ($mainRecord['estado_recorrido'] === 'cerrado' && $rol === 'administrador'): ?>
+                                                        <a class="dropdown-item" href="#" onclick="reabrirRecorrido(<?php echo $mainRecord['id']; ?>)"><i class="fas fa-unlock mr-2"></i>Reabrir Recorrido</a>
+                                                    <?php endif; ?>
+                                                    <?php if ($puedeModificar): ?>
+                                                        <?php if ($mainRecord['estado_recorrido'] === 'cerrado'): ?>
+                                                            <span class="dropdown-item text-muted"><i class="fas fa-edit mr-2"></i>No se puede editar</span>
+                                                        <?php else: ?>
+                                                            <a class="dropdown-item" href="editar_registro.php?id=<?php echo $mainRecord['id']; ?>"><i class="fas fa-edit mr-2"></i>Editar</a>
+                                                        <?php endif; ?>
+                                                    <?php endif; ?>
+                                                    <?php if ($_SESSION['user_rol'] === 'administrador'): ?>
+                                                        <div class="dropdown-divider"></div>
+                                                        <a class="dropdown-item text-danger eliminar-registro" href="#"
+                                                           data-id="<?php echo $mainRecord['id']; ?>"
+                                                           data-conductor="<?php echo htmlspecialchars($mainRecord['nombre_conductor'] ?? ''); ?>"
+                                                           data-chapa="<?php echo htmlspecialchars($mainRecord['chapa'] ?? ''); ?>">
+                                                           <i class="fas fa-trash mr-2"></i>Eliminar
+                                                        </a>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
                                         </td>
-                                        <?php if ($puedeModificar): ?>
-                        <td class="text-center">
-                            <?php if ($mainRecord['estado_recorrido'] === 'cerrado'): ?>
-                                <button class="btn btn-sm btn-secondary" 
-                                        onclick="mostrarMensajeRecorridoCerrado()" 
-                                        title="Recorrido cerrado - No se puede editar">
-                                    <i class="fas fa-lock"></i>
-                                </button>
-                            <?php else: ?>
-                                <a href="editar_registro.php?id=<?php echo $mainRecord['id']; ?>" 
-                                   class="btn btn-sm btn-warning" 
-                                   title="Editar registro">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                            <?php endif; ?>
-                        </td>
-                        <?php endif; ?>
-=======
-                                        <?php if ($puedeModificar): ?>
-                                        <td class="text-center">
-                                            <a href="editar_registro.php?id=<?php echo $mainRecord['id']; ?>" class="btn btn-sm btn-warning" title="Editar registro">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                        </td>
-                                        <?php endif; ?>
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
-                                        <?php if ($_SESSION['user_rol'] === 'administrador'): ?>
-                                        <td class="text-center">
-                                            <button class="btn btn-danger btn-sm eliminar-registro" 
-                                                    data-id="<?php echo $mainRecord['id']; ?>"
-                                                    data-conductor="<?php echo htmlspecialchars($mainRecord['nombre_conductor'] ?? ''); ?>"
-                                                    data-chapa="<?php echo htmlspecialchars($mainRecord['chapa'] ?? ''); ?>"
-                                                    title="Eliminar registro">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                        <?php endif; ?>
                                     </tr>
                                     
                                     <?php if ($isMultiple): ?>
-                                        <?php for ($i = 1; $i < count($group); $i++): 
-                                            $subRecord = $group[$i];
-                                            $recorridoNumero = $i + 1;
-                                            $origenAnterior = $group[$i-1]['destino'];
-                                            $origenActual = $subRecord['origen'];
-                                            $esSecuencial = ($origenAnterior === $origenActual);
-                                        ?>
-                                        <!-- Sub-registros (aparecen DESPUÉS del principal) -->
-                                        <tr class="sub-record" data-group="<?php echo $groupIndex; ?>" style="display: none;">
-                                            <td class="text-center">
-                                                <input type="checkbox" class="record-checkbox sub-checkbox" 
-                                                       value="<?php echo $subRecord['id']; ?>" 
-                                                       data-group="<?php echo $groupIndex; ?>"
-                                                       data-main-id="<?php echo $mainRecord['id']; ?>">
+                                        <!-- Fila expandible para sub-registros -->
+                                        <tr class="sub-records-container" data-group="<?php echo $groupIndex; ?>" style="display: none;">
+                                            <td colspan="<?php echo $puedeModificar ? '13' : '12'; ?>" class="p-0">
+                                                <div class="sub-records-wrapper">
+                                                    <div class="sub-records-header">
+                                                        <h6 class="mb-2"><i class="fas fa-route text-primary"></i> Detalles del Recorrido Múltiple</h6>
+                                                    </div>
+                                                    <div class="table-responsive">
+                                                        <table class="table table-sm sub-records-table mb-0">
+                                                            <thead class="thead-light">
+                                                                <tr>
+                                                                    <th width="40"><input type="checkbox" class="sub-select-all" data-group="<?php echo $groupIndex; ?>"></th>
+                                                                    <th>Recorrido</th>
+                                                                    <th>Vehículo</th>
+                                                                    <th>Conductor</th>
+                                                                    <th>Chapa</th>
+                                                                    <th>N° Voucher</th>
+                                                                    <th>Tarjeta</th>
+                                                                    <th>Litros</th>
+                                                                    <th>Ruta</th>
+                                                                    <th>Documento</th>
+                                                                    <th>Foto</th>
+                                                                    <th>Estado</th>
+                                                                    <?php if ($puedeModificar): ?><th>Acciones</th><?php endif; ?>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <?php for ($i = 1; $i < count($group); $i++): 
+                                                                    $subRecord = $group[$i];
+                                                                    $recorridoNumero = $i + 1;
+                                                                    $origenAnterior = $group[$i-1]['destino'];
+                                                                    $origenActual = $subRecord['origen'];
+                                                                    $esSecuencial = ($origenAnterior === $origenActual);
+                                                                ?>
+                                                                <tr class="sub-record-row">
+                                                                    <td class="text-center">
+                                                                        <input type="checkbox" class="form-check-input record-checkbox sub-checkbox" 
+                                                                               value="<?php echo $subRecord['id']; ?>" 
+                                                                               data-group="<?php echo $groupIndex; ?>"
+                                                                               data-main-id="<?php echo $mainRecord['id']; ?>"
+                                                                               id="sub-checkbox-<?php echo $subRecord['id']; ?>">
+                                                                    </td>
+                                                                    <td>
+                                                                        <div class="d-flex align-items-center">
+                                                                            <span class="recorrido-numero <?php echo $esSecuencial ? 'secuencial' : 'no-secuencial'; ?> mr-2">
+                                                                                <?php echo $recorridoNumero; ?>°
+                                                                            </span>
+                                                                            <div>
+                                                                                <div class="font-weight-bold"><?php echo date('d/m/Y H:i', strtotime($subRecord['fecha_carga'] . ' ' . $subRecord['hora_carga'])); ?></div>
+                                                                                <small class="text-muted">
+                                                                                    <?php echo htmlspecialchars($subRecord['origen'] ?? ''); ?> → <?php echo htmlspecialchars($subRecord['destino'] ?? ''); ?>
+                                                                                    <?php if (!$esSecuencial): ?>
+                                                                                        <i class="fas fa-exclamation-triangle text-warning ml-1" title="No sigue secuencia"></i>
+                                                                                    <?php endif; ?>
+                                                                                </small>
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td><?php echo ucfirst(str_replace('_', ' ', $subRecord['tipo_vehiculo'] ?? '')); ?></td>
+                                                                    <td><?php echo htmlspecialchars($subRecord['nombre_conductor'] ?? ''); ?></td>
+                                                                    <td><?php echo htmlspecialchars($subRecord['chapa'] ?? ''); ?></td>
+                                                                    <td><?php echo htmlspecialchars($subRecord['numero_baucher'] ?? ''); ?></td>
+                                                                    <td><?php echo htmlspecialchars($subRecord['tarjeta'] ?? ''); ?></td>
+                                                                    <td class="text-right font-weight-bold"><?php echo number_format($subRecord['litros_cargados'] ?? 0, 2); ?></td>
+                                                                    <td>
+                                                                        <small class="text-muted">
+                                                                            <div><strong>Origen:</strong> <?php echo htmlspecialchars($subRecord['origen'] ?? ''); ?></div>
+                                                                            <div><strong>Destino:</strong> <?php echo htmlspecialchars($subRecord['destino'] ?? ''); ?></div>
+                                                                        </small>
+                                                                    </td>
+                                                                    <td><?php echo htmlspecialchars($subRecord['documento'] ?? ''); ?></td>
+                                                                    <td class="text-center">
+                                                                        <?php if (!empty($subRecord['foto_voucher_ruta']) || !empty($subRecord['foto_voucher'])): ?>
+                                                                            <button type="button" class="btn btn-sm btn-info ver-foto" 
+                                                                                    data-foto="<?php echo htmlspecialchars($subRecord['foto_voucher']); ?>"
+                                                                                    data-foto-ruta="<?php echo htmlspecialchars($subRecord['foto_voucher_ruta']); ?>"
+                                                                                    title="Ver foto del voucher">
+                                                                                <i class="fas fa-eye"></i>
+                                                                            </button>
+                                                                        <?php else: ?>
+                                                                            <span class="text-muted">-</span>
+                                                                        <?php endif; ?>
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        <?php if ($subRecord['estado_recorrido'] === 'abierto'): ?>
+                                                                            <span class="badge badge-success">Abierto</span>
+                                                                            <?php if (in_array($rol, ['tecnico', 'supervisor', 'administrador']) && $subRecord['user_id'] == $_SESSION['user_id']): ?>
+                                                                                <button class="btn btn-warning btn-xs mt-1" onclick="cerrarRecorrido(<?php echo $subRecord['id']; ?>)" title="Cerrar">
+                                                                                    <i class="fas fa-lock"></i>
+                                                                                </button>
+                                                                            <?php endif; ?>
+                                                                        <?php else: ?>
+                                                                            <span class="badge badge-danger">Cerrado</span>
+                                                                            <?php if ($subRecord['fecha_cierre']): ?>
+                                                                                <small class="text-muted d-block">Por: <?php echo htmlspecialchars($subRecord['nombre_cerrador']); ?></small>
+                                                                            <?php endif; ?>
+                                                                            <?php if ($rol === 'administrador'): ?>
+                                                                                <button class="btn btn-info btn-xs mt-1" onclick="reabrirRecorrido(<?php echo $subRecord['id']; ?>)" title="Reabrir">
+                                                                                    <i class="fas fa-unlock"></i>
+                                                                                </button>
+                                                                            <?php endif; ?>
+                                                                        <?php endif; ?>
+                                                                    </td>
+                                                                    <?php if ($puedeModificar): ?>
+                                                                    <td class="text-center">
+                                                                        <?php if ($subRecord['estado_recorrido'] === 'cerrado'): ?>
+                                                                            <button class="btn btn-sm btn-secondary" 
+                                                                                    onclick="mostrarMensajeRecorridoCerrado()" 
+                                                                                    title="Recorrido cerrado">
+                                                                                <i class="fas fa-lock"></i>
+                                                                            </button>
+                                                                        <?php else: ?>
+                                                                            <a href="editar_registro.php?id=<?php echo $subRecord['id']; ?>" 
+                                                                               class="btn btn-warning btn-sm" title="Editar">
+                                                                                <i class="fas fa-edit"></i>
+                                                                            </a>
+                                                                        <?php endif; ?>
+                                                                    </td>
+                                                                    <?php endif; ?>
+                                                                </tr>
+                                                                <?php endfor; ?>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
                                             </td>
-                                            <td>
-                                                <span class="recorrido-numero <?php echo $esSecuencial ? 'secuencial' : 'no-secuencial'; ?>">
-                                                    <?php echo $recorridoNumero; ?>°
-                                                </span>
-                                                <?php echo date('d/m/Y H:i', strtotime($subRecord['fecha_carga'] . ' ' . $subRecord['hora_carga'])); ?>
-                                            </td>
-                                            <td><?php echo htmlspecialchars($subRecord['nombre_usuario'] ?? ''); ?></td>
-                                            <td><?php echo ucfirst(str_replace('_', ' ', $subRecord['tipo_vehiculo'] ?? '')); ?></td>
-                                            <td><?php echo htmlspecialchars($subRecord['nombre_conductor'] ?? ''); ?></td>
-                                            <td><?php echo htmlspecialchars($subRecord['chapa'] ?? ''); ?></td>
-                                            <td><?php echo htmlspecialchars($subRecord['numero_baucher'] ?? ''); ?></td>
-                                            <td><?php echo htmlspecialchars($subRecord['tarjeta'] ?? ''); ?></td>
-                                            <td><?php echo number_format($subRecord['litros_cargados'] ?? 0, 2); ?></td>
-                                            <td>
-                                                <span class="recorrido-numero <?php echo $esSecuencial ? 'secuencial' : 'no-secuencial'; ?>">
-                                                    <?php echo $recorridoNumero; ?>°
-                                                </span>
-                                                <span class="origen-destino"><?php echo htmlspecialchars($subRecord['origen'] ?? ''); ?></span>
-                                                <?php if (!$esSecuencial): ?>
-                                                    <i class="fas fa-exclamation-triangle text-warning" title="No sigue secuencia del recorrido anterior"></i>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <span class="recorrido-numero <?php echo $esSecuencial ? 'secuencial' : 'no-secuencial'; ?>">
-                                                    <?php echo $recorridoNumero; ?>°
-                                                </span>
-                                                <span class="origen-destino"><?php echo htmlspecialchars($subRecord['destino'] ?? ''); ?></span>
-                                            </td>
-                                            <td><?php echo htmlspecialchars($subRecord['documento'] ?? ''); ?></td>
-                                            <td class="text-center">
-                                                <?php if (!empty($subRecord['foto_voucher'])): ?>
-                                                    <button type="button" class="btn btn-sm btn-info ver-foto" 
-                                                            data-foto="<?php echo $subRecord['foto_voucher']; ?>"
-                                                            title="Ver foto del voucher">
-                                                        <i class="fas fa-eye"></i> Ver
-                                                    </button>
-                                                <?php else: ?>
-                                                    <span class="text-muted">Sin foto</span>
-                                                <?php endif; ?>
-                                            </td>
-<<<<<<< HEAD
-                                            <td class="text-center">
-                                                <?php if ($subRecord['estado_recorrido'] === 'abierto'): ?>
-                                                <span class="badge badge-success">Abierto</span>
-                                                <?php if (in_array($rol, ['tecnico', 'supervisor', 'administrador']) && $subRecord['user_id'] == $_SESSION['user_id']): ?>
-                                                    <button class="btn btn-warning btn-sm" onclick="cerrarRecorrido(<?php echo $subRecord['id']; ?>)" title="Cerrar Recorrido">
-                                                        <i class="fas fa-lock"></i> Cerrar
-                                                    </button>
-                                                <?php endif; ?>
-                                            <?php else: ?>
-                                                <span class="badge badge-danger">Cerrado</span>
-                                                <?php if ($subRecord['fecha_cierre']): ?>
-                                                    <small class="text-muted d-block">Cerrado: <?php echo date('d/m/Y H:i', strtotime($subRecord['fecha_cierre'])); ?></small>
-                                                    <small class="text-muted d-block">Por: <?php echo htmlspecialchars($subRecord['nombre_cerrador']); ?></small>
-                                                <?php endif; ?>
-                                                <?php if ($rol === 'administrador'): ?>
-                                                    <button class="btn btn-info btn-sm" onclick="reabrirRecorrido(<?php echo $subRecord['id']; ?>)" title="Reabrir Recorrido">
-                                                        <i class="fas fa-unlock"></i> Reabrir
-                                                    </button>
-                                                <?php endif; ?>
-                                            <?php endif; ?>
-                                            </td>
-                                            <?php if ($puedeModificar): ?>
-                                            <td class="text-center">
-                                                <?php if ($subRecord['estado_recorrido'] === 'cerrado'): ?>
-                                                    <button class="btn btn-sm btn-secondary" 
-                                                            onclick="mostrarMensajeRecorridoCerrado()" 
-                                                            title="Recorrido cerrado - No se puede editar">
-                                                        <i class="fas fa-lock"></i>
-                                                    </button>
-                                                <?php else: ?>
-                                                    <a href="editar_registro.php?id=<?php echo $subRecord['id']; ?>" 
-                                                       class="btn btn-warning btn-sm" title="Editar">
-                                                        <i class="fas fa-edit"></i>
-                                                    </a>
-                                                <?php endif; ?>
-                                            </td>
-                                            <?php endif; ?>
-                                            <?php if ($_SESSION['user_rol'] === 'administrador'): ?>
-                                            <td class="text-center">
-=======
-                                            <?php if (in_array($_SESSION['user_rol'], ['administrador', 'tecnico', 'supervisor'])): ?>
-                                            <td class="text-center">
-                                                <a href="editar_registro.php?id=<?php echo $subRecord['id']; ?>" 
-                                                   class="btn btn-warning btn-sm" title="Editar">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                <?php if ($_SESSION['user_rol'] === 'administrador'): ?>
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
-                                                <button class="btn btn-danger btn-sm eliminar-registro" 
-                                                        data-id="<?php echo $subRecord['id']; ?>"
-                                                        data-conductor="<?php echo htmlspecialchars($subRecord['nombre_conductor'] ?? ''); ?>"
-                                                        data-chapa="<?php echo htmlspecialchars($subRecord['chapa'] ?? ''); ?>"
-                                                        title="Eliminar">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-<<<<<<< HEAD
-=======
-                                                <?php endif; ?>
-                                            </td>
-                                            <?php elseif ($_SESSION['user_rol'] === 'administrativo'): ?>
-                                            <td class="text-center">
-                                                <span class="text-muted"><i class="fas fa-eye"></i> Solo lectura</span>
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
-                                            </td>
-                                            <?php endif; ?>
                                         </tr>
-                                        <?php endfor; ?>
                                     <?php endif; ?>
                                     <?php endforeach; ?>
                                 </tbody>
@@ -1325,8 +1467,10 @@ if ($export === 'excel') {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap4.min.js"></script>
+    
+    <!-- Script de manejo de errores mejorado -->
+    <script src="error_handler.js"></script>
 
-<<<<<<< HEAD
     <?php if (isset($mostrar_error_seleccionados) && $mostrar_error_seleccionados): ?>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -1355,8 +1499,6 @@ if ($export === 'excel') {
     </script>
     <?php endif; ?>
 
-=======
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
     <!-- Modal personalizado para mostrar foto del voucher -->
     <div id="fotoVoucherModal" class="foto-modal" style="display: none;">
         <div class="foto-modal-overlay">
@@ -1378,7 +1520,55 @@ if ($export === 'excel') {
     </div>
 
     <style>
-    /* Modal personalizado para fotos */
+    /* Estilos para botones ver-foto - Corregir parpadeo */
+    .btn-info.ver-foto,
+    .btn-info.ver-foto-inline {
+        background: linear-gradient(135deg, #17a2b8, #138496) !important;
+        border: 1px solid #17a2b8 !important;
+        color: white !important;
+        transition: all 0.2s ease !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+    
+    .btn-info.ver-foto:hover,
+    .btn-info.ver-foto-inline:hover {
+        background: linear-gradient(135deg, #138496, #117a8b) !important;
+        border-color: #138496 !important;
+        color: white !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 8px rgba(23, 162, 184, 0.3) !important;
+    }
+    
+    .btn-info.ver-foto:focus,
+    .btn-info.ver-foto-inline:focus {
+        background: linear-gradient(135deg, #17a2b8, #138496) !important;
+        border-color: #17a2b8 !important;
+        color: white !important;
+        box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, 0.25) !important;
+    }
+    
+    .btn-info.ver-foto:active,
+    .btn-info.ver-foto-inline:active {
+        background: linear-gradient(135deg, #138496, #117a8b) !important;
+        border-color: #138496 !important;
+        transform: translateY(0) !important;
+    }
+    
+    /* Estado activo para vista previa inline */
+    .btn-info.ver-foto-inline.active {
+        background: linear-gradient(135deg, #28a745, #20c997) !important;
+        border-color: #20c997 !important;
+        box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25) !important;
+    }
+    
+    .btn-info.ver-foto-inline.active:hover {
+        background: linear-gradient(135deg, #218838, #1ea085) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3) !important;
+    }
+
+    /* Modal personalizado para fotos - Mejorado */
     .foto-modal {
         position: fixed;
         top: 0;
@@ -1386,7 +1576,12 @@ if ($export === 'excel') {
         width: 100%;
         height: 100%;
         z-index: 10000;
-        background-color: rgba(0, 0, 0, 0.8);
+        background-color: rgba(0, 0, 0, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
     }
 
     .foto-modal-overlay {
@@ -1395,69 +1590,220 @@ if ($export === 'excel') {
         justify-content: center;
         width: 100%;
         height: 100%;
-        padding: 20px;
+        max-width: 100%;
+        max-height: 100%;
     }
 
     .foto-modal-content {
         background: white;
-        border-radius: 8px;
-        max-width: 90vw;
-        max-height: 90vh;
+        border-radius: 12px;
+        max-width: 95vw;
+        max-height: 95vh;
         overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+        display: flex;
+        flex-direction: column;
+        position: relative;
     }
 
     .foto-modal-header {
-        background: #007bff;
+        background: linear-gradient(135deg, #007bff, #0056b3);
         color: white;
         padding: 15px 20px;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        flex-shrink: 0;
+        border-radius: 12px 12px 0 0;
     }
 
     .foto-modal-header h5 {
         margin: 0;
         font-size: 1.2rem;
+        font-weight: 600;
     }
 
     .foto-modal-close {
         background: none;
         border: none;
         color: white;
-        font-size: 1.5rem;
+        font-size: 1.8rem;
         cursor: pointer;
-        padding: 0;
-        width: 30px;
-        height: 30px;
+        padding: 5px;
+        width: 35px;
+        height: 35px;
         display: flex;
         align-items: center;
         justify-content: center;
+        border-radius: 50%;
+        transition: all 0.2s ease;
     }
 
     .foto-modal-close:hover {
         background-color: rgba(255, 255, 255, 0.2);
-        border-radius: 50%;
+        transform: scale(1.1);
     }
 
     .foto-modal-body {
         padding: 20px;
         text-align: center;
-        max-height: 70vh;
+        flex: 1;
         overflow: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 0;
     }
 
     .foto-modal-img {
         max-width: 100%;
-        max-height: 60vh;
+        max-height: 100%;
         height: auto;
-        border-radius: 4px;
+        width: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        object-fit: contain;
     }
 
     .foto-modal-footer {
         padding: 15px 20px;
         background: #f8f9fa;
         text-align: right;
+        flex-shrink: 0;
+        border-radius: 0 0 12px 12px;
+        border-top: 1px solid #dee2e6;
+    }
+    
+    /* Responsividad del modal */
+    @media (max-width: 768px) {
+        .foto-modal {
+            padding: 10px;
+        }
+        
+        .foto-modal-content {
+            max-width: 98vw;
+            max-height: 98vh;
+        }
+        
+        .foto-modal-header {
+            padding: 12px 15px;
+        }
+        
+        .foto-modal-header h5 {
+            font-size: 1.1rem;
+        }
+        
+        .foto-modal-body {
+            padding: 15px;
+        }
+        
+        .foto-modal-footer {
+            padding: 12px 15px;
+        }
+    }
+    
+    /* Animaciones del modal */
+    .foto-modal {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .foto-modal.show {
+        opacity: 1;
+    }
+    
+    .foto-modal-content {
+        transform: scale(0.8);
+        transition: transform 0.3s ease;
+    }
+    
+    .foto-modal.show .foto-modal-content {
+        transform: scale(1);
+    }
+    
+    /* Vista previa inline de imágenes - Sin deformación de tabla */
+    .voucher-preview {
+        margin-top: 8px;
+        padding: 4px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        border: 1px solid #dee2e6;
+        text-align: center;
+        max-width: 140px;
+        width: max-content;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .voucher-preview img {
+        max-width: 130px;
+        max-height: 70px;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        border-radius: 3px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+        display: block;
+    }
+    
+    .voucher-preview img:hover {
+        transform: scale(1.02);
+        cursor: pointer;
+    }
+    
+    /* Asegurar que las celdas de foto no se deformen */
+    td .voucher-preview {
+        overflow: hidden;
+    }
+    
+    /* Corregir z-index del dropdown de acciones */
+    .dropdown {
+        position: relative;
+        z-index: 1000;
+    }
+    
+    .dropdown-menu {
+        z-index: 1050 !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+        border: 1px solid rgba(0,0,0,0.1) !important;
+        border-radius: 8px !important;
+        padding: 8px 0 !important;
+        min-width: 180px !important;
+    }
+    
+    .dropdown-item {
+        padding: 8px 16px !important;
+        transition: all 0.2s ease !important;
+        border-radius: 0 !important;
+    }
+    
+    .dropdown-item:hover {
+        background-color: #f8f9fa !important;
+        transform: translateX(2px) !important;
+    }
+    
+    .dropdown-toggle {
+        position: relative;
+        z-index: 1001;
+    }
+    
+    /* Asegurar que la tabla no interfiera con dropdowns */
+    .table-responsive {
+        overflow: visible;
+    }
+    
+    /* Permitir que las filas expandibles se muestren completamente */
+    .sub-records-container td {
+        overflow: visible !important;
+    }
+    
+    tbody tr {
+        position: relative;
+    }
+    
+    tbody tr:hover {
+        z-index: 10;
     }
     </style>
 
@@ -1472,14 +1818,21 @@ jQuery(document).ready(function($) {
     let idToDelete = null;
     
     // Manejar clic en botón "Ver foto" - MODAL PERSONALIZADO
-    $(document).on('click', '.ver-foto', function(e) {
+    $(document).on('click', '.ver-foto, .ver-foto-inline', function(e) {
         e.preventDefault();
         e.stopPropagation();
         
+        console.log('🖼️ Botón ver foto clickeado');
+        
         const fotoRuta = $(this).data('foto-ruta');
         const fotoBase64 = $(this).data('foto');
-<<<<<<< HEAD
         const registroId = $(this).closest('tr').find('input[type="checkbox"]').val();
+        
+        console.log('📊 Datos de foto:', {
+            fotoRuta: fotoRuta,
+            fotoBase64: fotoBase64 ? 'Presente (' + fotoBase64.length + ' chars)' : 'No disponible',
+            registroId: registroId
+        });
         
         // Registrar visualización de foto
         $.post('../../config/log_activity.php', {
@@ -1488,35 +1841,55 @@ jQuery(document).ready(function($) {
             accion: 'ver_foto_interfaz',
             detalle: `Visualización de foto voucher desde interfaz - Registro ID: ${registroId}`
         });
-=======
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
-        
+
         let imgSrc;
         if (fotoRuta) {
             // Nueva implementación: mostrar desde archivo
             imgSrc = '../../img/uso_combustible/vouchers/' + fotoRuta;
+            console.log('✅ Usando ruta de archivo:', imgSrc);
         } else if (fotoBase64) {
             // Compatibilidad: mostrar Base64 existente
             imgSrc = 'data:image/jpeg;base64,' + fotoBase64;
+            console.log('✅ Usando Base64, longitud:', fotoBase64.length);
         } else {
-<<<<<<< HEAD
+            console.log('❌ No hay foto disponible');
             mostrarModalMejorado('warning', 'Sin foto', 'No hay foto disponible para este voucher');
-=======
-            alert('No hay foto disponible');
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
             return;
         }
         
-        $('#fotoVoucherImg').attr('src', imgSrc);
-        $('#fotoVoucherModal').fadeIn(300);
-        $('body').css('overflow', 'hidden'); // Prevenir scroll
+        // Verificar si la imagen se puede cargar antes de mostrar el modal
+        const testImg = new Image();
+        testImg.onload = function() {
+            console.log('✅ Imagen cargada correctamente, mostrando modal');
+            $('#fotoVoucherImg').attr('src', imgSrc);
+            
+            // Mostrar modal con animación mejorada
+            const modal = $('#fotoVoucherModal');
+            modal.show();
+            // Pequeño delay para permitir que el display:block se aplique antes de la animación
+            setTimeout(() => {
+                modal.addClass('show');
+            }, 10);
+            $('body').css('overflow', 'hidden'); // Prevenir scroll
+        };
+        testImg.onerror = function() {
+            console.error('❌ Error al cargar imagen:', imgSrc);
+            mostrarModalMejorado('error', 'Error de imagen', 'No se pudo cargar la imagen del voucher. Verifique que el archivo existe.');
+        };
+        testImg.src = imgSrc;
     });
     
-    // Función para cerrar el modal
+    // Función para cerrar el modal con animación mejorada
     function cerrarFotoModal() {
-        $('#fotoVoucherModal').fadeOut(300);
-        $('#fotoVoucherImg').attr('src', '');
-        $('body').css('overflow', 'auto'); // Restaurar scroll
+        const modal = $('#fotoVoucherModal');
+        modal.removeClass('show');
+        
+        // Esperar a que termine la animación antes de ocultar
+        setTimeout(() => {
+            modal.hide();
+            $('#fotoVoucherImg').attr('src', '');
+            $('body').css('overflow', 'auto'); // Restaurar scroll
+        }, 300);
     }
     
     // Cerrar modal con botón X
@@ -1546,6 +1919,76 @@ jQuery(document).ready(function($) {
         }
     });
     
+    // Manejar vista previa inline de imágenes
+    $(document).on('click', '.ver-foto-inline', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const btn = $(this);
+        const preview = btn.siblings('.voucher-preview');
+        const img = preview.find('img');
+        
+        // Si ya está visible, ocultarlo
+        if (preview.is(':visible')) {
+            preview.slideUp(300);
+            btn.removeClass('active');
+            return;
+        }
+        
+        // Obtener datos de la imagen
+        const fotoBase64 = btn.data('foto');
+        const fotoRuta = btn.data('foto-ruta');
+        
+        let imgSrc;
+        if (fotoRuta) {
+            imgSrc = '../../img/uso_combustible/vouchers/' + fotoRuta;
+        } else if (fotoBase64) {
+            imgSrc = 'data:image/jpeg;base64,' + fotoBase64;
+        } else {
+            mostrarModalMejorado('warning', 'Sin foto', 'No hay foto disponible para este voucher');
+            return;
+        }
+        
+        // Cargar y mostrar la imagen
+        const testImg = new Image();
+        testImg.onload = function() {
+            img.attr('src', imgSrc);
+            preview.slideDown(300);
+            btn.addClass('active');
+        };
+        testImg.onerror = function() {
+            mostrarModalMejorado('error', 'Error de imagen', 'No se pudo cargar la imagen del voucher.');
+        };
+        testImg.src = imgSrc;
+    });
+    
+    // Al hacer clic en la imagen inline, abrir el modal completo
+    $(document).on('click', '.voucher-preview img', function() {
+        const btn = $(this).closest('td').find('.ver-foto-inline');
+        btn.trigger('click'); // Ocultar preview
+        
+        // Simular clic en botón ver-foto para abrir modal
+        const fotoBase64 = btn.data('foto');
+        const fotoRuta = btn.data('foto-ruta');
+        
+        let imgSrc;
+        if (fotoRuta) {
+            imgSrc = '../../img/uso_combustible/vouchers/' + fotoRuta;
+        } else if (fotoBase64) {
+            imgSrc = 'data:image/jpeg;base64,' + fotoBase64;
+        }
+        
+        if (imgSrc) {
+            $('#fotoVoucherImg').attr('src', imgSrc);
+            const modal = $('#fotoVoucherModal');
+            modal.show();
+            setTimeout(() => {
+                modal.addClass('show');
+            }, 10);
+            $('body').css('overflow', 'hidden');
+        }
+    });
+    
     // 1. Función para eliminar registros
     $(document).on('click', '.eliminar-registro', function(e) {
         e.preventDefault();
@@ -1568,11 +2011,7 @@ jQuery(document).ready(function($) {
     
     $('#btnConfirmarCustom').on('click', function() {
         if (!idToDelete) {
-<<<<<<< HEAD
             mostrarModalMejorado('error', 'Error', 'No hay ID para eliminar');
-=======
-            alert('Error: No hay ID para eliminar');
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
             return;
         }
         
@@ -1588,7 +2027,7 @@ jQuery(document).ready(function($) {
             success: function(response) {
                 $('#customConfirmModal').fadeOut(300);
                 if (response.success) {
-<<<<<<< HEAD
+
                     // Logging adicional desde frontend
                     $.post('../../config/log_activity.php', {
                         action: 'log',
@@ -1602,29 +2041,12 @@ jQuery(document).ready(function($) {
                     });
                 } else {
                     mostrarModalMejorado('error', 'Error al eliminar', response.message || 'No se pudo eliminar el registro');
-=======
-                    $('body').append(`
-                        <div class="alert alert-success alert-dismissible fade show position-fixed" 
-                             style="top: 20px; right: 20px; z-index: 10000; min-width: 300px;">
-                            <i class="fas fa-check-circle"></i> Registro eliminado correctamente
-                            <button type="button" class="close" data-dismiss="alert">
-                                <span>&times;</span>
-                            </button>
-                        </div>
-                    `);
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    alert('Error: ' + (response.message || 'No se pudo eliminar'));
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
                 }
             },
             error: function() {
                 $('#customConfirmModal').fadeOut(300);
-<<<<<<< HEAD
                 mostrarModalMejorado('error', 'Error de conexión', 'No se pudo conectar con el servidor al eliminar el registro');
-=======
-                alert('Error de conexión al eliminar el registro');
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
+
             },
             complete: function() {
                 $btn.html('<i class="fas fa-trash"></i> Eliminar');
@@ -1641,7 +2063,7 @@ jQuery(document).ready(function($) {
         }
     });
     
-    // 4. FUNCIONALIDAD EXPANDIR/CONTRAER - NUEVA VERSIÓN
+    // 4. FUNCIONALIDAD EXPANDIR/CONTRAER - NUEVA VERSIÓN CON SUBTABLA
     $(document).on('click', '.expand-btn', function(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -1651,26 +2073,26 @@ jQuery(document).ready(function($) {
         const $button = $(this);
         const groupId = $button.data('group');
         const $icon = $button.find('i');
-        const $subRecords = $('.sub-record[data-group="' + groupId + '"]');
+        const $subRecordsContainer = $('.sub-records-container[data-group="' + groupId + '"]');
         
         console.log('📊 Grupo ID:', groupId);
-        console.log('📋 Sub-registros encontrados:', $subRecords.length);
+        console.log('📋 Contenedor de sub-registros encontrado:', $subRecordsContainer.length);
         
-        if ($subRecords.length === 0) {
-            console.warn('⚠️ No se encontraron sub-registros para el grupo:', groupId);
+        if ($subRecordsContainer.length === 0) {
+            console.warn('⚠️ No se encontró contenedor de sub-registros para el grupo:', groupId);
             return;
         }
         
         try {
-            // Verificar estado actual usando la clase 'show'
-            if ($subRecords.hasClass('show')) {
+            // Verificar estado actual
+            if ($subRecordsContainer.is(':visible')) {
                 // Contraer
-                $subRecords.removeClass('show').hide();
+                $subRecordsContainer.hide();
                 $icon.removeClass('fa-chevron-down').addClass('fa-chevron-right');
                 $button.removeClass('expanded');
                 $button.attr('title', 'Expandir registros');
                 console.log('📥 Grupo contraído:', groupId);
-<<<<<<< HEAD
+
                 
                 // Logging de contracción
                 $.post('../../config/log_activity.php', {
@@ -1679,33 +2101,69 @@ jQuery(document).ready(function($) {
                     accion: 'contraer_grupo_interfaz',
                     detalle: `Grupo de recorridos contraído - Grupo ID: ${groupId}`
                 });
-=======
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
+
             } else {
                 // Expandir
-                $subRecords.addClass('show').show();
+                $subRecordsContainer.show();
                 $icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
                 $button.addClass('expanded');
                 $button.attr('title', 'Contraer registros');
                 console.log('📤 Grupo expandido:', groupId);
-<<<<<<< HEAD
+
                 
                 // Logging de expansión
                 $.post('../../config/log_activity.php', {
                     action: 'log',
                     modulo: 'uso_combustible',
                     accion: 'expandir_grupo_interfaz',
-                    detalle: `Grupo de recorridos expandido - Grupo ID: ${groupId}, Sub-registros: ${$subRecords.length}`
+                    detalle: `Grupo de recorridos expandido - Grupo ID: ${groupId}`
                 });
-=======
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
+
             }
         } catch (error) {
             console.error('❌ Error al expandir/contraer:', error);
         }
     });
     
-<<<<<<< HEAD
+    // 4.1. FUNCIONALIDAD CHECKBOX SUBTABLAS
+    $(document).on('change', '.sub-select-all', function() {
+        const groupId = $(this).data('group');
+        const isChecked = $(this).prop('checked');
+        const $subCheckboxes = $('.sub-records-container[data-group="' + groupId + '"] .sub-checkbox');
+        
+        console.log('🔄 Seleccionar todo subtabla - Grupo:', groupId, 'Checked:', isChecked);
+        
+        $subCheckboxes.prop('checked', isChecked);
+        updateSelectionInfo();
+        
+        // Logging
+        $.post('../../config/log_activity.php', {
+            action: 'log',
+            modulo: 'uso_combustible',
+            accion: isChecked ? 'seleccionar_todos_subtabla' : 'deseleccionar_todos_subtabla',
+            detalle: `${isChecked ? 'Seleccionados' : 'Deseleccionados'} todos los sub-registros del grupo ${groupId}`
+        });
+    });
+    
+    // Actualizar estado del checkbox subtabla cuando cambian los individuales
+    $(document).on('change', '.sub-checkbox', function() {
+        const groupId = $(this).data('group');
+        const $container = $('.sub-records-container[data-group="' + groupId + '"]');
+        const $allSubCheckboxes = $container.find('.sub-checkbox');
+        const $checkedSubCheckboxes = $container.find('.sub-checkbox:checked');
+        const $subSelectAll = $container.find('.sub-select-all');
+        
+        if ($checkedSubCheckboxes.length === 0) {
+            $subSelectAll.prop('indeterminate', false).prop('checked', false);
+        } else if ($checkedSubCheckboxes.length === $allSubCheckboxes.length) {
+            $subSelectAll.prop('indeterminate', false).prop('checked', true);
+        } else {
+            $subSelectAll.prop('indeterminate', true).prop('checked', false);
+        }
+        
+        updateSelectionInfo();
+    });
+
     // Función para actualizar información de selección
     function updateSelectionInfo() {
         try {
@@ -1900,64 +2358,7 @@ jQuery(document).ready(function($) {
             }
         }, 1000);
     }
-=======
-    // 5. Función para actualizar información de selección
-    function updateSelectionInfo() {
-        const selectedCount = $('.main-checkbox:checked').length;
-        $('#selected-count').text(selectedCount);
-        $('#selection-text').text('Has seleccionado ' + selectedCount + ' registros de combustible');
-        
-        if (selectedCount > 0) {
-            $('#export_selected').prop('disabled', false);
-            $('#selection-info').show();
-        } else {
-            $('#export_selected').prop('disabled', true);
-            $('#export_all').prop('checked', true);
-            $('#selection-info').hide();
-        }
-    }
-    
-    // 6. Manejar checkboxes principales
-    $(document).on('change', '.main-checkbox', function() {
-        const groupId = $(this).data('group');
-        const isChecked = $(this).is(':checked');
-        $('.sub-checkbox[data-group="' + groupId + '"]').prop('checked', isChecked);
-        updateSelectionInfo();
-    });
-    
-    // 7. Manejar checkboxes secundarios
-    $(document).on('change', '.sub-checkbox', function() {
-        const groupId = $(this).data('group');
-        const $mainCheckbox = $('.main-checkbox[data-group="' + groupId + '"]');
-        const $subCheckboxes = $('.sub-checkbox[data-group="' + groupId + '"]');
-        const $checkedSubs = $('.sub-checkbox[data-group="' + groupId + '"]:checked');
-        
-        if ($checkedSubs.length === $subCheckboxes.length && $subCheckboxes.length > 0) {
-            $mainCheckbox.prop('checked', true);
-        } else {
-            $mainCheckbox.prop('checked', false);
-        }
-        updateSelectionInfo();
-    });
-    
-    // 8. Checkbox del header
-    $('#select-all-header').on('change', function() {
-        const isChecked = $(this).is(':checked');
-        $('.main-checkbox, .sub-checkbox').prop('checked', isChecked);
-        updateSelectionInfo();
-    });
-    
-    // 9. Botones de selección
-    $('#select-all-btn').on('click', function() {
-        $('.main-checkbox, .sub-checkbox, #select-all-header').prop('checked', true);
-        updateSelectionInfo();
-    });
-    
-    $('#clear-selection-btn').on('click', function() {
-        $('.main-checkbox, .sub-checkbox, #select-all-header').prop('checked', false);
-        updateSelectionInfo();
-    });
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
+
     
     // 10. Manejar formulario de exportación
     $('#exportForm').on('submit', function(e) {
@@ -1968,11 +2369,10 @@ jQuery(document).ready(function($) {
             
             if ($checkedMainBoxes.length === 0) {
                 e.preventDefault();
-<<<<<<< HEAD
                 mostrarModalMejorado('warning', 'Selección requerida', 'Por favor, selecciona al menos un registro para descargar.');
-=======
+
                 alert('Por favor, selecciona al menos un registro para descargar.');
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
+
                 return false;
             }
             
@@ -1998,7 +2398,7 @@ jQuery(document).ready(function($) {
                     })
                 );
             });
-<<<<<<< HEAD
+
             
             // Logging de exportación seleccionada
             $.post('../../config/log_activity.php', {
@@ -2017,38 +2417,33 @@ jQuery(document).ready(function($) {
                 accion: 'exportar_todos_interfaz',
                 detalle: 'Iniciando exportación de todos los registros filtrados desde interfaz'
             });
-=======
-        } else {
-            $('#selected-ids-container').empty();
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
         }
         
         return true;
     });
     
-<<<<<<< HEAD
-    // Inicialización principal
-    console.log('🚀 Inicializando sistema de checkboxes mejorado...');
-    
-    // Esperar un poco más para asegurar que todo esté cargado
-    setTimeout(function() {
-        initializeCheckboxEvents();
-        updateSelectionInfo();
-        verifyElements();
+
+    // Inicialización principal - Asegurar que el DOM esté completamente cargado
+    $(document).ready(function() {
+        console.log('🚀 Inicializando sistema de checkboxes mejorado...');
         
-        console.log('🎉 Sistema de checkboxes inicializado completamente');
-    }, 500);
+        // Esperar un poco más para asegurar que todo esté cargado
+        setTimeout(function() {
+            try {
+                initializeCheckboxEvents();
+                updateSelectionInfo();
+                verifyElements();
+                
+                console.log('🎉 Sistema de checkboxes inicializado completamente');
+            } catch (error) {
+                console.error('❌ Error en inicialización:', error);
+            }
+        }, 500);
+    });
     
-    // Verificación de elementos al cargar
-=======
-    // 11. Inicializar estado
-    updateSelectionInfo();
-    
-    // 12. Verificación de elementos al cargar
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
     setTimeout(function() {
         const expandButtons = $('.expand-btn').length;
-        const subRecords = $('.sub-record').length;
+        const subRecords = $('.sub-records-container').length;
         const mainRecords = $('.main-record').length;
         
         console.log('🔍 Verificación de elementos:');
@@ -2071,13 +2466,16 @@ jQuery(document).ready(function($) {
         // Verificar que los data-group coincidan
         $('.expand-btn').each(function() {
             const groupId = $(this).data('group');
-            const subCount = $('.sub-record[data-group="' + groupId + '"]').length;
-            console.log('📊 Grupo ' + groupId + ': ' + subCount + ' sub-registros');
+            const $subContainer = $('.sub-records-container[data-group="' + groupId + '"]');
+            const subCount = $subContainer.find('.sub-record-row').length;
+            console.log('📊 Grupo ' + groupId + ': ' + subCount + ' sub-registros en contenedor');
         });
-<<<<<<< HEAD
+
     }, 1000);
     
     console.log('🎉 Inicialización completa de ver_registros.php');
+    
+
     
     // Logging de carga de página
     $.post('../../config/log_activity.php', {
@@ -2098,7 +2496,7 @@ function logBusqueda() {
         action: 'log',
         modulo: 'uso_combustible',
         accion: 'realizar_busqueda_interfaz',
-        detalle: `Búsqueda iniciada desde interfaz - Términos: "${search}", Fecha inicio: ${fechaInicio}, Fecha fin: ${fechaFin}`
+        detalle: 'Búsqueda iniciada desde interfaz - Términos: "' + search + '", Fecha inicio: ' + fechaInicio + ', Fecha fin: ' + fechaFin
     });
 }
 
@@ -2166,40 +2564,38 @@ function mostrarModalMejorado(tipo, titulo, mensaje, callback = null) {
     // Crear modal con diseño mejorado
     var modal = document.createElement('div');
     modal.id = 'messageModal';
-    modal.style.cssText = `
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        text-align: center;
-        min-width: 420px;
-        max-width: 500px;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        overflow: hidden;
-        transform: scale(0.7);
-        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        border: 3px solid ${currentConfig.borderColor};
-    `;
+    modal.style.cssText = 
+        'background: white;' +
+        'border-radius: 15px;' +
+        'box-shadow: 0 20px 60px rgba(0,0,0,0.3);' +
+        'text-align: center;' +
+        'min-width: 420px;' +
+        'max-width: 500px;' +
+        'font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;' +
+        'overflow: hidden;' +
+        'transform: scale(0.7);' +
+        'transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);' +
+        'border: 3px solid ' + currentConfig.borderColor + ';';
     
-    modal.innerHTML = `
-        <div style='background: ${currentConfig.bgColor}; padding: 25px 30px; border-bottom: 1px solid ${currentConfig.borderColor};'>
-            <div style='display: flex; align-items: center; justify-content: center; margin-bottom: 15px;'>
-                <div style='width: 60px; height: 60px; background: ${currentConfig.iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-right: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);'>
-                    ${currentConfig.icon}
-                </div>
-                <h3 style='color: ${currentConfig.color}; margin: 0; font-size: 22px; font-weight: 600;'>${titulo}</h3>
-            </div>
-        </div>
-        <div style='padding: 30px;'>
-            <p style='margin: 0 0 30px 0; font-size: 16px; color: #333; line-height: 1.6;'>${mensaje}</p>
-            <button onclick='cerrarModalMejorado(${callback ? 'true' : 'false'})' 
-                        style='background: linear-gradient(135deg, ${currentConfig.color}, ${currentConfig.color}dd); color: ${currentConfig.color === '#ffc107' ? '#333' : 'white'}; border: none; padding: 14px 30px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-transform: uppercase; letter-spacing: 0.5px;'
-                        onmouseover='this.style.transform="translateY(-2px)"; this.style.boxShadow="0 6px 20px rgba(0,0,0,0.3)";'
-                        onmouseout='this.style.transform="translateY(0)"; this.style.boxShadow="0 4px 15px rgba(0,0,0,0.2)";'
-                        onmousedown='this.style.transform="translateY(0)";'>
-                <i class="fas fa-check" style="margin-right: 8px; color: ${currentConfig.color === '#ffc107' ? '#333' : 'white'};"></i>Aceptar
-            </button>
-        </div>
-    `;
+    modal.innerHTML = 
+        '<div style="background: ' + currentConfig.bgColor + '; padding: 25px 30px; border-bottom: 1px solid ' + currentConfig.borderColor + ';">' +
+            '<div style="display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">' +
+                '<div style="width: 60px; height: 60px; background: ' + currentConfig.iconBg + '; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-right: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">' +
+                    currentConfig.icon +
+                '</div>' +
+                '<h3 style="color: ' + currentConfig.color + '; margin: 0; font-size: 22px; font-weight: 600;">' + titulo + '</h3>' +
+            '</div>' +
+        '</div>' +
+        '<div style="padding: 30px;">' +
+            '<p style="margin: 0 0 30px 0; font-size: 16px; color: #333; line-height: 1.6;">' + mensaje + '</p>' +
+            '<button onclick="cerrarModalMejorado(' + (callback ? 'true' : 'false') + ')" ' +
+                        'style="background: linear-gradient(135deg, ' + currentConfig.color + ', ' + currentConfig.color + 'dd); color: ' + (currentConfig.color === '#ffc107' ? '#333' : 'white') + '; border: none; padding: 14px 30px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-transform: uppercase; letter-spacing: 0.5px;" ' +
+                        'onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 6px 20px rgba(0,0,0,0.3)\';" ' +
+                        'onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 4px 15px rgba(0,0,0,0.2)\';" ' +
+                        'onmousedown="this.style.transform=\'translateY(0)\';">' +
+                '<i class="fas fa-check" style="margin-right: 8px; color: ' + (currentConfig.color === '#ffc107' ? '#333' : 'white') + ';"></i>Aceptar' +
+            '</button>' +
+        '</div>';
     
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
@@ -2212,21 +2608,32 @@ function mostrarModalMejorado(tipo, titulo, mensaje, callback = null) {
     
     // Agregar estilos de animación si no existen
     if (!document.getElementById('modalAnimationStyleMejorado')) {
-        var style = document.createElement('style');
-        style.id = 'modalAnimationStyleMejorado';
-        style.textContent = `
-            @keyframes modalShake {
-                0%, 100% { transform: scale(1) translateX(0); }
-                25% { transform: scale(1) translateX(-5px); }
-                75% { transform: scale(1) translateX(5px); }
+        try {
+            var style = document.createElement('style');
+            style.id = 'modalAnimationStyleMejorado';
+            style.type = 'text/css';
+            style.textContent = `
+                @keyframes modalShake {
+                    0%, 100% { transform: scale(1) translateX(0); }
+                    25% { transform: scale(1) translateX(-5px); }
+                    75% { transform: scale(1) translateX(5px); }
+                }
+                @keyframes modalPulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                    100% { transform: scale(1); }
+                }
+            `;
+            
+            // Verificar que document.head existe antes de insertar
+            if (document.head) {
+                document.head.appendChild(style);
+            } else {
+                console.warn('⚠️ document.head no disponible, estilos no aplicados');
             }
-            @keyframes modalPulse {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.05); }
-                100% { transform: scale(1); }
-            }
-        `;
-        document.head.appendChild(style);
+        } catch (error) {
+            console.error('❌ Error al insertar estilos CSS:', error);
+        }
     }
     
     // Guardar callback
@@ -2315,33 +2722,32 @@ function mostrarConfirmacionMejorada(titulo, mensaje, onConfirm, tipo = 'warning
         border: 3px solid #ffeaa7;
     `;
     
-    modal.innerHTML = `
-        <div style='background: #fff3cd; padding: 25px 30px; border-bottom: 1px solid #ffeaa7;'>
-            <div style='display: flex; align-items: center; justify-content: center; margin-bottom: 15px;'>
-                <div style='width: 60px; height: 60px; background: #ffc107; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-right: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);'>
-                    ⚠️
-                </div>
-                <h3 style='color: #856404; margin: 0; font-size: 22px; font-weight: 600;'>${titulo}</h3>
-            </div>
-        </div>
-        <div style='padding: 30px;'>
-            <p style='margin: 0 0 30px 0; font-size: 16px; color: #333; line-height: 1.6;'>${mensaje}</p>
-            <div style='display: flex; gap: 15px; justify-content: center;'>
-                <button onclick='cerrarConfirmacionMejorada(false)' 
-                        style='background: linear-gradient(135deg, #6c757d, #5a6268); color: white; border: none; padding: 14px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-transform: uppercase; letter-spacing: 0.5px;'
-                        onmouseover='this.style.transform="translateY(-2px)"; this.style.boxShadow="0 6px 20px rgba(0,0,0,0.3)";'
-                        onmouseout='this.style.transform="translateY(0)"; this.style.boxShadow="0 4px 15px rgba(0,0,0,0.2)";'>
-                    <i class="fas fa-times" style="margin-right: 8px;"></i>Cancelar
-                </button>
-                <button onclick='cerrarConfirmacionMejorada(true)' 
-                        style='background: linear-gradient(135deg, #dc3545, #c82333); color: white; border: none; padding: 14px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-transform: uppercase; letter-spacing: 0.5px;'
-                        onmouseover='this.style.transform="translateY(-2px)"; this.style.boxShadow="0 6px 20px rgba(0,0,0,0.3)";'
-                        onmouseout='this.style.transform="translateY(0)"; this.style.boxShadow="0 4px 15px rgba(0,0,0,0.2)";'>
-                    <i class="fas fa-check" style="margin-right: 8px;"></i>Confirmar
-                </button>
-            </div>
-        </div>
-    `;
+    modal.innerHTML = 
+        '<div style="background: #fff3cd; padding: 25px 30px; border-bottom: 1px solid #ffeaa7;">' +
+            '<div style="display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">' +
+                '<div style="width: 60px; height: 60px; background: #ffc107; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-right: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">' +
+                    '⚠️' +
+                '</div>' +
+                '<h3 style="color: #856404; margin: 0; font-size: 22px; font-weight: 600;">' + titulo + '</h3>' +
+            '</div>' +
+        '</div>' +
+        '<div style="padding: 30px;">' +
+            '<p style="margin: 0 0 30px 0; font-size: 16px; color: #333; line-height: 1.6;">' + mensaje + '</p>' +
+            '<div style="display: flex; gap: 15px; justify-content: center;">' +
+                '<button onclick="cerrarConfirmacionMejorada(false)" ' +
+                        'style="background: linear-gradient(135deg, #6c757d, #5a6268); color: white; border: none; padding: 14px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-transform: uppercase; letter-spacing: 0.5px;" ' +
+                        'onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 6px 20px rgba(0,0,0,0.3)\';" ' +
+                        'onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 4px 15px rgba(0,0,0,0.2)\';">' +
+                    '<i class="fas fa-times" style="margin-right: 8px;"></i>Cancelar' +
+                '</button>' +
+                '<button onclick="cerrarConfirmacionMejorada(true)" ' +
+                        'style="background: linear-gradient(135deg, #dc3545, #c82333); color: white; border: none; padding: 14px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-transform: uppercase; letter-spacing: 0.5px;" ' +
+                        'onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 6px 20px rgba(0,0,0,0.3)\';" ' +
+                        'onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 4px 15px rgba(0,0,0,0.2)\';">' +
+                    '<i class="fas fa-check" style="margin-right: 8px;"></i>Confirmar' +
+                '</button>' +
+            '</div>' +
+        '</div>';
     
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
@@ -2416,18 +2822,70 @@ async function verificarEstadoRegistro(id) {
             body: JSON.stringify({ id: id })
         });
         
-        const data = await response.json();
+        // Validar respuesta HTTP
+        validateFetchResponse(response, 'verificarEstadoRegistro');
+        
+        // Obtener texto de respuesta para debugging
+        const responseText = await response.text();
+        
+        // Intentar parsear JSON de forma segura
+        const data = parseJSONSafe(responseText, `verificarEstadoRegistro - ID: ${id}`);
         return data;
     } catch (error) {
-        console.error('Error verificando estado:', error);
+        mostrarErrorSintaxis(error, 'ver_registros.php', 'verificarEstadoRegistro', `Error al verificar estado del registro ID: ${id}`);
         return null;
     }
+}
+
+// Función para logging del frontend
+function logFrontend(message, data = null) {
+    const timestamp = new Date().toISOString();
+    const logData = {
+        timestamp: timestamp,
+        message: message,
+        data: data,
+        url: window.location.href,
+        userAgent: navigator.userAgent
+    };
+    
+    // Enviar log al servidor
+    fetch('../../config/log_activity.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            action: 'log_frontend',
+            modulo: 'uso_combustible',
+            accion: 'frontend_debug',
+            detalle: JSON.stringify(logData)
+        })
+    }).catch(err => console.error('Error enviando log:', err));
+    
+    // También mostrar en consola
+    console.log(`[FRONTEND LOG] ${message}`, data);
 }
 
 // Función mejorada para cerrar recorrido
 async function cerrarRecorrido(id) {
     try {
-        const userRole = '<?php echo $_SESSION['user_rol']; ?>';
+        logFrontend('=== INICIO CERRAR RECORRIDO ===', {id: id});
+        // Verificar el estado actual en el servidor para evitar desincronización con la UI
+        logFrontend('Verificando estado actual del recorrido', {id: id});
+        const estadoActual = await verificarEstadoRegistro(id);
+        logFrontend('Estado verificado', {id: id, estado: estadoActual});
+        if (estadoActual && estadoActual.estado === 'cerrado') {
+            logFrontend('ERROR: Recorrido ya cerrado', {id: id});
+            mostrarModalMejorado(
+                'warning',
+                'Recorrido ya cerrado',
+                'Este recorrido ya fue cerrado por otro usuario o en otra pestaña. La página se actualizará para reflejar el estado actual.',
+                () => location.reload()
+            );
+            return;
+        }
+
+        const userRole = '<?php echo isset($_SESSION["user_rol"]) ? htmlspecialchars($_SESSION["user_rol"]) : "guest"; ?>';
         let mensaje;
         
         if (userRole === 'administrador') {
@@ -2462,6 +2920,7 @@ async function cerrarRecorrido(id) {
         );
         
         // Enviar solicitud de cierre
+        logFrontend('Enviando petición de cierre', {id: id, action: 'cerrar'});
         const response = await fetch('cerrar_recorrido.php', {
             method: 'POST',
             headers: {
@@ -2473,7 +2932,21 @@ async function cerrarRecorrido(id) {
             })
         });
         
-        const result = await response.json();
+        // Validar respuesta HTTP
+        validateFetchResponse(response, 'cerrarRecorrido');
+        
+        logFrontend('Respuesta recibida', {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries())
+        });
+        
+        // Obtener texto de respuesta para debugging
+        const responseText = await response.text();
+        
+        // Intentar parsear JSON de forma segura
+        const result = parseJSONSafe(responseText, `cerrarRecorrido - ID: ${id}`);
+        logFrontend('JSON parseado', result);
         
         if (result.success) {
             // Logging adicional desde frontend
@@ -2493,6 +2966,11 @@ async function cerrarRecorrido(id) {
             );
         } else {
             // Error en el cierre
+            logFrontend('ERROR: Fallo al cerrar recorrido', {
+                id: id,
+                serverResponse: result,
+                message: result.message
+            });
             mostrarModalMejorado(
                 'error',
                 'Error al Cerrar',
@@ -2502,6 +2980,15 @@ async function cerrarRecorrido(id) {
         }
         
     } catch (error) {
+        logFrontend('=== EXCEPCIÓN EN CERRAR RECORRIDO ===', {
+            id: id,
+            error: {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            },
+            timestamp: new Date().toISOString()
+        });
         console.error('Error:', error);
         mostrarModalMejorado(
             'error',
@@ -2555,86 +3042,85 @@ function mostrarModalInput(titulo, placeholder, callback) {
         position: relative;
     `;
     
-    modal.innerHTML = `
-        <div style="text-align: center; margin-bottom: 25px;">
-            <div style="
-                width: 60px;
-                height: 60px;
-                background: linear-gradient(135deg, #17a2b8, #138496);
-                border-radius: 50%;
-                margin: 0 auto 15px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-size: 24px;
-            ">
-                <i class="fas fa-unlock-alt"></i>
-            </div>
-            <h4 style="color: #333; margin: 0; font-weight: 600;">${titulo}</h4>
-        </div>
+    modal.innerHTML = 
+        '<div style="text-align: center; margin-bottom: 25px;">' +
+            '<div style="' +
+                'width: 60px;' +
+                'height: 60px;' +
+                'background: linear-gradient(135deg, #17a2b8, #138496);' +
+                'border-radius: 50%;' +
+                'margin: 0 auto 15px;' +
+                'display: flex;' +
+                'align-items: center;' +
+                'justify-content: center;' +
+                'color: white;' +
+                'font-size: 24px;' +
+            '">' +
+                '<i class="fas fa-unlock-alt"></i>' +
+            '</div>' +
+            '<h4 style="color: #333; margin: 0; font-weight: 600;">' + titulo + '</h4>' +
+        '</div>' +
         
-        <div style="margin-bottom: 25px;">
-            <label style="display: block; margin-bottom: 8px; color: #555; font-weight: 500;">Motivo de la reapertura:</label>
-            <textarea 
-                id="motivoInput" 
-                placeholder="${placeholder}"
-                style="
-                    width: 100%;
-                    min-height: 100px;
-                    padding: 12px;
-                    border: 2px solid #e9ecef;
-                    border-radius: 8px;
-                    font-size: 14px;
-                    resize: vertical;
-                    transition: border-color 0.3s ease;
-                    font-family: inherit;
-                "
-                maxlength="500"
-            ></textarea>
-            <small style="color: #6c757d; font-size: 12px;">Máximo 500 caracteres</small>
-        </div>
+        '<div style="margin-bottom: 25px;">' +
+            '<label style="display: block; margin-bottom: 8px; color: #555; font-weight: 500;">Motivo de la reapertura:</label>' +
+            '<textarea ' +
+                'id="motivoInput" ' +
+                'placeholder="' + placeholder + '"' +
+                'style="' +
+                    'width: 100%;' +
+                    'min-height: 100px;' +
+                    'padding: 12px;' +
+                    'border: 2px solid #e9ecef;' +
+                    'border-radius: 8px;' +
+                    'font-size: 14px;' +
+                    'resize: vertical;' +
+                    'transition: border-color 0.3s ease;' +
+                    'font-family: inherit;' +
+                '"' +
+                'maxlength="500"' +
+            '></textarea>' +
+            '<small style="color: #6c757d; font-size: 12px;">Máximo 500 caracteres</small>' +
+        '</div>' +
         
-        <div style="display: flex; gap: 10px; justify-content: flex-end;">
-            <button 
-                onclick="cerrarModalInput(false)"
-                style="
-                    background: #6c757d;
-                    color: white;
-                    border: none;
-                    padding: 12px 24px;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 14px;
-                    font-weight: 500;
-                    transition: all 0.3s ease;
-                "
-                onmouseover="this.style.background='#5a6268'"
-                onmouseout="this.style.background='#6c757d'"
-            >
-                Cancelar
-            </button>
-            <button 
-                onclick="confirmarInput()"
-                style="
-                    background: linear-gradient(135deg, #17a2b8, #138496);
-                    color: white;
-                    border: none;
-                    padding: 12px 24px;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 14px;
-                    font-weight: 500;
-                    transition: all 0.3s ease;
-                    box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
-                "
-                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(23, 162, 184, 0.4)'"
-                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(23, 162, 184, 0.3)'"
-            >
-                Confirmar
-            </button>
-        </div>
-    `;
+        '<div style="display: flex; gap: 10px; justify-content: flex-end;">' +
+            '<button ' +
+                'onclick="cerrarModalInput(false)"' +
+                'style="' +
+                    'background: #6c757d;' +
+                    'color: white;' +
+                    'border: none;' +
+                    'padding: 12px 24px;' +
+                    'border-radius: 8px;' +
+                    'cursor: pointer;' +
+                    'font-size: 14px;' +
+                    'font-weight: 500;' +
+                    'transition: all 0.3s ease;' +
+                '"' +
+                'onmouseover="this.style.background=\'#5a6268\'"' +
+                'onmouseout="this.style.background=\'#6c757d\'"' +
+            '>' +
+                'Cancelar' +
+            '</button>' +
+            '<button ' +
+                'onclick="confirmarInput()"' +
+                'style="' +
+                    'background: linear-gradient(135deg, #17a2b8, #138496);' +
+                    'color: white;' +
+                    'border: none;' +
+                    'padding: 12px 24px;' +
+                    'border-radius: 8px;' +
+                    'cursor: pointer;' +
+                    'font-size: 14px;' +
+                    'font-weight: 500;' +
+                    'transition: all 0.3s ease;' +
+                    'box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);' +
+                '"' +
+                'onmouseover="this.style.transform=\'translateY(-2px)\'; this.style.boxShadow=\'0 6px 20px rgba(23, 162, 184, 0.4)\'"' +
+                'onmouseout="this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'0 4px 15px rgba(23, 162, 184, 0.3)\'"' +
+            '>' +
+                'Confirmar' +
+            '</button>' +
+        '</div>';
     
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
@@ -2738,6 +3224,19 @@ function mostrarModalInput(titulo, placeholder, callback) {
 // Función mejorada para reabrir recorrido
 async function reabrirRecorrido(id) {
     try {
+        logFrontend('=== INICIO REABRIR RECORRIDO ===', {id: id});
+        // Verificar el estado actual en el servidor para evitar desincronización con la UI
+        const estadoActual = await verificarEstadoRegistro(id);
+        if (estadoActual && estadoActual.estado === 'abierto') {
+            mostrarModalMejorado(
+                'warning',
+                'Recorrido ya abierto',
+                'Este recorrido ya fue reabierto por otro usuario o en otra pestaña. La página se actualizará para reflejar el estado actual.',
+                () => location.reload()
+            );
+            return;
+        }
+
         // Mostrar confirmación
         const confirmacion = await new Promise(resolve => {
             mostrarConfirmacionMejorada(
@@ -2794,7 +3293,14 @@ async function reabrirRecorrido(id) {
             })
         });
         
-        const result = await response.json();
+        // Validar respuesta HTTP
+        validateFetchResponse(response, 'reabrirRecorrido');
+        
+        // Obtener texto de respuesta para debugging
+        const responseText = await response.text();
+        
+        // Intentar parsear JSON de forma segura
+        const result = parseJSONSafe(responseText, `reabrirRecorrido - ID: ${id}, Motivo: ${motivo}`);
         
         if (result.success) {
             // Logging adicional desde frontend
@@ -2802,7 +3308,7 @@ async function reabrirRecorrido(id) {
                 action: 'log',
                 modulo: 'uso_combustible',
                 accion: 'reabrir_recorrido_interfaz',
-                detalle: `Recorrido reabierto desde interfaz - ID: ${id}, Motivo: ${motivo}`
+                detalle: 'Recorrido reabierto desde interfaz - ID: ' + id + ', Motivo: ' + motivo
             });
             
             // Éxito confirmado
@@ -2814,6 +3320,11 @@ async function reabrirRecorrido(id) {
             );
         } else {
             // Error en la reapertura
+            logFrontend('ERROR: Fallo al reabrir recorrido', {
+                id: id,
+                serverResponse: result,
+                message: result.message
+            });
             mostrarModalMejorado(
                 'error',
                 'Error al Reabrir',
@@ -2823,6 +3334,15 @@ async function reabrirRecorrido(id) {
         }
         
     } catch (error) {
+        logFrontend('=== EXCEPCIÓN EN REABRIR RECORRIDO ===', {
+            id: id,
+            error: {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            },
+            timestamp: new Date().toISOString()
+        });
         console.error('Error:', error);
         mostrarModalMejorado(
             'error',
@@ -2832,12 +3352,7 @@ async function reabrirRecorrido(id) {
         );
     }
 }
-=======
-    }, 500);
-    
-    console.log('🎉 Inicialización completa de ver_registros.php');
-});
->>>>>>> ef2bc8c156abe68b036b639c0ea6b5add6465c9d
+
 </script>
             </body>
             </html>

@@ -383,9 +383,10 @@ $datos = $_SESSION['informe_temp'];
         canvas.addEventListener('touchend', stopDrawing);
 
         $('#limpiarFirma').click(function() {
+            const rect = canvas.getBoundingClientRect();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, rect.width, rect.height);
             hasSigned = false;
             updateUI();
         });

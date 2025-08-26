@@ -9,6 +9,10 @@ require_once '../../config/database.php';
 require_once '../../models/InformeTecnico.php';
 require_once '../../models/RegistroActividad.php';
 
+// Recuperar datos de la sesión si existen (cuando se vuelve desde firmar.php)
+$datos_guardados = isset($_SESSION['informe_temp']) ? $_SESSION['informe_temp'] : [];
+$fotos_guardadas = isset($_SESSION['fotos_temp']) ? $_SESSION['fotos_temp'] : [];
+
 // Procesar el formulario de datos (sin firma)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Guardar los datos en la sesión para el siguiente paso
@@ -24,7 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Procesar las fotos temporalmente
     if(isset($_FILES['fotos']) && is_array($_FILES['fotos']['tmp_name'])) {
-        $_SESSION['fotos_temp'] = [];
+        // Mantener las fotos existentes si las hay
+        if (!isset($_SESSION['fotos_temp'])) {
+            $_SESSION['fotos_temp'] = [];
+        }
+        
         foreach($_FILES['fotos']['tmp_name'] as $key => $tmp_name) {
             if($_FILES['fotos']['error'][$key] === UPLOAD_ERR_OK && !empty($tmp_name)) {
                 // Crear directorio temporal
@@ -91,31 +99,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form method="POST" id="informeForm" enctype="multipart/form-data">
             <div class="form-group">
                 <label>Local</label>
-                <input type="text" name="local" class="form-control" required>
+                <input type="text" name="local" class="form-control" value="<?php echo htmlspecialchars($datos_guardados['local'] ?? ''); ?>" required>
             </div>
             <div class="form-group">
                 <label>Sector</label>
-                <input type="text" name="sector" class="form-control" required>
+                <input type="text" name="sector" class="form-control" value="<?php echo htmlspecialchars($datos_guardados['sector'] ?? ''); ?>" required>
             </div>
             <div class="form-group">
                 <label>Orden de Trabajo</label>
-                <input type="text" name="orden_trabajo" class="form-control" required>
+                <input type="text" name="orden_trabajo" class="form-control" value="<?php echo htmlspecialchars($datos_guardados['orden_trabajo'] ?? ''); ?>" required>
             </div>
             <div class="form-group">
                 <label>Equipo con Problema</label>
-                <input type="text" name="equipo_asistido" class="form-control" required>
+                <input type="text" name="equipo_asistido" class="form-control" value="<?php echo htmlspecialchars($datos_guardados['equipo_asistido'] ?? ''); ?>" required>
             </div>
             <div class="form-group">
                 <label>Nº de Patrimonio</label>
-                <input type="text" name="patrimonio" class="form-control" required>
+                <input type="text" name="patrimonio" class="form-control" value="<?php echo htmlspecialchars($datos_guardados['patrimonio'] ?? ''); ?>" required>
             </div>
             <div class="form-group">
                 <label>Jefe de Turno</label>
-                <input type="text" name="jefe_turno" class="form-control" required>
+                <input type="text" name="jefe_turno" class="form-control" value="<?php echo htmlspecialchars($datos_guardados['jefe_turno'] ?? ''); ?>" required>
             </div>
             <div class="form-group">
                 <label>Observaciones del Trabajo Realizado</label>
-                <textarea name="observaciones" class="form-control" rows="4" required></textarea>
+                <textarea name="observaciones" class="form-control" rows="4" required><?php echo htmlspecialchars($datos_guardados['observaciones'] ?? ''); ?></textarea>
             </div>
             
 
@@ -124,6 +132,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- Reemplazar la sección de foto única con esto -->
             <div class="form-group">
                 <label>Fotos del trabajo</label>
+                
+                <?php if (!empty($fotos_guardadas)): ?>
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle"></i> Fotos guardadas temporalmente:</h6>
+                    <div class="row">
+                        <?php foreach ($fotos_guardadas as $index => $foto): ?>
+                        <div class="col-md-4 mb-2">
+                            <div class="card">
+                                <img src="../../img/temp/<?php echo htmlspecialchars($foto['archivo_temp']); ?>" class="card-img-top" style="height: 150px; object-fit: cover;">
+                                <div class="card-body p-2">
+                                    <small class="text-muted"><?php echo ucfirst($foto['tipo']); ?></small><br>
+                                    <small><?php echo htmlspecialchars($foto['descripcion']); ?></small>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <small class="text-muted">Estas fotos se mantendrán al continuar con la firma.</small>
+                </div>
+                <?php endif; ?>
+                
                 <div id="fotosContainer">
                     <div class="foto-entrada mb-3">
                         <div class="row">

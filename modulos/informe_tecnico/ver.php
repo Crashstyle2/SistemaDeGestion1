@@ -121,6 +121,103 @@ if(!$informeData) {
             padding: 10px 0;
             border-top: 1px solid #eee;
         }
+        
+        /* Mejoras para móviles */
+        @media (max-width: 768px) {
+            .card {
+                margin: 10px;
+                max-width: none;
+            }
+            .card-header h2 {
+                font-size: 1.2rem;
+            }
+            .info-row {
+                flex-direction: column;
+                padding: 8px 0;
+            }
+            .info-label {
+                width: 100%;
+                margin-bottom: 4px;
+                font-size: 14px;
+            }
+            .info-value {
+                font-size: 14px;
+                padding-left: 10px;
+            }
+            .observaciones-content {
+                padding: 10px;
+                font-size: 14px;
+            }
+            .foto-container {
+                margin-bottom: 10px;
+            }
+            .foto-body img {
+                max-height: 200px;
+            }
+            .action-buttons .btn {
+                margin: 5px;
+                padding: 10px 15px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .card {
+                margin: 5px;
+                border-radius: 4px;
+            }
+            .card-header {
+                padding: 8px;
+            }
+            .card-header h2 {
+                font-size: 1.1rem;
+            }
+            .card-body {
+                padding: 10px 15px;
+            }
+            .info-row {
+                padding: 6px 0;
+            }
+            .info-label {
+                font-size: 13px;
+                font-weight: 700;
+            }
+            .info-value {
+                font-size: 13px;
+                padding-left: 5px;
+            }
+            .observaciones-title {
+                font-size: 16px;
+                margin: 15px 0 8px 0;
+            }
+            .observaciones-content {
+                padding: 8px;
+                font-size: 13px;
+                line-height: 1.4;
+            }
+            .registro-fotografico .col-md-6 {
+                padding: 5px;
+            }
+            .foto-header {
+                padding: 6px;
+                font-size: 14px;
+            }
+            .foto-body {
+                padding: 8px;
+            }
+            .foto-body img {
+                max-height: 150px;
+            }
+            .action-buttons {
+                margin-top: 15px;
+                padding: 8px 0;
+            }
+            .action-buttons .btn {
+                width: 100%;
+                margin: 3px 0;
+                padding: 12px;
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
 <body>

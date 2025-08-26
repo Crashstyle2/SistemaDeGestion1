@@ -90,6 +90,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 15px;
             background: #fff;
         }
+        
+        /* Mejoras para móviles */
+        @media (max-width: 768px) {
+            .container {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            .form-group label {
+                font-weight: bold;
+                font-size: 14px;
+            }
+            .form-control {
+                font-size: 16px; /* Evita zoom en iOS */
+                padding: 12px;
+            }
+            .btn {
+                padding: 12px 20px;
+                font-size: 16px;
+            }
+            .card {
+                margin-bottom: 15px;
+            }
+            .foto-item {
+                margin-bottom: 20px;
+                padding: 15px;
+                border: 2px solid #e9ecef;
+                border-radius: 8px;
+                background: #f8f9fa;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+            .form-group {
+                margin-bottom: 20px;
+            }
+            .form-control {
+                font-size: 16px;
+                padding: 15px;
+                border-width: 2px;
+            }
+            .btn-primary, .btn-secondary {
+                width: 100%;
+                margin-bottom: 10px;
+                padding: 15px;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            .row {
+                margin: 0;
+            }
+            .col-md-6 {
+                padding: 5px;
+            }
+            h2 {
+                font-size: 24px;
+                text-align: center;
+                margin-bottom: 25px;
+            }
+            .foto-item {
+                padding: 20px;
+                border-width: 3px;
+            }
+            .foto-item .form-group {
+                margin-bottom: 15px;
+            }
+        }
     </style>
 </head>
 

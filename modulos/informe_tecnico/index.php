@@ -60,9 +60,86 @@ $stmt = $informe->leerTodos($tecnico_id, $limit, $offset, $search_term);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="../../assets/css/style.css">
     <style>
-        @media screen and (max-width: 768px) {
+        .columna-oculta-movil {
+            display: table-cell;
+        }
+        @media (max-width: 768px) {
             .columna-oculta-movil {
-                display: none !important;
+                display: none;
+            }
+            .container {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            .table-responsive {
+                border: none;
+            }
+            .table {
+                font-size: 14px;
+            }
+            .table th, .table td {
+                padding: 8px 4px;
+                vertical-align: middle;
+            }
+            .btn-sm {
+                padding: 6px 10px;
+                font-size: 12px;
+                margin: 1px;
+            }
+            .form-control {
+                font-size: 16px; /* Evita zoom en iOS */
+            }
+            h2 {
+                font-size: 24px;
+                text-align: center;
+                margin-bottom: 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+            .table {
+                font-size: 12px;
+            }
+            .table th, .table td {
+                padding: 6px 2px;
+            }
+            .btn-sm {
+                padding: 8px 12px;
+                font-size: 11px;
+                margin: 2px 0;
+                display: block;
+                width: 100%;
+            }
+            .form-group {
+                margin-bottom: 15px;
+            }
+            .form-control {
+                padding: 12px;
+                font-size: 16px;
+            }
+            .btn-primary {
+                width: 100%;
+                padding: 12px;
+                font-size: 16px;
+                margin-top: 10px;
+            }
+            h2 {
+                font-size: 20px;
+                margin-bottom: 15px;
+            }
+            .card {
+                margin-bottom: 15px;
+            }
+            .pagination {
+                justify-content: center;
+            }
+            .pagination .page-link {
+                padding: 8px 12px;
+                font-size: 14px;
             }
         }
     </style>

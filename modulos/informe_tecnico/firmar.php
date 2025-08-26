@@ -176,9 +176,10 @@ $datos = $_SESSION['informe_temp'];
         }
         
         /* Mejorar visibilidad en móviles */
-        @media (max-width: 480px) {
+        @media (max-width: 768px) {
             .signature-pad {
-                height: 250px;
+                height: 280px;
+                border-width: 3px;
             }
             .container {
                 padding-left: 10px;
@@ -188,7 +189,57 @@ $datos = $_SESSION['informe_temp'];
                 font-size: 14px;
             }
             .firma-instrucciones {
+                font-size: 14px;
+            }
+            .firma-instrucciones ul {
+                padding-left: 20px;
+            }
+            .btn-lg {
+                padding: 15px 25px;
+                font-size: 18px;
+            }
+            .form-group .d-flex {
+                 flex-direction: column;
+                 align-items: stretch;
+             }
+             .form-group .d-flex .btn {
+                 margin: 5px 0;
+                 width: 100%;
+                 padding: 12px;
+                 font-size: 16px;
+             }
+        }
+        
+        @media (max-width: 480px) {
+            .signature-pad {
+                height: 300px;
+                border-width: 4px;
+                border-color: #007bff;
+            }
+            .resumen-datos {
                 font-size: 13px;
+            }
+            .firma-instrucciones {
+                font-size: 13px;
+                background: #e3f2fd;
+                padding: 15px;
+                border-radius: 8px;
+                border-left: 4px solid #2196f3;
+            }
+            .firma-instrucciones h6 {
+                color: #1976d2;
+                font-weight: bold;
+            }
+            .btn-lg {
+                padding: 18px 30px;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            .resumen-datos .row {
+                margin: 0;
+            }
+            .resumen-datos .col-md-6 {
+                padding: 5px;
             }
         }
     </style>
@@ -235,13 +286,21 @@ $datos = $_SESSION['informe_temp'];
                 </ul>
             </div>
             
+            <!-- Botones de acción -->
             <div class="form-group">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <label class="mb-0"><strong>Firma Digital:</strong></label>
-                    <button type="button" class="btn btn-sm btn-warning" id="limpiarFirma">
-                        <i class="fas fa-eraser"></i> Limpiar
+                <div class="d-flex flex-column gap-2 mb-3">
+                    <button type="button" class="btn btn-warning" id="limpiarFirma">
+                        <i class="fas fa-eraser"></i> Limpiar Firma
+                    </button>
+                    <button type="submit" class="btn btn-success" id="guardarBtn" disabled>
+                        <i class="fas fa-save"></i> Guardar Informe
                     </button>
                 </div>
+            </div>
+            
+            <!-- Área de firma -->
+            <div class="form-group">
+                <label class="mb-2"><strong>Firma Digital:</strong></label>
                 <canvas id="signatureCanvas" class="signature-pad"></canvas>
                 <input type="hidden" name="firma_digital" id="firma_digital" required>
                 <div id="firmaConfirmacion" class="text-success mt-2" style="display: none;">
@@ -249,11 +308,9 @@ $datos = $_SESSION['informe_temp'];
                 </div>
             </div>
             
+            <!-- Botón volver -->
             <div class="form-group mt-4">
-                <div class="d-flex flex-column flex-md-row justify-content-center gap-3">
-                    <button type="submit" class="btn btn-success btn-lg mb-2 mb-md-0" id="guardarBtn" disabled>
-                        <i class="fas fa-save"></i> Guardar Informe
-                    </button>
+                <div class="d-flex justify-content-center">
                     <a href="crear.php" class="btn btn-secondary btn-lg">
                         <i class="fas fa-arrow-left"></i> Volver a Datos
                     </a>

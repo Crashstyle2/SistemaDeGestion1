@@ -242,84 +242,10 @@ if ($export === 'excel' && $permitir_exportacion) {
         $sheet = $spreadsheet->getActiveSheet();
         
         // Configurar encabezados
-        $headers = ['Fecha', 'Técnico', 'Conductor', 'Tipo Vehículo', 'Chapa', 'Nº Tarjeta', 'Nº Voucher', 'Litros Cargados', 
+        $headers = ['Fecha', 'Técnico', 'Conductor', 'Tipo Vehículo', 'Chapa', 'Nº Tarjeta', 'Nº Voucher', 'Litros Cargados',
                    'Secuencia', 'Origen', 'Origen Segmento', 'Origen CEBE', 'Origen Localidad', 'Origen M2 Neto',
                    'Destino', 'Destino Segmento', 'Destino CEBE', 'Destino Localidad', 'Destino M2 Neto',
                    'KM entre Sucursales', 'Comentarios', 'Documento'];
-        $sheet->fromArray($headers, null, 'A1');
-        
-        // Estilo para encabezados
-        $headerStyle = [
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '4472C4']],
-            'alignment' => ['horizontal' => 'center']
-        ];
-        $sheet->getStyle('A1:V1')->applyFromArray($headerStyle);
-        
-        // Agregar datos
-        $row = 2;
-        $currentGroup = null;
-        $secuencia = 1;
-        
-        foreach ($registrosParaExportar as $registro) {
-            // Detectar nuevo grupo para reiniciar secuencia
-
-            $groupKey = $registro['fecha_carga'] . '_' . 
-                       $registro['nombre_usuario'] . '_' . 
-                       $registro['nombre_conductor'] . '_' . 
-                       $registro['chapa'] . '_' . 
-                       $registro['numero_baucher'] . '_' . 
-                       $registro['litros_cargados'];
-            
-
-            if (!isset($groupedRecords[$groupKey])) {
-                $groupedRecords[$groupKey] = [];
-            }
-            $groupedRecords[$groupKey][] = $registro;
-        }
-        
-        // Ordenamiento por fecha_registro y ID de recorrido (IGUAL QUE EN LA WEB)
-        foreach ($groupedRecords as $groupKey => &$group) {
-            usort($group, function($a, $b) {
-                $fechaComparison = strtotime($a['fecha_registro']) - strtotime($b['fecha_registro']);
-                if ($fechaComparison === 0) {
-                    return intval($a['recorrido_id']) - intval($b['recorrido_id']);
-                }
-                return $fechaComparison;
-            });
-        }
-        unset($group);
-        
-        // Crear lista ordenada para exportar
-        $registrosParaExportar = [];
-        
-        // Si hay IDs seleccionados, filtrar solo esos registros
-        if (!empty($selected_ids) && is_array($selected_ids)) {
-            foreach ($groupedRecords as $group) {
-                foreach ($group as $registro) {
-                    if (in_array($registro['id'], $selected_ids)) {
-                        $registrosParaExportar[] = $registro;
-                    }
-                }
-            }
-        } else {
-            // Si no hay selección específica, exportar todos los registros ordenados
-            foreach ($groupedRecords as $group) {
-                foreach ($group as $registro) {
-                    $registrosParaExportar[] = $registro;
-                }
-            }
-        }
-        
-        if (!empty($registrosParaExportar)) {
-            $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
-            
-            // Configurar encabezados
-            $headers = ['Fecha', 'Técnico', 'Conductor', 'Tipo Vehículo', 'Chapa', 'Nº Tarjeta', 'Nº Voucher', 'Litros Cargados', 
-                       'Secuencia', 'Origen', 'Origen Segmento', 'Origen CEBE', 'Origen Localidad', 'Origen M2 Neto',
-                       'Destino', 'Destino Segmento', 'Destino CEBE', 'Destino Localidad', 'Destino M2 Neto',
-                       'KM entre Sucursales', 'Comentarios', 'Documento'];
             $sheet->fromArray($headers, null, 'A1');
             
             // Estilo para encabezados
@@ -404,7 +330,6 @@ if ($export === 'excel' && $permitir_exportacion) {
             $writer->save('php://output');
             exit;
         }
-    }
 }
 ?>
 
@@ -1643,19 +1568,39 @@ if ($export === 'excel' && $permitir_exportacion) {
         overflow: hidden;
     }
     
-    /* Corregir z-index del dropdown de acciones */
+    /* Corregir z-index del dropdown de acciones - MEJORADO */
     .dropdown {
         position: relative;
         z-index: 1000;
+        transition: z-index 0s !important; /* Sin transición para cambio inmediato */
+    }
+    
+    /* Dropdown activo tiene mayor z-index */
+    .dropdown.show {
+        z-index: 1060 !important;
     }
     
     .dropdown-menu {
-        z-index: 1050 !important;
+        z-index: 1070 !important;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
         border: 1px solid rgba(0,0,0,0.1) !important;
         border-radius: 8px !important;
         padding: 8px 0 !important;
         min-width: 180px !important;
+        position: absolute !important;
+        transition: none !important; /* Sin transiciones para cambio inmediato */
+    }
+    
+    /* Dropdown menu cuando está visible */
+    .dropdown-menu.show {
+        z-index: 1080 !important;
+    }
+    
+    /* Forzar cierre inmediato de dropdowns no activos */
+    .dropdown:not(.show) .dropdown-menu {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
     }
     
     .dropdown-item {
@@ -1676,7 +1621,7 @@ if ($export === 'excel' && $permitir_exportacion) {
     
     /* Asegurar que la tabla no interfiera con dropdowns */
     .table-responsive {
-        overflow: visible;
+        overflow: visible !important;
     }
     
     /* Permitir que las filas expandibles se muestren completamente */
@@ -1686,6 +1631,16 @@ if ($export === 'excel' && $permitir_exportacion) {
     
     tbody tr:hover {
         z-index: 10;
+    }
+    
+    /* Fila con dropdown activo tiene mayor z-index */
+    tbody tr:has(.dropdown.show) {
+        z-index: 1050 !important;
+    }
+    
+    /* Fallback para navegadores que no soportan :has() */
+    tbody tr.dropdown-active {
+        z-index: 1050 !important;
     }
     </style>
 
@@ -1698,6 +1653,48 @@ jQuery(document).ready(function($) {
     
     // Variables globales
     let idToDelete = null;
+    
+    // MANEJO DE DROPDOWNS - Evitar superposición (MEJORADO)
+    
+    // Función para cerrar todos los dropdowns inmediatamente
+    function cerrarTodosDropdowns() {
+        $('.dropdown').removeClass('show');
+        $('.dropdown-menu').removeClass('show').hide();
+        $('.dropdown-toggle').attr('aria-expanded', 'false');
+        $('tbody tr').removeClass('dropdown-active');
+    }
+    
+    // No interceptar el clic en dropdown-toggle, dejar que Bootstrap lo maneje
+    
+    // Manejar eventos de Bootstrap
+    $(document).on('show.bs.dropdown', '.dropdown', function() {
+        // Cerrar todos los otros dropdowns
+        $('.dropdown').not(this).removeClass('show').find('.dropdown-menu').removeClass('show');
+        $('.dropdown-toggle').not($(this).find('.dropdown-toggle')).attr('aria-expanded', 'false');
+        
+        // Remover clase dropdown-active de todas las filas
+        $('tbody tr').removeClass('dropdown-active');
+        
+        // Agregar clase dropdown-active a la fila actual
+        $(this).closest('tr').addClass('dropdown-active');
+    });
+    
+    $(document).on('hide.bs.dropdown', '.dropdown', function() {
+        // Remover clase dropdown-active de la fila
+        $(this).closest('tr').removeClass('dropdown-active');
+    });
+    
+    // Cerrar dropdowns al hacer clic fuera (más agresivo)
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.dropdown').length) {
+            cerrarTodosDropdowns();
+        }
+    });
+    
+    // Cerrar dropdowns al hacer scroll (prevenir problemas de posicionamiento)
+    $(window).on('scroll', function() {
+        cerrarTodosDropdowns();
+    });
     
     // Manejar clic en botón "Ver foto" - SOLO MODAL COMPLETO (para botones .ver-foto)
     $(document).on('click', '.ver-foto', function(e) {

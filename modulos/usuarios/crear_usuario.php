@@ -118,7 +118,8 @@ if($_POST) {
                         <select name="rol" class="form-control" required>
                             <option value="tecnico">Técnico</option>
                             <option value="administrador">Administrador</option>
-                            <option value="administrativo">Administrativo</option>
+                            <option value="analista">Analista</option>
+                        <option value="supervisor">Supervisor</option>
                         </select>
                     </div>
 

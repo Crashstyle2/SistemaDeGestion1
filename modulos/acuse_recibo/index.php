@@ -87,7 +87,7 @@ $stmt = $acuse->leer();
                                 echo '<div class="btn-group btn-group-sm">';
                                 echo '<a href="ver.php?id=' . $row['id'] . '" class="btn btn-info btn-sm"><i class="fas fa-eye"></i></a>';
                                 
-                                if($_SESSION['user_rol'] === 'administrador') {
+                                if(in_array($_SESSION['user_rol'], ['administrador', 'supervisor'])) {
                                     echo '<a href="editar.php?id=' . $row['id'] . '" class="btn btn-primary btn-sm"><i class="fas fa-edit"></i></a>';
                                     echo '<a href="eliminar.php?id=' . $row['id'] . '" class="btn btn-danger btn-sm" onclick="return confirm(\'¿Está seguro?\')"><i class="fas fa-trash"></i></a>';
                                 }

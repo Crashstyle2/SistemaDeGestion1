@@ -17,8 +17,8 @@ if (!in_array($rol, ['tecnico', 'supervisor', 'administrador'])) {
     exit;
 }
 
-// Verificar permisos de edición para rol administrativo
-if ($rol === 'administrativo') {
+// Verificar permisos de edición para rol analista
+if ($rol === 'analista') {
     header("Location: ver_registros.php?error=sin_permisos");
     exit;
 }

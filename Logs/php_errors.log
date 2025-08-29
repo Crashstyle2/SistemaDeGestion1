@@ -1,11 +1,29 @@
 === LOG DE ERRORES PHP ===
 Creado: 2024-01-01 00:00:00
-[26-Aug-2025 17:59:26 America/Asuncion] ActivityLogger::logAccion llamado con: {"usuario_id":1,"modulo":"uso_combustible","accion":"cerrar_recorrido","detalles":"Recorrido cerrado - ID: 81"}
-[26-Aug-2025 17:59:26 America/Asuncion] Nueva instancia de ActivityLogger creada
-[26-Aug-2025 17:59:26 America/Asuncion] IP detectada: ::1
-[26-Aug-2025 17:59:26 America/Asuncion] Iniciando registro de actividad...
-[26-Aug-2025 17:59:26 America/Asuncion] Base de datos actual: mantenimiento_ups
-[26-Aug-2025 17:59:26 America/Asuncion] Columnas en la tabla: ["id","usuario_id","accion","descripcion","modulo","fecha_hora","ip_address"]
-[26-Aug-2025 17:59:26 America/Asuncion] Preparando para ejecutar con valores: {"tabla":"registro_actividades","usuario_id":1,"modulo":"uso_combustible","accion":"cerrar_recorrido","descripcion":"Recorrido cerrado - ID: 81","ip":"::1"}
-[26-Aug-2025 17:59:26 America/Asuncion] Registro insertado correctamente. ID: 1115
-[26-Aug-2025 17:59:26 America/Asuncion] Resultado del registro: Exitoso
+[28-Aug-2025 11:41:46 America/Asuncion] ActivityLogger::logAccion llamado con: {"usuario_id":1,"modulo":"uso_combustible","accion":"reabrir_recorrido","detalles":"Recorrido reabierto - ID: 82, Motivo: fdf"}
+[28-Aug-2025 11:41:46 America/Asuncion] Nueva instancia de ActivityLogger creada
+[28-Aug-2025 11:41:46 America/Asuncion] IP detectada: ::1
+[28-Aug-2025 11:41:46 America/Asuncion] Iniciando registro de actividad...
+[28-Aug-2025 11:41:46 America/Asuncion] Base de datos actual: mantenimiento_ups
+[28-Aug-2025 11:41:46 America/Asuncion] Columnas en la tabla: ["id","usuario_id","accion","descripcion","modulo","fecha_hora","ip_address"]
+[28-Aug-2025 11:41:46 America/Asuncion] Preparando para ejecutar con valores: {"tabla":"registro_actividades","usuario_id":1,"modulo":"uso_combustible","accion":"reabrir_recorrido","descripcion":"Recorrido reabierto - ID: 82, Motivo: fdf","ip":"::1"}
+[28-Aug-2025 11:41:46 America/Asuncion] Registro insertado correctamente. ID: 1310
+[28-Aug-2025 11:41:46 America/Asuncion] Resultado del registro: Exitoso
+[28-Aug-2025 12:14:50 America/Asuncion] ActivityLogger::logAccion llamado con: {"usuario_id":1,"modulo":"uso_combustible","accion":"reabrir_recorrido","detalles":"Recorrido reabierto - ID: 96, Motivo: prueba"}
+[28-Aug-2025 12:14:50 America/Asuncion] Nueva instancia de ActivityLogger creada
+[28-Aug-2025 12:14:50 America/Asuncion] IP detectada: ::1
+[28-Aug-2025 12:14:50 America/Asuncion] Iniciando registro de actividad...
+[28-Aug-2025 12:14:50 America/Asuncion] Base de datos actual: mantenimiento_ups
+[28-Aug-2025 12:14:50 America/Asuncion] Columnas en la tabla: ["id","usuario_id","accion","descripcion","modulo","fecha_hora","ip_address"]
+[28-Aug-2025 12:14:50 America/Asuncion] Preparando para ejecutar con valores: {"tabla":"registro_actividades","usuario_id":1,"modulo":"uso_combustible","accion":"reabrir_recorrido","descripcion":"Recorrido reabierto - ID: 96, Motivo: prueba","ip":"::1"}
+[28-Aug-2025 12:14:50 America/Asuncion] Registro insertado correctamente. ID: 1392
+[28-Aug-2025 12:14:50 America/Asuncion] Resultado del registro: Exitoso
+[28-Aug-2025 12:15:01 America/Asuncion] ActivityLogger::logAccion llamado con: {"usuario_id":1,"modulo":"uso_combustible","accion":"cerrar_recorrido","detalles":"Recorrido cerrado - ID: 96"}
+[28-Aug-2025 12:15:01 America/Asuncion] Nueva instancia de ActivityLogger creada
+[28-Aug-2025 12:15:01 America/Asuncion] IP detectada: ::1
+[28-Aug-2025 12:15:01 America/Asuncion] Iniciando registro de actividad...
+[28-Aug-2025 12:15:01 America/Asuncion] Base de datos actual: mantenimiento_ups
+[28-Aug-2025 12:15:01 America/Asuncion] Columnas en la tabla: ["id","usuario_id","accion","descripcion","modulo","fecha_hora","ip_address"]
+[28-Aug-2025 12:15:01 America/Asuncion] Preparando para ejecutar con valores: {"tabla":"registro_actividades","usuario_id":1,"modulo":"uso_combustible","accion":"cerrar_recorrido","descripcion":"Recorrido cerrado - ID: 96","ip":"::1"}
+[28-Aug-2025 12:15:01 America/Asuncion] Registro insertado correctamente. ID: 1399
+[28-Aug-2025 12:15:01 America/Asuncion] Resultado del registro: Exitoso

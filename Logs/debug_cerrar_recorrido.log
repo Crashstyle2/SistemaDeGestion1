@@ -129,3 +129,51 @@ Creado: <?php echo date('Y-m-d H:i:s'); ?>[2025-08-22 11:54:46] === INICIO PETIC
 [2025-08-26 17:59:26] Intentando cerrar recorrido - Data: {"id":81,"user_id":1}
 [2025-08-26 17:59:26] Resultado de cerrar recorrido - Data: {"resultado":{"success":true,"message":"Recorrido cerrado exitosamente"}}
 [2025-08-26 17:59:26] Recorrido cerrado exitosamente - Data: {"id":81}
+[2025-08-26 18:50:00] === INICIO PETICIÓN === - Data: {"method":"POST","user_id":46,"user_rol":"tecnico"}
+[2025-08-26 18:50:00] Raw input recibido - Data: "{\"id\":82,\"action\":\"cerrar\"}"
+[2025-08-26 18:50:00] Input decodificado - Data: {"id":82,"action":"cerrar"}
+[2025-08-26 18:50:00] Parámetros extraídos - Data: {"id":82,"action":"cerrar"}
+[2025-08-26 18:50:00] Iniciando conexión a base de datos
+[2025-08-26 18:50:00] Conexión establecida, creando objetos
+[2025-08-26 18:50:00] Objetos creados exitosamente
+[2025-08-26 18:50:00] === PROCESANDO ACCIÓN CERRAR ===
+[2025-08-26 18:50:00] Verificando permisos - Data: {"rol":"tecnico"}
+[2025-08-26 18:50:00] Intentando cerrar recorrido - Data: {"id":82,"user_id":46}
+[2025-08-26 18:50:00] Resultado de cerrar recorrido - Data: {"resultado":{"success":true,"message":"Recorrido cerrado exitosamente"}}
+[2025-08-26 18:50:00] Recorrido cerrado exitosamente - Data: {"id":82}
+[2025-08-28 11:41:46] === INICIO PETICIÓN === - Data: {"method":"POST","user_id":1,"user_rol":"administrador"}
+[2025-08-28 11:41:46] Raw input recibido - Data: "{\"id\":82,\"action\":\"reabrir\",\"motivo\":\"fdf\"}"
+[2025-08-28 11:41:46] Input decodificado - Data: {"id":82,"action":"reabrir","motivo":"fdf"}
+[2025-08-28 11:41:46] Parámetros extraídos - Data: {"id":82,"action":"reabrir"}
+[2025-08-28 11:41:46] Iniciando conexión a base de datos
+[2025-08-28 11:41:46] Conexión establecida, creando objetos
+[2025-08-28 11:41:46] Objetos creados exitosamente
+[2025-08-28 11:41:46] === PROCESANDO ACCIÓN REABRIR ===
+[2025-08-28 11:41:46] Verificando permisos de administrador - Data: {"rol":"administrador"}
+[2025-08-28 11:41:46] Motivo recibido - Data: {"motivo":"fdf"}
+[2025-08-28 11:41:46] Intentando reabrir recorrido - Data: {"id":82,"user_id":1,"motivo":"fdf"}
+[2025-08-28 11:41:46] Resultado de reabrir recorrido - Data: {"resultado":{"success":true,"message":"Recorrido reabierto exitosamente"}}
+[2025-08-28 12:14:50] === INICIO PETICIÓN === - Data: {"method":"POST","user_id":1,"user_rol":"administrador"}
+[2025-08-28 12:14:50] Raw input recibido - Data: "{\"id\":96,\"action\":\"reabrir\",\"motivo\":\"prueba\"}"
+[2025-08-28 12:14:50] Input decodificado - Data: {"id":96,"action":"reabrir","motivo":"prueba"}
+[2025-08-28 12:14:50] Parámetros extraídos - Data: {"id":96,"action":"reabrir"}
+[2025-08-28 12:14:50] Iniciando conexión a base de datos
+[2025-08-28 12:14:50] Conexión establecida, creando objetos
+[2025-08-28 12:14:50] Objetos creados exitosamente
+[2025-08-28 12:14:50] === PROCESANDO ACCIÓN REABRIR ===
+[2025-08-28 12:14:50] Verificando permisos de administrador - Data: {"rol":"administrador"}
+[2025-08-28 12:14:50] Motivo recibido - Data: {"motivo":"prueba"}
+[2025-08-28 12:14:50] Intentando reabrir recorrido - Data: {"id":96,"user_id":1,"motivo":"prueba"}
+[2025-08-28 12:14:50] Resultado de reabrir recorrido - Data: {"resultado":{"success":true,"message":"Recorrido reabierto exitosamente"}}
+[2025-08-28 12:15:01] === INICIO PETICIÓN === - Data: {"method":"POST","user_id":1,"user_rol":"administrador"}
+[2025-08-28 12:15:01] Raw input recibido - Data: "{\"id\":96,\"action\":\"cerrar\"}"
+[2025-08-28 12:15:01] Input decodificado - Data: {"id":96,"action":"cerrar"}
+[2025-08-28 12:15:01] Parámetros extraídos - Data: {"id":96,"action":"cerrar"}
+[2025-08-28 12:15:01] Iniciando conexión a base de datos
+[2025-08-28 12:15:01] Conexión establecida, creando objetos
+[2025-08-28 12:15:01] Objetos creados exitosamente
+[2025-08-28 12:15:01] === PROCESANDO ACCIÓN CERRAR ===
+[2025-08-28 12:15:01] Verificando permisos - Data: {"rol":"administrador"}
+[2025-08-28 12:15:01] Intentando cerrar recorrido - Data: {"id":96,"user_id":1}
+[2025-08-28 12:15:01] Resultado de cerrar recorrido - Data: {"resultado":{"success":true,"message":"Recorrido cerrado exitosamente"}}
+[2025-08-28 12:15:01] Recorrido cerrado exitosamente - Data: {"id":96}

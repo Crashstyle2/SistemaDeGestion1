@@ -4,8 +4,8 @@ function obtenerRolAmigable($rol) {
     switch($rol) {
         case 'administrador':
             return 'Administrador';
-        case 'administrativo':
-            return 'Administrativo';
+        case 'analista':
+        return 'Analista';
         case 'tecnico':
             return 'Técnico';
         case 'supervisor':

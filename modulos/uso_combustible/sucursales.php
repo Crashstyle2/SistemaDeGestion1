@@ -5,8 +5,8 @@ if(!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Verificar que sea administrador o administrativo
-if(!in_array($_SESSION['user_rol'], ['administrador', 'administrativo'])) {
+// Verificar que sea administrador o analista
+if(!in_array($_SESSION['user_rol'], ['administrador', 'supervisor', 'analista'])) {
     header("Location: index.php");
     exit;
 }
@@ -98,6 +98,24 @@ $db = $database->getConnection();
                         </div>
                     </div>
                     <div class="card-body">
+                        <!-- Campo de búsqueda -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    </div>
+                                    <input type="text" class="form-control" id="buscarSucursal" placeholder="Buscar por segmento, CEBE, local o localidad...">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-secondary" id="limpiarBusqueda">
+                                    <i class="fas fa-times mr-2"></i>Limpiar
+                                </button>
+                                <span class="ml-3 text-muted" id="contadorResultados"></span>
+                            </div>
+                        </div>
+                        
                         <div class="table-responsive">
                             <table class="table table-striped table-hover" id="tablaSucursales">
                                 <thead class="thead-dark">
@@ -210,9 +228,24 @@ $db = $database->getConnection();
         modal.modal('show');
     }
     
+    // Variables globales para búsqueda
+    let todasLasSucursales = [];
+    let sucursalesFiltradas = [];
+    
     // Cargar sucursales al iniciar
     $(document).ready(function() {
         cargarSucursales();
+        
+        // Configurar búsqueda en tiempo real
+        $('#buscarSucursal').on('input', function() {
+            filtrarSucursales();
+        });
+        
+        // Botón limpiar búsqueda
+        $('#limpiarBusqueda').on('click', function() {
+            $('#buscarSucursal').val('');
+            filtrarSucursales();
+        });
     });
     
     function cargarSucursales() {
@@ -223,28 +256,10 @@ $db = $database->getConnection();
             dataType: 'json',
             success: function(response) {
                 if(response.success) {
-                    let html = '';
-                    response.data.forEach(function(sucursal) {
-                        html += `
-                            <tr>
-                                <td>${sucursal.id}</td>
-                                <td>${sucursal.segmento}</td>
-                                <td>${sucursal.cebe}</td>
-                                <td>${sucursal.local}</td>
-                                <td>${sucursal.m2_neto}</td>
-                                <td>${sucursal.localidad}</td>
-                                <td>
-                                    <button class="btn btn-sm btn-info" onclick="editarSucursal(${sucursal.id})">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-danger" onclick="eliminarSucursal(${sucursal.id})">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                    });
-                    $('#cuerpoTablaSucursales').html(html);
+                    todasLasSucursales = response.data;
+                    sucursalesFiltradas = [...todasLasSucursales];
+                    mostrarSucursales(sucursalesFiltradas);
+                    actualizarContador();
                 } else {
                     showMessage('error', 'Error', 'No se pudieron cargar las sucursales');
                 }
@@ -253,6 +268,60 @@ $db = $database->getConnection();
                 showMessage('error', 'Error', 'Error de conexión al cargar sucursales');
             }
         });
+    }
+    
+    function mostrarSucursales(sucursales) {
+        let html = '';
+        sucursales.forEach(function(sucursal) {
+            html += `
+                <tr>
+                    <td>${sucursal.id}</td>
+                    <td>${sucursal.segmento}</td>
+                    <td>${sucursal.cebe}</td>
+                    <td>${sucursal.local}</td>
+                    <td>${sucursal.m2_neto}</td>
+                    <td>${sucursal.localidad}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="editarSucursal(${sucursal.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="eliminarSucursal(${sucursal.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        $('#cuerpoTablaSucursales').html(html);
+    }
+    
+    function filtrarSucursales() {
+        const termino = $('#buscarSucursal').val().toLowerCase().trim();
+        
+        if (termino === '') {
+            sucursalesFiltradas = [...todasLasSucursales];
+        } else {
+            sucursalesFiltradas = todasLasSucursales.filter(function(sucursal) {
+                return sucursal.segmento.toLowerCase().includes(termino) ||
+                       sucursal.cebe.toString().includes(termino) ||
+                       sucursal.local.toLowerCase().includes(termino) ||
+                       sucursal.localidad.toLowerCase().includes(termino);
+            });
+        }
+        
+        mostrarSucursales(sucursalesFiltradas);
+        actualizarContador();
+    }
+    
+    function actualizarContador() {
+        const total = todasLasSucursales.length;
+        const filtradas = sucursalesFiltradas.length;
+        
+        if (filtradas === total) {
+            $('#contadorResultados').text(`${total} sucursal(es) total`);
+        } else {
+            $('#contadorResultados').text(`${filtradas} de ${total} sucursal(es)`);
+        }
     }
     
     // Manejar formulario de sucursal
@@ -274,6 +343,8 @@ $db = $database->getConnection();
                     showMessage('success', '¡Éxito!', response.message);
                     $('#formSucursal')[0].reset();
                     $('#sucursal_id').val('');
+                    // Limpiar búsqueda después de agregar/editar
+                    $('#buscarSucursal').val('');
                 } else {
                     showMessage('error', 'Error', response.message);
                 }

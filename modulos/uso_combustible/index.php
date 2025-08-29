@@ -10,7 +10,7 @@ require_once '../../config/Database.php';
 // Verificar el rol del usuario
 $rol = $_SESSION['user_rol'];
 
-if (!in_array($rol, ['tecnico', 'supervisor', 'administrativo', 'administrador'])) {
+if (!in_array($rol, ['tecnico', 'supervisor', 'analista', 'administrador'])) {
     header("Location: ../../dashboard.php");
     exit;
 }
@@ -200,7 +200,7 @@ $sucursales = $stmt_sucursales->fetchAll(PDO::FETCH_ASSOC);
                                 <i class="fas fa-gas-pump mr-2"></i>Registro de Uso de Combustible
                             </h5>
                             <div>
-                                <?php if(in_array($_SESSION['user_rol'], ['administrador', 'administrativo'])): ?>
+                                <?php if(in_array($_SESSION['user_rol'], ['administrador', 'analista'])): ?>
                                 <a href="sucursales.php" class="btn btn-warning btn-sm mr-2">
                                     <i class="fas fa-building mr-2"></i>Gestionar Sucursales
                                 </a>

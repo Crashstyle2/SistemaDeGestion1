@@ -833,7 +833,7 @@ CREATE TABLE `usuarios` (
   `username` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `nombre` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `rol` enum('administrador','tecnico','supervisor','administrativo') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'tecnico',
+  `rol` enum('administrador','tecnico','supervisor','analista') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'tecnico',
   `codigo_tecnico` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `estado` enum('activo','inactivo') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'activo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -872,9 +872,9 @@ INSERT INTO `usuarios` (`id`, `username`, `password`, `nombre`, `rol`, `codigo_t
 (42, 'aramos', '$2y$10$plU918husvqkMmXdg4Rq8OsPEAUiTlCD0NSI3/2IA0v//U8cbKtFa', 'Alejandro Ramos ', 'administrador', NULL, 'activo'),
 (43, 'mvera', '$2y$10$xwPZUE4dzhVcOQJYZ4FlT.gaRR3sxDv7520k9flcsCMQgIIFHvTzi', 'Miguel Vera', 'tecnico', NULL, 'activo'),
 (45, 'talcaraz', '$2y$10$SrvfeIBrKSPmFiXGm2JjH.4fLBQlS.zKqiModd8hjn67YjbLLjJJ6', 'Jonathan Alcaraz', 'tecnico', '1', 'activo'),
-(46, 'jcaceres', '$2y$10$tnbpYMlkf5wUH2piyEkeduqTh3bSj1y8ui3ujsKc02btGx4bV.OEm', 'Juan Caceres', 'administrativo', NULL, 'activo'),
-(47, 'prueba', '$2y$10$G6owZqLfEyin4cWNFLAAtu07ZqqNqr7.Y3VaQQWRjFc9czi6FMSWe', 'prueba', 'administrativo', NULL, 'activo'),
-(48, 'asanabria', '$2y$10$OJMYEYpd6vmh8csu1UxdWOtiQ2qRUu2I5b5q0u0Y..OFHan3hYj92', 'Alicia Sanabria', 'administrativo', NULL, 'activo');
+(46, 'jcaceres', '$2y$10$tnbpYMlkf5wUH2piyEkeduqTh3bSj1y8ui3ujsKc02btGx4bV.OEm', 'Juan Caceres', 'analista', NULL, 'activo'),
+(47, 'prueba', '$2y$10$G6owZqLfEyin4cWNFLAAtu07ZqqNqr7.Y3VaQQWRjFc9czi6FMSWe', 'prueba', 'analista', NULL, 'activo'),
+(48, 'asanabria', '$2y$10$OJMYEYpd6vmh8csu1UxdWOtiQ2qRUu2I5b5q0u0Y..OFHan3hYj92', 'Alicia Sanabria', 'analista', NULL, 'activo');
 
 --
 -- Índices para tablas volcadas

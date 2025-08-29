@@ -230,7 +230,7 @@ $stmt = $mantenimiento->leerConPaginacion($registros_por_pagina, $offset, $busqu
                 <?php endif; ?>
             </div>
             <div>
-                <?php if($_SESSION['user_rol'] === 'administrador'): ?>
+                <?php if(in_array($_SESSION['user_rol'], ['administrador', 'supervisor'])): ?>
                     <a href="crear.php" class="btn btn-primary btn-sm">
                         <i class="fas fa-plus mr-1"></i>Nuevo
                     </a>
@@ -273,7 +273,7 @@ $stmt = $mantenimiento->leerConPaginacion($registros_por_pagina, $offset, $busqu
                                         <i class="fas fa-cog mr-1"></i>Acciones
                                     </button>
                                     <div class="dropdown-menu">
-                                        <?php if($_SESSION['user_rol'] === 'administrador'): ?>
+                                        <?php if(in_array($_SESSION['user_rol'], ['administrador', 'supervisor'])): ?>
                                             <a class="dropdown-item" href="editar.php?id=<?php echo $row['patrimonio']; ?>">
                                                 <i class="fas fa-edit mr-2 text-info"></i>Editar
                                             </a>
@@ -284,7 +284,7 @@ $stmt = $mantenimiento->leerConPaginacion($registros_por_pagina, $offset, $busqu
                                         <a class="dropdown-item" href="historial.php?id=<?php echo $row['patrimonio']; ?>">
                                             <i class="fas fa-history mr-2 text-info"></i>Ver Historial
                                         </a>
-                                        <?php if($_SESSION['user_rol'] === 'administrador'): ?>
+                                        <?php if(in_array($_SESSION['user_rol'], ['administrador', 'supervisor'])): ?>
                                             <div class="dropdown-divider"></div>
                                             <a class="dropdown-item text-danger" href="#" onclick="confirmarEliminacion(<?php echo $row['patrimonio']; ?>)">
                                                 <i class="fas fa-trash-alt mr-2"></i>Eliminar

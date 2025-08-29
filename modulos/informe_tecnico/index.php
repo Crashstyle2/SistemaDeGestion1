@@ -198,7 +198,7 @@ $stmt = $informe->leerTodos($tecnico_id, $limit, $offset, $search_term);
                                     <a href="ver.php?id=<?php echo $row['id']; ?>" class="btn btn-info btn-sm">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <?php if($_SESSION['user_rol'] === 'administrador'): ?>
+                                    <?php if(in_array($_SESSION['user_rol'], ['administrador', 'supervisor'])): ?>
                                     <a href="#" class="btn btn-danger btn-sm eliminar-informe" data-id="<?php echo $row['id']; ?>">
                                         <i class="fas fa-trash"></i>
                                     </a>

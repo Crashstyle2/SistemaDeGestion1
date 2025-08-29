@@ -18,7 +18,7 @@ $database = new Database();
 $db = $database->getConnection();
 
 function verificarPermiso($usuario, $permiso_requerido) {
-    if($_SESSION['user_rol'] === 'administrador') {
+    if(in_array($_SESSION['user_rol'], ['administrador', 'supervisor'])) {
         return true;
     }
     return $usuario->tienePermiso($permiso_requerido);

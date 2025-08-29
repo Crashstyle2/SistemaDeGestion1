@@ -1,0 +1,191 @@
+@startuml Sistema_Gestion_Mantenimiento_UPS
+
+!theme plain
+title Sistema de Gestión de Mantenimiento UPS - Diagrama de Casos de Uso
+
+' Definición de actores
+actor "Administrador" as Admin
+actor "Analista" as Analista  
+actor "Supervisor" as Supervisor
+actor "Técnico" as Tecnico
+
+' Paquetes de casos de uso
+package "Autenticación" {
+  usecase "Iniciar Sesión" as UC001
+  usecase "Cerrar Sesión" as UC002
+  usecase "Cambiar Contraseña" as UC003
+  usecase "Gestionar Sesiones" as UC004
+}
+
+package "Gestión de Usuarios" {
+  usecase "Crear Usuario" as UC005
+  usecase "Editar Usuario" as UC006
+  usecase "Eliminar Usuario" as UC007
+  usecase "Listar Usuarios" as UC008
+}
+
+package "Mantenimiento UPS" {
+  usecase "Registrar UPS" as UC011
+  usecase "Realizar Mantenimiento" as UC014
+  usecase "Ver Historial" as UC015
+  usecase "Exportar UPS" as UC016
+}
+
+package "Informe Técnico" {
+  usecase "Crear Informe" as UC018
+  usecase "Editar Informe" as UC019
+  usecase "Firmar Informe" as UC022
+  usecase "Generar PDF" as UC023
+}
+
+package "Acuse de Recibo" {
+  usecase "Crear Acuse" as UC026
+  usecase "Ver Acuse" as UC028
+  usecase "Generar PDF Acuse" as UC030
+}
+
+package "Uso de Combustible" {
+  usecase "Registrar Combustible" as UC032
+  usecase "Editar Registro" as UC033
+  usecase "Ver Registros" as UC034
+  usecase "Cerrar Recorrido" as UC037
+  usecase "Exportar Excel" as UC040
+  usecase "Consultar Registros\n(Solo Lectura)" as UC044
+}
+
+package "Gestión de Sucursales" {
+  usecase "Agregar Sucursal" as UC047
+  usecase "Editar Sucursal" as UC048
+  usecase "Buscar Sucursales" as UC051
+}
+
+package "Reporte de Cierres" {
+  usecase "Crear Reporte" as UC053
+  usecase "Generar PDF Reporte" as UC057
+  usecase "Ver Reportes" as UC056
+}
+
+package "Reclamos por Zonas" {
+  usecase "Registrar Reclamo" as UC060
+  usecase "Ver Reclamos" as UC063
+  usecase "Exportar Reclamos" as UC064
+}
+
+package "Registro de Actividades" {
+  usecase "Ver Actividades" as UC067
+  usecase "Filtrar Actividades" as UC068
+}
+
+' Relaciones Administrador
+Admin --> UC001
+Admin --> UC002
+Admin --> UC003
+Admin --> UC004
+Admin --> UC005
+Admin --> UC006
+Admin --> UC007
+Admin --> UC008
+Admin --> UC011
+Admin --> UC014
+Admin --> UC015
+Admin --> UC016
+Admin --> UC018
+Admin --> UC019
+Admin --> UC022
+Admin --> UC023
+Admin --> UC026
+Admin --> UC028
+Admin --> UC030
+Admin --> UC032
+Admin --> UC033
+Admin --> UC034
+Admin --> UC037
+Admin --> UC040
+Admin --> UC047
+Admin --> UC048
+Admin --> UC051
+Admin --> UC053
+Admin --> UC056
+Admin --> UC057
+Admin --> UC060
+Admin --> UC063
+Admin --> UC064
+Admin --> UC067
+Admin --> UC068
+
+' Relaciones Analista
+Analista --> UC001
+Analista --> UC002
+Analista --> UC003
+Analista --> UC044
+Analista --> UC047
+Analista --> UC048
+Analista --> UC051
+
+' Relaciones Supervisor (acceso total excepto gestión de usuarios)
+Supervisor --> UC001
+Supervisor --> UC002
+Supervisor --> UC003
+Supervisor --> UC011
+Supervisor --> UC014
+Supervisor --> UC015
+Supervisor --> UC016
+Supervisor --> UC018
+Supervisor --> UC019
+Supervisor --> UC022
+Supervisor --> UC023
+Supervisor --> UC026
+Supervisor --> UC028
+Supervisor --> UC030
+Supervisor --> UC032
+Supervisor --> UC033
+Supervisor --> UC034
+Supervisor --> UC037
+Supervisor --> UC040
+Supervisor --> UC047
+Supervisor --> UC048
+Supervisor --> UC051
+Supervisor --> UC053
+Supervisor --> UC056
+Supervisor --> UC057
+Supervisor --> UC060
+Supervisor --> UC063
+Supervisor --> UC064
+Supervisor --> UC067
+Supervisor --> UC068
+
+' Relaciones Técnico
+Tecnico --> UC001
+Tecnico --> UC002
+Tecnico --> UC003
+Tecnico --> UC011
+Tecnico --> UC014
+Tecnico --> UC015
+Tecnico --> UC016
+Tecnico --> UC018
+Tecnico --> UC019
+Tecnico --> UC022
+Tecnico --> UC023
+Tecnico --> UC026
+Tecnico --> UC028
+Tecnico --> UC030
+Tecnico --> UC032
+Tecnico --> UC033
+Tecnico --> UC034
+Tecnico --> UC037
+Tecnico --> UC040
+
+' Relaciones de extensión y inclusión
+UC018 ..> UC023 : <<extend>>
+UC026 ..> UC030 : <<extend>>
+UC053 ..> UC057 : <<extend>>
+UC032 ..> UC037 : <<extend>>
+UC034 ..> UC040 : <<extend>>
+
+' Notas
+note right of UC044 : Solo lectura para\nrol Analista
+note right of UC005 : Solo disponible\npara Administrador
+note right of UC053 : Solo disponible\npara Administrador
+note right of UC060 : Solo disponible\npara Administrador
+
+@enduml

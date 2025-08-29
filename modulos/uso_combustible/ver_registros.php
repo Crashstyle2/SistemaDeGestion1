@@ -18,7 +18,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 $rol = $_SESSION['user_rol'];
 
 // Permitir acceso a todos los roles válidos
-if (!in_array($rol, ['tecnico', 'supervisor', 'administrativo', 'administrador'])) {
+if (!in_array($rol, ['tecnico', 'supervisor', 'analista', 'administrador'])) {
     header("Location: ../../dashboard.php");
     exit;
 }
@@ -32,6 +32,9 @@ $fecha_inicio = '';
 $fecha_fin = '';
 $export = '';
 $selected_ids = [];
+$estado_recorrido = '';
+$page = 1;
+$records_per_page = 10;
 
 // Verificar si es una exportación (POST) o una búsqueda normal (GET)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export'])) {
@@ -40,12 +43,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export'])) {
     $search = isset($_POST['search']) ? trim($_POST['search']) : '';
     $fecha_inicio = isset($_POST['fecha_inicio']) ? $_POST['fecha_inicio'] : '';
     $fecha_fin = isset($_POST['fecha_fin']) ? $_POST['fecha_fin'] : '';
-    $selected_ids = isset($_POST['selected_ids']) ? $_POST['selected_ids'] : [];
+    $estado_recorrido = isset($_POST['estado_recorrido']) ? $_POST['estado_recorrido'] : '';
+    $selected_ids = isset($_POST['selected_ids']) ? 
+        (is_array($_POST['selected_ids']) ? 
+            array_filter(array_map('intval', $_POST['selected_ids'])) : 
+            array_filter(array_map('intval', explode(',', $_POST['selected_ids'])))
+        ) : [];
 } else {
     // Parámetros de búsqueda vienen por GET
     $search = isset($_GET['search']) ? trim($_GET['search']) : '';
     $fecha_inicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : '';
     $fecha_fin = isset($_GET['fecha_fin']) ? $_GET['fecha_fin'] : '';
+    $estado_recorrido = isset($_GET['estado_recorrido']) ? $_GET['estado_recorrido'] : '';
+    $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
     $export = isset($_GET['export']) ? $_GET['export'] : '';
 }
 
@@ -74,7 +84,7 @@ $sql = "SELECT uc.*, u.nombre as nombre_usuario,
        LEFT JOIN uso_combustible_recorridos ucr ON uc.id = ucr.uso_combustible_id 
        LEFT JOIN sucursales s_origen ON ucr.origen = s_origen.local
        LEFT JOIN sucursales s_destino ON ucr.destino = s_destino.local
-       WHERE 1=1";
+       WHERE ucr.id IS NOT NULL";
 $params = array();
 
 // Verificar el tiempo límite de modificación para técnicos (3 horas)
@@ -99,27 +109,33 @@ if ($rol === 'tecnico') {
     }
     
     $puedeModificar = true;
-} elseif ($rol === 'supervisor' || $rol === 'administrador' || $rol === 'administrativo') {
-    // Supervisores, administradores y administrativos pueden ver todos los registros
+} elseif ($rol === 'supervisor' || $rol === 'administrador' || $rol === 'analista') {
+    // Supervisores, administradores y analistas pueden ver todos los registros
     $puedeModificar = true;
 }
 
-// Agregar filtros si existen - Búsqueda simplificada por palabras clave
+// Agregar filtros si existen - Búsqueda mejorada por palabras clave
 if (!empty($search)) {
     $searchWords = explode(' ', $search);
     $searchConditions = [];
     
     foreach ($searchWords as $word) {
         if (!empty(trim($word))) {
-            $searchConditions[] = "(u.nombre LIKE ? OR uc.nombre_conductor LIKE ? OR uc.chapa LIKE ? OR ucr.origen LIKE ? OR ucr.destino LIKE ? OR uc.numero_baucher LIKE ? OR uc.documento LIKE ? OR uc.tarjeta LIKE ?)";
+            $searchConditions[] = "(u.nombre LIKE ? OR uc.nombre_conductor LIKE ? OR uc.chapa LIKE ? OR ucr.origen LIKE ? OR ucr.destino LIKE ? OR uc.numero_baucher LIKE ? OR uc.documento LIKE ? OR uc.tarjeta LIKE ? OR uc.tipo_vehiculo LIKE ?)";
             $searchParam = "%" . trim($word) . "%";
-            $params = array_merge($params, [$searchParam, $searchParam, $searchParam, $searchParam, $searchParam, $searchParam, $searchParam, $searchParam]);
+            $params = array_merge($params, [$searchParam, $searchParam, $searchParam, $searchParam, $searchParam, $searchParam, $searchParam, $searchParam, $searchParam]);
         }
     }
     
     if (!empty($searchConditions)) {
         $sql .= " AND (" . implode(' OR ', $searchConditions) . ")";
     }
+}
+
+// Filtro por estado del recorrido
+if (!empty($estado_recorrido)) {
+    $sql .= " AND uc.estado_recorrido = ?";
+    $params[] = $estado_recorrido;
 }
 
 // Corregir filtros de fecha - usar DATE() para comparar solo la fecha
@@ -133,11 +149,77 @@ if (!empty($fecha_fin)) {
     $params[] = $fecha_fin;
 }
 
-$sql .= " ORDER BY uc.fecha_registro DESC";
+// Contar total de registros para paginación (solo si no es exportación)
+if ($export !== 'excel') {
+    $countSql = str_replace('SELECT uc.*, u.nombre as nombre_usuario, 
+       ucr.origen, ucr.destino, ucr.km_sucursales, ucr.comentarios_sector,
+
+       uc.fecha_registro, ucr.id as recorrido_id, uc.estado_recorrido,
+       uc.fecha_cierre, uc.cerrado_por, uc.reabierto_por, uc.fecha_reapertura,
+       cerrador.nombre as nombre_cerrador, reabridor.nombre as nombre_reabridor,
+       uc.fecha_registro, ucr.id as recorrido_id,
+
+       s_origen.segmento as origen_segmento, s_origen.cebe as origen_cebe, 
+       s_origen.local as origen_local, s_origen.m2_neto as origen_m2_neto, 
+       s_origen.localidad as origen_localidad,
+       s_destino.segmento as destino_segmento, s_destino.cebe as destino_cebe,
+       s_destino.local as destino_local, s_destino.m2_neto as destino_m2_neto,
+       s_destino.localidad as destino_localidad', 'SELECT COUNT(DISTINCT CONCAT(uc.fecha_carga, "_", u.nombre, "_", uc.nombre_conductor, "_", uc.chapa, "_", uc.numero_baucher, "_", uc.litros_cargados)) as total', $sql);
+    
+    $countStmt = $conn->prepare($countSql);
+    $countStmt->execute($params);
+    $totalRecords = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+    $totalPages = ceil($totalRecords / $records_per_page);
+    
+    // No aplicar LIMIT aquí, se aplicará después de agrupar
+    $sql .= " ORDER BY uc.fecha_registro DESC";
+} else {
+    $sql .= " ORDER BY uc.fecha_registro DESC";
+}
 
 $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 $registros = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Agrupar TODOS los registros primero
+$allGroupedRecords = [];
+foreach ($registros as $registro) {
+    $groupKey = $registro['fecha_carga'] . '_' . 
+               $registro['nombre_usuario'] . '_' . 
+               $registro['nombre_conductor'] . '_' . 
+               $registro['chapa'] . '_' . 
+               $registro['numero_baucher'] . '_' . 
+               $registro['litros_cargados'];
+    
+    if (!isset($allGroupedRecords[$groupKey])) {
+        $allGroupedRecords[$groupKey] = [];
+    }
+    $allGroupedRecords[$groupKey][] = $registro;
+}
+
+// Ordenar cada grupo
+foreach ($allGroupedRecords as $groupKey => &$group) {
+    usort($group, function($a, $b) {
+        $fechaComparison = strtotime($a['fecha_registro']) - strtotime($b['fecha_registro']);
+        if ($fechaComparison === 0) {
+            return intval($a['recorrido_id']) - intval($b['recorrido_id']);
+        }
+        return $fechaComparison;
+    });
+}
+unset($group);
+
+// Recalcular el total de grupos (no registros individuales)
+$totalRecords = count($allGroupedRecords);
+$totalPages = ceil($totalRecords / $records_per_page);
+
+// Aplicar paginación a los grupos
+if ($export !== 'excel') {
+    $offset = ($page - 1) * $records_per_page;
+    $groupedRecords = array_slice($allGroupedRecords, $offset, $records_per_page, true);
+} else {
+    $groupedRecords = $allGroupedRecords;
+}
 
 
 // Verificar recorridos abiertos antes de exportar
@@ -183,33 +265,7 @@ if ($export === 'excel') {
     
     // Solo proceder con la exportación si está permitida
     if ($permitir_exportacion) {
-        // APLICAR LA MISMA LÓGICA DE AGRUPACIÓN Y ORDENAMIENTO
-        $groupedRecords = [];
-        foreach ($registros as $registro) {
-            $groupKey = $registro['fecha_carga'] . '_' . 
-                       $registro['nombre_usuario'] . '_' . 
-                       $registro['nombre_conductor'] . '_' . 
-                       $registro['chapa'] . '_' . 
-                       $registro['numero_baucher'] . '_' . 
-                       $registro['litros_cargados'];
-            
-            if (!isset($groupedRecords[$groupKey])) {
-                $groupedRecords[$groupKey] = [];
-            }
-            $groupedRecords[$groupKey][] = $registro;
-        }
-        
-        // Ordenamiento por fecha_registro y ID de recorrido
-        foreach ($groupedRecords as $groupKey => &$group) {
-            usort($group, function($a, $b) {
-                $fechaComparison = strtotime($a['fecha_registro']) - strtotime($b['fecha_registro']);
-                if ($fechaComparison === 0) {
-                    return intval($a['recorrido_id']) - intval($b['recorrido_id']);
-                }
-                return $fechaComparison;
-            });
-        }
-        unset($group);
+        // $groupedRecords ya está definido y procesado arriba
     }
 }
 
@@ -242,10 +298,8 @@ if ($export === 'excel' && $permitir_exportacion) {
         $sheet = $spreadsheet->getActiveSheet();
         
         // Configurar encabezados
-        $headers = ['Fecha', 'Técnico', 'Conductor', 'Tipo Vehículo', 'Chapa', 'Nº Tarjeta', 'Nº Voucher', 'Litros Cargados',
-                   'Secuencia', 'Origen', 'Origen Segmento', 'Origen CEBE', 'Origen Localidad', 'Origen M2 Neto',
-                   'Destino', 'Destino Segmento', 'Destino CEBE', 'Destino Localidad', 'Destino M2 Neto',
-                   'KM entre Sucursales', 'Comentarios', 'Documento'];
+        $headers = ['Fecha', 'Conductor', 'Chapa', 'Nº Tarjeta', 'Nº Voucher', 'Origen', 'Origen Segmento', 'Origen CEBE',
+                   'Destino', 'Destino Segmento', 'Destino CEBE', 'KM entre Sucursales', 'Comentarios'];
             $sheet->fromArray($headers, null, 'A1');
             
             // Estilo para encabezados
@@ -254,7 +308,7 @@ if ($export === 'excel' && $permitir_exportacion) {
                 'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => '4472C4']],
                 'alignment' => ['horizontal' => 'center']
             ];
-            $sheet->getStyle('A1:V1')->applyFromArray($headerStyle);
+            $sheet->getStyle('A1:M1')->applyFromArray($headerStyle);
             
             // Agregar datos
             $row = 2;
@@ -277,27 +331,18 @@ if ($export === 'excel' && $permitir_exportacion) {
                 
                 $data = [
                     date('d/m/Y H:i', strtotime($registro['fecha_carga'] . ' ' . $registro['hora_carga'])),
-                    $registro['nombre_usuario'] ?? '',
                     $registro['nombre_conductor'] ?? '',
-                    ucfirst(str_replace('_', ' ', $registro['tipo_vehiculo'] ?? '')),
                     $registro['chapa'] ?? '',
                     $registro['tarjeta'] ?? '',
                     $registro['numero_baucher'] ?? '',
-                    $registro['litros_cargados'] ?? 0,
-                    $secuencia . '°', // NUEVA COLUMNA DE SECUENCIA
                     $registro['origen'] ?? '',
                     $registro['origen_segmento'] ?? '',
                     $registro['origen_cebe'] ?? '',
-                    $registro['origen_localidad'] ?? '',
-                    $registro['origen_m2_neto'] ?? '',
                     $registro['destino'] ?? '',
                     $registro['destino_segmento'] ?? '',
                     $registro['destino_cebe'] ?? '',
-                    $registro['destino_localidad'] ?? '',
-                    $registro['destino_m2_neto'] ?? '',
                     $registro['km_sucursales'] ?? 0,
-                    $registro['comentarios_sector'] ?? '',
-                    $registro['documento'] ?? ''
+                    $registro['comentarios_sector'] ?? ''
                 ];
                 $sheet->fromArray($data, null, 'A' . $row);
                 $row++;
@@ -305,7 +350,7 @@ if ($export === 'excel' && $permitir_exportacion) {
             }
             
             // Ajustar ancho de columnas
-            foreach (range('A', 'V') as $col) {
+            foreach (range('A', 'M') as $col) {
                 $sheet->getColumnDimension($col)->setAutoSize(true);
             }
             
@@ -513,7 +558,7 @@ if ($export === 'excel' && $permitir_exportacion) {
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     
-    .table thead th {
+    .table:not(.sub-records-table) thead th {
         background: linear-gradient(135deg, #343a40 0%, #495057 100%);
         color: white;
         border: none;
@@ -573,60 +618,10 @@ if ($export === 'excel' && $permitir_exportacion) {
         transition: max-height 0.3s ease-out;
     }
     
-    /* Estilos para contenedor de sub-registros */
-    .sub-records-container {
-        background: #f8f9fa;
-    }
-    
-    .sub-records-wrapper {
-        padding: 15px;
-        background: white;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        margin: 5px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        width: 100%;
-        min-width: 100%;
-        overflow: visible;
-    }
-    
-    .sub-records-header {
-        border-bottom: 2px solid #007bff;
-        padding-bottom: 10px;
-        margin-bottom: 15px;
-    }
-    
-    .sub-records-header h6 {
-        color: #495057;
-        font-weight: 600;
-        margin: 0;
-    }
-    
-    .sub-records-table {
-        font-size: 0.9em;
-        width: 100%;
-        table-layout: auto;
-        min-width: max-content;
-    }
-    
-    /* Asegurar que el contenedor principal permita el desbordamiento horizontal */
+    /* Estilos simplificados para la nueva estructura */
     .card-body {
         overflow-x: auto;
         overflow-y: visible;
-    }
-    
-    .sub-records-wrapper .table-responsive {
-        overflow: visible;
-        width: 100%;
-    }
-    
-    .sub-records-table thead th {
-        background: #f8f9fa;
-        border-top: none;
-        font-weight: 600;
-        color: #495057;
-        padding: 10px 8px;
-        vertical-align: middle;
     }
     
     .sub-record {
@@ -672,6 +667,11 @@ if ($export === 'excel' && $permitir_exportacion) {
                                 <i class="fas fa-gas-pump mr-2"></i>Registros de Uso de Combustible
                             </h5>
                             <div>
+                                <?php if (in_array($rol, ['administrador', 'analista'])): ?>
+                                <a href="sucursales.php" class="btn btn-success btn-sm mr-2">
+                                    <i class="fas fa-building mr-2"></i>Gestionar Sucursales
+                                </a>
+                                <?php endif; ?>
                                 <a href="index.php" class="btn btn-light btn-sm mr-2">
                                     <i class="fas fa-arrow-left mr-2"></i>Volver
                                 </a>
@@ -702,13 +702,13 @@ if ($export === 'excel' && $permitir_exportacion) {
                             <form method="GET" class="mb-0">
 
                                 <div class="row">
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
                                         <div class="form-group mb-3">
                                             <label for="search"><i class="fas fa-search mr-2"></i>Búsqueda por palabras clave:</label>
                                             <input type="text" id="search" name="search" class="form-control" 
                                                    value="<?php echo htmlspecialchars($search); ?>" 
                                                    placeholder="Ej: Gran Union, Juan, ABC123...">
-                                            <small class="form-text text-muted">Busca en técnico, conductor, chapa, origen, destino, voucher y documento</small>
+                                            <small class="form-text text-muted">Busca en técnico, conductor, chapa, origen, destino, voucher, documento y tipo de vehículo</small>
                                         </div>
                                     </div>
                                     <div class="col-md-2">
@@ -725,6 +725,16 @@ if ($export === 'excel' && $permitir_exportacion) {
                                                    value="<?php echo htmlspecialchars($fecha_fin); ?>">
                                         </div>
                                     </div>
+                                    <div class="col-md-2">
+                                        <div class="form-group mb-3">
+                                            <label for="estado_recorrido">Estado:</label>
+                                            <select id="estado_recorrido" name="estado_recorrido" class="form-control">
+                                                <option value="">Todos</option>
+                                                <option value="abierto" <?php echo $estado_recorrido === 'abierto' ? 'selected' : ''; ?>>Abierto</option>
+                                                <option value="cerrado" <?php echo $estado_recorrido === 'cerrado' ? 'selected' : ''; ?>>Cerrado</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                     <div class="col-md-2 d-flex align-items-end">
                                         <div class="form-group mb-3 w-100">
                                             <button type="submit" class="btn btn-primary btn-block">
@@ -733,15 +743,21 @@ if ($export === 'excel' && $permitir_exportacion) {
                                         </div>
                                     </div>
                                 </div>
-                                <?php if (!empty($search) || !empty($fecha_inicio) || !empty($fecha_fin)): ?>
+                                <?php if (!empty($search) || !empty($fecha_inicio) || !empty($fecha_fin) || !empty($estado_recorrido)): ?>
                                 <div class="row">
                                     <div class="col-12">
                                         <a href="ver_registros.php" class="btn btn-secondary btn-sm">
                                             <i class="fas fa-times mr-2"></i>Limpiar filtros
                                         </a>
+                                        <?php if ($export !== 'excel'): ?>
+                                        <span class="badge badge-info ml-2">
+                                            Página <?php echo $page; ?> de <?php echo $totalPages; ?> (<?php echo $totalRecords; ?> registro(s) total)
+                                        </span>
+                                        <?php else: ?>
                                         <span class="badge badge-info ml-2">
                                             <?php echo count($registros); ?> registro(s) encontrado(s)
                                         </span>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <?php endif; ?>
@@ -769,6 +785,9 @@ if ($export === 'excel' && $permitir_exportacion) {
                                 <?php endif; ?>
                                 <?php if (!empty($fecha_fin)): ?>
                                 <input type="hidden" name="fecha_fin" value="<?php echo htmlspecialchars($fecha_fin); ?>">
+                                <?php endif; ?>
+                                <?php if (!empty($estado_recorrido)): ?>
+                                <input type="hidden" name="estado_recorrido" value="<?php echo htmlspecialchars($estado_recorrido); ?>">
                                 <?php endif; ?>
                                 
                                 <div class="row align-items-center">
@@ -815,61 +834,17 @@ if ($export === 'excel' && $permitir_exportacion) {
                                         <th class="checkbox-column">
                                             <input type="checkbox" class="form-check-input" id="select-all-header" title="Seleccionar/Deseleccionar todos">
                                         </th>
+                                        <th>Ver Recorrido</th>
+                                        <th>Fecha de Carga</th>
                                         <th>Conductor</th>
-                                        <th>Chapa</th>
+                                        <th>Tipo de Vehículo</th>
                                         <th>Nº Voucher</th>
                                         <th>Nº Tarjeta</th>
-                                        <th>Foto Voucher</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php 
-                    // Agrupar registros por carga principal
-                    $groupedRecords = [];
-                    foreach ($registros as $registro) {
-                        $groupKey = $registro['fecha_carga'] . '_' . 
-                                   $registro['nombre_usuario'] . '_' . 
-                                   $registro['nombre_conductor'] . '_' . 
-                                   $registro['chapa'] . '_' . 
-                                   $registro['numero_baucher'] . '_' . 
-                                   $registro['litros_cargados'];
-                        
-                        if (!isset($groupedRecords[$groupKey])) {
-                            $groupedRecords[$groupKey] = [];
-                        }
-                        $groupedRecords[$groupKey][] = $registro;
-                    }
-                    
-                    // NUEVO: Ordenamiento por fecha_registro y ID de recorrido
-
-        foreach ($groupedRecords as $groupKey => &$group) {
-            usort($group, function($a, $b) {
-                // Primero por fecha_registro, luego por ID de recorrido
-                $fechaComparison = strtotime($a['fecha_registro']) - strtotime($b['fecha_registro']);
-                if ($fechaComparison === 0) {
-                    // Si tienen la misma fecha_registro, ordenar por recorrido_id
-                    return intval($a['recorrido_id']) - intval($b['recorrido_id']);
-                }
-                return $fechaComparison;
-            });
-        }
-        unset($group); // Limpiar referencia
-
-                    foreach ($groupedRecords as $groupKey => &$group) {
-                        usort($group, function($a, $b) {
-                            // Primero por fecha_registro, luego por ID de recorrido
-                            $fechaComparison = strtotime($a['fecha_registro']) - strtotime($b['fecha_registro']);
-                            if ($fechaComparison === 0) {
-                                // Si tienen la misma fecha_registro, ordenar por recorrido_id
-                                return intval($a['recorrido_id']) - intval($b['recorrido_id']);
-                            }
-                            return $fechaComparison;
-                        });
-                    }
-                    unset($group); // Limpiar referencia
-
-                    
                     $groupIndex = 0;
                     $totalGroups = count($groupedRecords);
                     $multipleGroups = 0;
@@ -886,206 +861,169 @@ if ($export === 'excel' && $permitir_exportacion) {
                     
                     foreach ($groupedRecords as $groupKey => $group): 
                         $isMultiple = count($group) > 1;
-                        $mainRecord = $group[0]; // Ahora es el PRIMER recorrido registrado cronológicamente
+                        $mainRecord = $group[0]; // Primer recorrido registrado cronológicamente
                         $groupIndex++;
                         
-                        // DEBUG: Información del grupo
-                        echo "<!-- DEBUG Grupo $groupIndex: isMultiple=" . ($isMultiple ? 'true' : 'false') . ", count=" . count($group) . ", key=$groupKey -->";
+                        // Crear parámetros para el enlace de ver recorrido
+                        $groupIds = array_column($group, 'id');
+                        $recorridoParams = 'ids=' . implode(',', $groupIds);
                     ?>
-                                    <!-- Registro principal -->
-                                    <tr class="main-record" data-group="<?php echo $groupIndex; ?>">
+                                    <tr class="main-record">
                                         <td class="text-center">
                                             <input type="checkbox" class="form-check-input main-checkbox" 
-                                                   value="<?php echo $mainRecord['id']; ?>" 
-                                                   data-group="<?php echo $groupIndex; ?>">
+                                                   value="<?php echo $mainRecord['id']; ?>">
                                         </td>
-                                        <td>
-                                            <?php if ($isMultiple): ?>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary expand-btn mr-2" 
-                                                        data-group="<?php echo $groupIndex; ?>" 
-                                                        title="Expandir registros">
-                                                    <i class="fas fa-chevron-right"></i>
-                                                </button>
-                                            <?php endif; ?>
-                                            <?php echo htmlspecialchars($mainRecord['nombre_conductor'] ?? ''); ?>
-                                            <?php if ($isMultiple): ?>
-                                                <span class="badge badge-info ml-2"><?php echo count($group); ?> recorridos</span>
-                                            <?php endif; ?>
+                                        <td class="text-center">
+                                            <a href="ver_recorrido_detalle.php?<?php echo $recorridoParams; ?>" 
+                                               class="btn btn-sm btn-outline-primary" 
+                                               title="Ver recorridos detallados">
+                                                <i class="fas fa-route mr-1"></i>Ver Recorrido
+                                                <?php if ($isMultiple): ?>
+                                                    <span class="badge badge-info ml-1"><?php echo count($group); ?></span>
+                                                <?php endif; ?>
+                                            </a>
                                         </td>
-                                        <td><?php echo htmlspecialchars($mainRecord['chapa'] ?? ''); ?></td>
+                                        <td><?php echo date('d/m/Y H:i', strtotime($mainRecord['fecha_carga'] . ' ' . $mainRecord['hora_carga'])); ?></td>
+                                        <td><?php echo htmlspecialchars($mainRecord['nombre_conductor'] ?? ''); ?></td>
+                                        <td><?php echo ucfirst(str_replace('_', ' ', $mainRecord['tipo_vehiculo'] ?? '')); ?></td>
                                         <td><?php echo htmlspecialchars($mainRecord['numero_baucher'] ?? ''); ?></td>
                                         <td><?php echo htmlspecialchars($mainRecord['tarjeta'] ?? ''); ?></td>
                                         <td class="text-center">
-                                            <?php if (!empty($mainRecord['foto_voucher_ruta']) || !empty($mainRecord['foto_voucher'])): ?>
-                                                <button type="button" class="btn btn-sm btn-info ver-foto-inline" 
-                                                        data-foto="<?php echo htmlspecialchars($mainRecord['foto_voucher']); ?>"
-                                                        data-foto-ruta="<?php echo htmlspecialchars($mainRecord['foto_voucher_ruta']); ?>"
-                                                        title="Ver foto del voucher">
-                                                    <i class="fas fa-image"></i> Ver
-                                                </button>
-                                                <div class="voucher-preview" style="display:none;">
-                                                    <img src="" alt="Foto voucher">
-                                                </div>
-                                            <?php else: ?>
-                                                <span class="text-muted">Sin foto</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td class="text-center">
-                                            <div class="dropdown d-inline-block">
-                                                <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                                    <i class="fas fa-ellipsis-h"></i> Acciones
-                                                </button>
-                                                <div class="dropdown-menu dropdown-menu-right">
-                                                    <div class="px-3 py-2 text-muted">
-                                                        Estado: 
-                                                        <?php if ($mainRecord['estado_recorrido'] === 'abierto'): ?>
-                                                            <span class="badge badge-success">Abierto</span>
-                                                        <?php else: ?>
-                                                            <span class="badge badge-danger">Cerrado</span>
-                                                        <?php endif; ?>
-                                                    </div>
-                                                    <?php if ($mainRecord['estado_recorrido'] === 'abierto' && in_array($rol, ['tecnico', 'supervisor', 'administrador']) && $mainRecord['user_id'] == $_SESSION['user_id']): ?>
-                                                        <a class="dropdown-item" href="#" onclick="cerrarRecorrido(<?php echo $mainRecord['id']; ?>)"><i class="fas fa-lock mr-2"></i>Cerrar Recorrido</a>
-                                                    <?php endif; ?>
-                                                    <?php if ($mainRecord['estado_recorrido'] === 'cerrado' && $rol === 'administrador'): ?>
-                                                        <a class="dropdown-item" href="#" onclick="reabrirRecorrido(<?php echo $mainRecord['id']; ?>)"><i class="fas fa-unlock mr-2"></i>Reabrir Recorrido</a>
-                                                    <?php endif; ?>
-                                                    <?php if ($puedeModificar): ?>
-                                                        <?php if ($mainRecord['estado_recorrido'] === 'cerrado'): ?>
-                                                            <span class="dropdown-item text-muted"><i class="fas fa-edit mr-2"></i>No se puede editar</span>
-                                                        <?php else: ?>
-                                                            <a class="dropdown-item" href="editar_registro.php?id=<?php echo $mainRecord['id']; ?>"><i class="fas fa-edit mr-2"></i>Editar</a>
-                                                        <?php endif; ?>
-                                                    <?php endif; ?>
-                                                    <?php if ($_SESSION['user_rol'] === 'administrador'): ?>
-                                                        <div class="dropdown-divider"></div>
-                                                        <a class="dropdown-item text-danger eliminar-registro" href="#"
-                                                           data-id="<?php echo $mainRecord['id']; ?>"
-                                                           data-conductor="<?php echo htmlspecialchars($mainRecord['nombre_conductor'] ?? ''); ?>"
-                                                           data-chapa="<?php echo htmlspecialchars($mainRecord['chapa'] ?? ''); ?>">
-                                                           <i class="fas fa-trash mr-2"></i>Eliminar
+                                            <!-- Estado del recorrido -->
+                                            <div class="mb-1">
+                                                <?php if ($mainRecord['estado_recorrido'] === 'abierto'): ?>
+                                                    <span class="badge badge-success">Abierto</span>
+                                                <?php else: ?>
+                                                    <span class="badge badge-danger">Cerrado</span>
+                                                <?php endif; ?>
+                                            </div>
+                                            
+                                            <!-- Botones de acción -->
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <!-- Botón Modificar -->
+                                                <?php if ($puedeModificar): ?>
+                                                    <?php if ($mainRecord['estado_recorrido'] === 'cerrado'): ?>
+                                                        <button class="btn btn-secondary" disabled title="No se puede modificar un recorrido cerrado">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                    <?php else: ?>
+                                                        <a class="btn btn-warning" href="editar_registro.php?id=<?php echo $mainRecord['id']; ?>" title="Modificar registro">
+                                                            <i class="fas fa-edit"></i>
                                                         </a>
                                                     <?php endif; ?>
-                                                </div>
+                                                <?php endif; ?>
+                                                
+                                                <!-- Botón Cerrar/Reabrir Recorrido -->
+                                                <?php if ($mainRecord['estado_recorrido'] === 'abierto' && in_array($rol, ['tecnico', 'supervisor', 'administrador']) && ($mainRecord['user_id'] == $_SESSION['user_id'] || in_array($rol, ['supervisor', 'administrador']))): ?>
+                                                    <button class="btn btn-danger" onclick="cerrarRecorrido(<?php echo $mainRecord['id']; ?>)" title="Cerrar recorrido">
+                                                        <i class="fas fa-lock"></i>
+                                                    </button>
+                                                <?php endif; ?>
+                                                <?php if ($mainRecord['estado_recorrido'] === 'cerrado' && $rol === 'administrador'): ?>
+                                                    <button class="btn btn-success" onclick="reabrirRecorrido(<?php echo $mainRecord['id']; ?>)" title="Reabrir recorrido">
+                                                        <i class="fas fa-unlock"></i>
+                                                    </button>
+                                                <?php endif; ?>
+                                                
+                                                <!-- Botón Ver Voucher -->
+                                                <?php if (!empty($mainRecord['foto_voucher_ruta']) || !empty($mainRecord['foto_voucher'])): ?>
+                                                    <button class="btn btn-info ver-foto-inline" 
+                                                           data-foto="<?php echo htmlspecialchars($mainRecord['foto_voucher']); ?>"
+                                                           data-foto-ruta="<?php echo htmlspecialchars($mainRecord['foto_voucher_ruta']); ?>"
+                                                           title="Ver voucher">
+                                                        <i class="fas fa-image"></i>
+                                                    </button>
+                                                <?php endif; ?>
+                                                
+                                                <!-- Botón Eliminar -->
+                                                <?php if ($_SESSION['user_rol'] === 'administrador'): ?>
+                                                    <button class="btn btn-outline-danger eliminar-registro"
+                                                           data-id="<?php echo $mainRecord['id']; ?>"
+                                                           data-conductor="<?php echo htmlspecialchars($mainRecord['nombre_conductor'] ?? ''); ?>"
+                                                           data-chapa="<?php echo htmlspecialchars($mainRecord['chapa'] ?? ''); ?>"
+                                                           title="Eliminar registro">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>
-                                    
-                                    <?php if ($isMultiple): ?>
-                                    <!-- Subtabla para registros adicionales -->
-                                    <tr class="sub-records-container" data-group="<?php echo $groupIndex; ?>" style="display: none;">
-                                        <td colspan="7">
-                                            <div class="sub-table-container">
-                                                <div class="sub-table-header">
-                                                    <h6><i class="fas fa-route mr-2"></i>Todos los recorridos (<?php echo count($group); ?>)</h6>
-                                                    <div class="sub-table-controls">
-                                                        <input type="checkbox" class="form-check-input sub-select-all" 
-                                                               data-group="<?php echo $groupIndex; ?>" 
-                                                               title="Seleccionar/Deseleccionar todos los sub-registros">
-                                                        <label class="form-check-label ml-2">Seleccionar todos</label>
-                                                    </div>
-                                                </div>
-                                                <table class="table table-sm table-bordered sub-table">
-                                                    <thead class="thead-light">
-                                                        <tr>
-                                                            <th width="40">Sel.</th>
-                                                            <th>Fecha/Hora</th>
-                                                            <th>Tipo Vehículo</th>
-                                                            <th>Conductor</th>
-                                                            <th>Chapa</th>
-                                                            <th>Nº Voucher</th>
-                                                            <th>Nº Tarjeta</th>
-                                                            <th>Litros</th>
-                                                            <th>Origen</th>
-                                                            <th>Destino</th>
-                                                            <th>Documento</th>
-                                                            <th>Foto</th>
-                                                            <th>Acciones</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        <?php for ($i = 0; $i < count($group); $i++): 
-                                                            $subRecord = $group[$i];
-                                                        ?>
-                                                        <tr>
-                                                            <td class="text-center">
-                                                                <input type="checkbox" class="form-check-input sub-checkbox" 
-                                                                       value="<?php echo $subRecord['id']; ?>" 
-                                                                       data-group="<?php echo $groupIndex; ?>">
-                                                            </td>
-                                                            <td><?php echo date('d/m/Y H:i', strtotime($subRecord['fecha_carga'] . ' ' . $subRecord['hora_carga'])); ?></td>
-                                                            <td><?php echo ucfirst(str_replace('_', ' ', $subRecord['tipo_vehiculo'] ?? '')); ?></td>
-                                                            <td><?php echo htmlspecialchars($subRecord['nombre_conductor'] ?? ''); ?></td>
-                                                            <td><?php echo htmlspecialchars($subRecord['chapa'] ?? ''); ?></td>
-                                                            <td><?php echo htmlspecialchars($subRecord['numero_baucher'] ?? ''); ?></td>
-                                                            <td><?php echo htmlspecialchars($subRecord['tarjeta'] ?? ''); ?></td>
-                                                            <td><?php echo number_format($subRecord['litros_cargados'] ?? 0, 2); ?></td>
-                                                            <td><?php echo htmlspecialchars($subRecord['origen'] ?? ''); ?></td>
-                                                            <td><?php echo htmlspecialchars($subRecord['destino'] ?? ''); ?></td>
-                                                            <td><?php echo htmlspecialchars($subRecord['documento'] ?? ''); ?></td>
-                                                            <td class="text-center">
-                                                                <?php if (!empty($subRecord['foto_voucher_ruta']) || !empty($subRecord['foto_voucher'])): ?>
-                                                                    <button type="button" class="btn btn-sm btn-info ver-foto-inline" 
-                                                                            data-foto="<?php echo htmlspecialchars($subRecord['foto_voucher']); ?>"
-                                                                            data-foto-ruta="<?php echo htmlspecialchars($subRecord['foto_voucher_ruta']); ?>"
-                                                                            title="Ver foto del voucher">
-                                                                        <i class="fas fa-image"></i>
-                                                                    </button>
-                                                                <?php else: ?>
-                                                                    <span class="text-muted">-</span>
-                                                                <?php endif; ?>
-                                                            </td>
-                                                            <td class="text-center">
-                                                                <div class="dropdown d-inline-block">
-                                                                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-toggle="dropdown">
-                                                                        <i class="fas fa-ellipsis-h"></i>
-                                                                    </button>
-                                                                    <div class="dropdown-menu dropdown-menu-right">
-                                                                        <div class="px-3 py-2 text-muted">
-                                                                            Estado: 
-                                                                            <?php if ($subRecord['estado_recorrido'] === 'abierto'): ?>
-                                                                                <span class="badge badge-success">Abierto</span>
-                                                                            <?php else: ?>
-                                                                                <span class="badge badge-danger">Cerrado</span>
-                                                                            <?php endif; ?>
-                                                                        </div>
-                                                                        <?php if ($subRecord['estado_recorrido'] === 'abierto' && in_array($rol, ['tecnico', 'supervisor', 'administrador']) && $subRecord['user_id'] == $_SESSION['user_id']): ?>
-                                                                            <a class="dropdown-item" href="#" onclick="cerrarRecorrido(<?php echo $subRecord['id']; ?>)"><i class="fas fa-lock mr-2"></i>Cerrar</a>
-                                                                        <?php endif; ?>
-                                                                        <?php if ($subRecord['estado_recorrido'] === 'cerrado' && $rol === 'administrador'): ?>
-                                                                            <a class="dropdown-item" href="#" onclick="reabrirRecorrido(<?php echo $subRecord['id']; ?>)"><i class="fas fa-unlock mr-2"></i>Reabrir</a>
-                                                                        <?php endif; ?>
-                                                                        <?php if ($puedeModificar): ?>
-                                                                            <?php if ($subRecord['estado_recorrido'] === 'cerrado'): ?>
-                                                                                <span class="dropdown-item text-muted"><i class="fas fa-edit mr-2"></i>No editable</span>
-                                                                            <?php else: ?>
-                                                                                <a class="dropdown-item" href="editar_registro.php?id=<?php echo $subRecord['id']; ?>"><i class="fas fa-edit mr-2"></i>Editar</a>
-                                                                            <?php endif; ?>
-                                                                        <?php endif; ?>
-                                                                        <?php if ($_SESSION['user_rol'] === 'administrador'): ?>
-                                                                            <div class="dropdown-divider"></div>
-                                                                            <a class="dropdown-item text-danger eliminar-registro" href="#"
-                                                                               data-id="<?php echo $subRecord['id']; ?>"
-                                                                               data-conductor="<?php echo htmlspecialchars($subRecord['nombre_conductor'] ?? ''); ?>"
-                                                                               data-chapa="<?php echo htmlspecialchars($subRecord['chapa'] ?? ''); ?>">
-                                                                               <i class="fas fa-trash mr-2"></i>Eliminar
-                                                                            </a>
-                                                                        <?php endif; ?>
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                        <?php endfor; ?>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <?php endif; ?>
                                 <?php endforeach; ?>
                                 </tbody>
                             </table>
                         </div>
+                        
+                        <!-- Controles de paginación -->
+                        <?php if ($export !== 'excel' && $totalPages > 1): ?>
+                        <nav aria-label="Paginación de registros" class="mt-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small class="text-muted">
+                                        Mostrando <?php echo (($page - 1) * $records_per_page) + 1; ?> - 
+                                        <?php echo min($page * $records_per_page, $totalRecords); ?> 
+                                        de <?php echo $totalRecords; ?> registros
+                                    </small>
+                                </div>
+                                <ul class="pagination pagination-sm mb-0">
+                                    <!-- Botón Anterior -->
+                                    <?php if ($page > 1): ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">
+                                                <i class="fas fa-chevron-left"></i> Anterior
+                                            </a>
+                                        </li>
+                                    <?php else: ?>
+                                        <li class="page-item disabled">
+                                            <span class="page-link"><i class="fas fa-chevron-left"></i> Anterior</span>
+                                        </li>
+                                    <?php endif; ?>
+                                    
+                                    <!-- Números de página -->
+                                    <?php
+                                    $start_page = max(1, $page - 2);
+                                    $end_page = min($totalPages, $page + 2);
+                                    
+                                    if ($start_page > 1): ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
+                                        </li>
+                                        <?php if ($start_page > 2): ?>
+                                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                    
+                                    <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
+                                        <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>"><?php echo $i; ?></a>
+                                        </li>
+                                    <?php endfor; ?>
+                                    
+                                    <?php if ($end_page < $totalPages): ?>
+                                        <?php if ($end_page < $totalPages - 1): ?>
+                                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                                        <?php endif; ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $totalPages])); ?>"><?php echo $totalPages; ?></a>
+                                        </li>
+                                    <?php endif; ?>
+                                    
+                                    <!-- Botón Siguiente -->
+                                    <?php if ($page < $totalPages): ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">
+                                                Siguiente <i class="fas fa-chevron-right"></i>
+                                            </a>
+                                        </li>
+                                    <?php else: ?>
+                                        <li class="page-item disabled">
+                                            <span class="page-link">Siguiente <i class="fas fa-chevron-right"></i></span>
+                                        </li>
+                                    <?php endif; ?>
+                                </ul>
+                            </div>
+                        </nav>
+                        <?php endif; ?>
+                        
                         <?php endif; ?>
                     </div>
                 </div>
@@ -2052,87 +1990,7 @@ jQuery(document).ready(function($) {
         }
     });
     
-    // 4. FUNCIONALIDAD EXPANDIR/CONTRAER - NUEVA VERSIÓN CON SUBTABLA
-    $(document).on('click', '.expand-btn', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        console.log('🔄 Botón expandir clickeado');
-        
-        const $button = $(this);
-        const groupId = $button.data('group');
-        const $icon = $button.find('i');
-        const $subRecordsContainer = $('.sub-records-container[data-group="' + groupId + '"]');
-        
-        console.log('📊 Grupo ID:', groupId);
-        console.log('📋 Contenedor de sub-registros encontrado:', $subRecordsContainer.length);
-        
-        if ($subRecordsContainer.length === 0) {
-            console.warn('⚠️ No se encontró contenedor de sub-registros para el grupo:', groupId);
-            return;
-        }
-        
-        try {
-            // Verificar estado actual
-            if ($subRecordsContainer.is(':visible')) {
-                // Contraer
-                $subRecordsContainer.hide();
-                $icon.removeClass('fa-chevron-down').addClass('fa-chevron-right');
-                $button.removeClass('expanded');
-                $button.attr('title', 'Expandir registros');
-                console.log('📥 Grupo contraído:', groupId);
-
-                
-                // Logging de contracción
-                $.post('../../config/log_activity.php', {
-                    action: 'log',
-                    modulo: 'uso_combustible',
-                    accion: 'contraer_grupo_interfaz',
-                    detalle: `Grupo de recorridos contraído - Grupo ID: ${groupId}`
-                });
-
-            } else {
-                // Expandir
-                $subRecordsContainer.show();
-                $icon.removeClass('fa-chevron-right').addClass('fa-chevron-down');
-                $button.addClass('expanded');
-                $button.attr('title', 'Contraer registros');
-                console.log('📤 Grupo expandido:', groupId);
-
-                
-                // Logging de expansión
-                $.post('../../config/log_activity.php', {
-                    action: 'log',
-                    modulo: 'uso_combustible',
-                    accion: 'expandir_grupo_interfaz',
-                    detalle: `Grupo de recorridos expandido - Grupo ID: ${groupId}`
-                });
-
-            }
-        } catch (error) {
-            console.error('❌ Error al expandir/contraer:', error);
-        }
-    });
-    
-    // 4.1. FUNCIONALIDAD CHECKBOX SUBTABLAS
-    $(document).on('change', '.sub-select-all', function() {
-        const groupId = $(this).data('group');
-        const isChecked = $(this).prop('checked');
-        const $subCheckboxes = $('.sub-records-container[data-group="' + groupId + '"] .sub-checkbox');
-        
-        console.log('🔄 Seleccionar todo subtabla - Grupo:', groupId, 'Checked:', isChecked);
-        
-        $subCheckboxes.prop('checked', isChecked);
-        updateSelectionInfo();
-        
-        // Logging
-        $.post('../../config/log_activity.php', {
-            action: 'log',
-            modulo: 'uso_combustible',
-            accion: isChecked ? 'seleccionar_todos_subtabla' : 'deseleccionar_todos_subtabla',
-            detalle: `${isChecked ? 'Seleccionados' : 'Deseleccionados'} todos los sub-registros del grupo ${groupId}`
-        });
-    });
+    // 4. FUNCIONALIDAD SIMPLIFICADA - SIN SUBTABLAS
     
 
 
@@ -2162,10 +2020,10 @@ jQuery(document).ready(function($) {
     function handleMainCheckbox(element) {
         try {
             const $checkbox = $(element);
-            const groupId = $checkbox.data('group');
+            const recordId = $checkbox.val();
             const isChecked = $checkbox.is(':checked');
             
-            console.log('📋 Checkbox principal grupo ' + groupId + ': ' + (isChecked ? 'seleccionado' : 'deseleccionado'));
+            console.log('📋 Checkbox registro ' + recordId + ': ' + (isChecked ? 'seleccionado' : 'deseleccionado'));
             
             updateSelectionInfo();
             
@@ -2173,8 +2031,8 @@ jQuery(document).ready(function($) {
             $.post('../../config/log_activity.php', {
                 action: 'log',
                 modulo: 'uso_combustible',
-                accion: isChecked ? 'seleccionar_registro_principal' : 'deseleccionar_registro_principal',
-                detalle: 'Registro principal grupo ' + groupId + ' ' + (isChecked ? 'seleccionado' : 'deseleccionado')
+                accion: isChecked ? 'seleccionar_registro' : 'deseleccionar_registro',
+                detalle: 'Registro ID ' + recordId + ' ' + (isChecked ? 'seleccionado' : 'deseleccionado')
             }).fail(function() {
                 console.warn('⚠️ Error al registrar log de selección');
             });

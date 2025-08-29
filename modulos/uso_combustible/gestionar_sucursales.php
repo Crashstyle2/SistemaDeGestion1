@@ -3,8 +3,8 @@ session_start();
 require_once '../../config/Database.php';
 require_once '../../config/ActivityLogger.php'; // AGREGAR ESTA LÍNEA
 
-// Verificar que sea administrador o administrativo
-if(!isset($_SESSION['user_id']) || !in_array($_SESSION['user_rol'], ['administrador', 'administrativo'])) {
+// Verificar que sea administrador, supervisor o analista
+if(!isset($_SESSION['user_id']) || !in_array($_SESSION['user_rol'], ['administrador', 'supervisor', 'analista'])) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Acceso denegado']);
     exit;

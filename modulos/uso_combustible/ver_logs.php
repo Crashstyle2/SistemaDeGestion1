@@ -3,7 +3,7 @@
 require_once '../../config/session.php';
 
 // Solo administradores pueden ver los logs
-if (!isset($_SESSION['user_rol']) || $_SESSION['user_rol'] !== 'administrador') {
+if (!isset($_SESSION['user_rol']) || !in_array($_SESSION['user_rol'], ['administrador', 'supervisor'])) {
     die('Acceso denegado. Solo administradores pueden ver los logs.');
 }
 

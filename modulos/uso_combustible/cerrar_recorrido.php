@@ -147,8 +147,8 @@ try {
             ]);
         }
         
-        // Verificar que el usuario sea el propietario del registro (excepto administradores)
-        if ($rol !== 'administrador') {
+        // Verificar que el usuario sea el propietario del registro (excepto administradores y supervisores)
+        if (!in_array($rol, ['administrador', 'supervisor'])) {
             $query = "SELECT user_id FROM uso_combustible WHERE id = ?";
             $stmt = $conn->prepare($query);
             $stmt->execute([$id]);
@@ -193,11 +193,11 @@ try {
         logDebug('=== PROCESANDO ACCIÓN REABRIR ===');
         // Solo administradores pueden reabrir
         logDebug('Verificando permisos de administrador', ['rol' => $_SESSION['user_rol']]);
-        if ($_SESSION['user_rol'] !== 'administrador') {
-            logDebug('ERROR: Sin permisos de administrador para reabrir');
+        if (!in_array($_SESSION['user_rol'], ['administrador', 'supervisor'])) {
+            logDebug('ERROR: Sin permisos de administrador/supervisor para reabrir');
             sendJsonResponse([
                 'success' => false,
-                'message' => 'Solo los administradores pueden reabrir recorridos'
+                'message' => 'Solo los administradores y supervisores pueden reabrir recorridos'
             ]);
         }
         

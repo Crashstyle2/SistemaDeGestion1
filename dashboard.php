@@ -21,8 +21,8 @@ function obtenerRolAmigable($rol) {
     switch($rol) {
         case 'administrador':
             return 'Administrador';
-        case 'administrativo':
-            return 'Administrativo';
+        case 'analista':
+        return 'Analista';
         case 'tecnico':
             return 'Técnico';
         case 'supervisor':
@@ -69,8 +69,8 @@ function obtenerRolAmigable($rol) {
     <div class="container mt-4">
         <h1 class="mb-4">Panel de Control</h1>
         <div class="row">
-            <!-- Módulo UPS - Oculto para rol administrativo -->
-            <?php if($_SESSION['user_rol'] !== 'administrativo'): ?>
+            <!-- Módulo UPS - Oculto para rol analista -->
+            <?php if($_SESSION['user_rol'] !== 'analista'): ?>
             <div class="col-md-4 mb-4">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body d-flex flex-column">
@@ -104,7 +104,11 @@ function obtenerRolAmigable($rol) {
                 </div>
             </div>
 
-            <!-- Nuevo Módulo Reporte de Cierres - Solo para administradores -->
+            <?php endif; ?>
+            
+            <!-- Módulos Reporte de Cierres y Reclamos por Zonas - Para administradores y supervisores -->
+            <?php if(in_array($_SESSION['user_rol'], ['administrador', 'supervisor'])): ?>
+            <!-- Nuevo Módulo Reporte de Cierres -->
             <div class="col-md-4 mb-4">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body d-flex flex-column">
@@ -137,7 +141,8 @@ function obtenerRolAmigable($rol) {
             </div>
             <?php endif; ?>
             
-            <!-- Módulos visibles para todos los usuarios -->
+            <!-- Módulos visibles para todos los usuarios excepto analista -->
+            <?php if($_SESSION['user_rol'] !== 'analista'): ?>
             <div class="col-md-4 mb-4">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body d-flex flex-column">
@@ -167,9 +172,10 @@ function obtenerRolAmigable($rol) {
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
 
             <!-- Módulo Uso de Combustible - Visible para todos los roles autorizados -->
-            <?php if(in_array($_SESSION['user_rol'], ['administrador', 'tecnico', 'supervisor', 'administrativo'])): ?>
+            <?php if(in_array($_SESSION['user_rol'], ['administrador', 'tecnico', 'supervisor', 'analista'])): ?>
             <div class="col-md-4 mb-4">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body d-flex flex-column">
@@ -178,15 +184,21 @@ function obtenerRolAmigable($rol) {
                         </div>
                         <h5 class="card-title text-center">Uso de Combustible</h5>
                         <p class="card-text text-center flex-grow-1">
-                            <?php if($_SESSION['user_rol'] === 'administrativo'): ?>
+                            <?php if($_SESSION['user_rol'] === 'analista'): ?>
                                 Consulta de registros de combustible (Solo lectura)
                             <?php else: ?>
                                 Registro y control de uso de combustible
                             <?php endif; ?>
                         </p>
+                        <?php if($_SESSION['user_rol'] === 'analista'): ?>
+                        <a href="modulos/uso_combustible/ver_registros.php" class="btn btn-info mt-auto">
+                            <i class="fas fa-folder-open mr-2"></i>Acceder
+                        </a>
+                        <?php else: ?>
                         <a href="modulos/uso_combustible/index.php" class="btn btn-info mt-auto">
                             <i class="fas fa-folder-open mr-2"></i>Acceder
                         </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
